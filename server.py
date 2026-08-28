@@ -1,18 +1,20 @@
 import os
 import sqlite3
 import json
-from fastapi import FastAPI, HTTPException, Depends
+import io
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from google import genai
+from pypdf import PdfReader
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="NexJob AI API")
+app = FastAPI(title="NexJob AI - Enterprise Career Engine")
 security = HTTPBasic()
 
 app.add_middleware(
@@ -23,7 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------------- SQLite Database Setup -----------------
 DB_PATH = "nexjob.db"
 
 def init_db():
@@ -37,6 +38,10 @@ def init_db():
             target_role TEXT DEFAULT '',
             skills TEXT DEFAULT '',
             resume TEXT DEFAULT '',
+            linkedin_url TEXT DEFAULT '',
+            github_url TEXT DEFAULT '',
+            portfolio_url TEXT DEFAULT '',
+            auth_provider TEXT DEFAULT 'local',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -50,7 +55,7 @@ def init_db():
             status TEXT NOT NULL,
             tags TEXT NOT NULL,
             jd TEXT NOT NULL,
-            FOREIGN KEY (user_email) REFERENCES users(email)
+            FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
         )
     """)
     conn.commit()
@@ -58,10 +63,15 @@ def init_db():
 
 init_db()
 
-# ----------------- Models -----------------
+# Models
 class AuthRequest(BaseModel):
     email: str
     password: str
+
+class GoogleAuthRequest(BaseModel):
+    credential: str
+    email: str
+    name: str | None = None
 
 class ProfileRequest(BaseModel):
     email: str
@@ -69,6 +79,9 @@ class ProfileRequest(BaseModel):
     target_role: str
     skills: str
     resume: str
+    linkedin_url: str = ""
+    github_url: str = ""
+    portfolio_url: str = ""
 
 class JobPayload(BaseModel):
     id: str
@@ -80,21 +93,41 @@ class JobPayload(BaseModel):
     tags: list[str]
     jd: str
 
-class GeminiRequest(BaseModel):
-    action: str
+class DecisionRequest(BaseModel):
     role: str
     company: str
     jd: str
     resume: str
+    linkedin: str | None = ""
+    github: str | None = ""
     apiKey: str | None = None
 
-# ----------------- Auth & User Endpoints -----------------
+# PDF Parsing Endpoint
+@app.post("/api/resume/upload-pdf")
+async def upload_pdf_resume(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF format files are supported.")
+    try:
+        content = await file.read()
+        pdf_reader = PdfReader(io.BytesIO(content))
+        extracted_text = ""
+        for page in pdf_reader.pages:
+            text = page.extract_text()
+            if text:
+                extracted_text += text + "\n"
+        if not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF.")
+        return {"extracted_text": extracted_text.strip()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
+
+# Authentication Endpoints
 @app.post("/api/auth/signup")
 async def signup(payload: AuthRequest):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO users (email, password) VALUES (?, ?)", (payload.email, payload.password))
+        cursor.execute("INSERT INTO users (email, password, auth_provider) VALUES (?, ?, 'local')", (payload.email, payload.password))
         conn.commit()
         return {"status": "success", "email": payload.email}
     except sqlite3.IntegrityError:
@@ -106,7 +139,7 @@ async def signup(payload: AuthRequest):
 async def login(payload: AuthRequest):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT email, full_name, target_role, skills, resume FROM users WHERE email=? AND password=?", (payload.email, payload.password))
+    cursor.execute("SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url FROM users WHERE email=? AND password=?", (payload.email, payload.password))
     user = cursor.fetchone()
     conn.close()
     if not user:
@@ -117,9 +150,27 @@ async def login(payload: AuthRequest):
             "fullName": user[1],
             "targetRole": user[2],
             "skills": user[3],
-            "resume": user[4]
+            "resume": user[4],
+            "linkedin": user[5],
+            "github": user[6],
+            "portfolio": user[7]
         }
     }
+
+@app.post("/api/auth/google")
+async def google_auth(payload: GoogleAuthRequest):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url FROM users WHERE email=?", (payload.email,))
+    user = cursor.fetchone()
+    if not user:
+        cursor.execute("INSERT INTO users (email, password, full_name, auth_provider) VALUES (?, 'google_oauth_user', ?, 'google')", (payload.email, payload.name or ''))
+        conn.commit()
+        user_profile = {"fullName": payload.name or "", "targetRole": "", "skills": "", "resume": "", "linkedin": "", "github": "", "portfolio": ""}
+    else:
+        user_profile = {"fullName": user[1], "targetRole": user[2], "skills": user[3], "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]}
+    conn.close()
+    return {"email": payload.email, "profile": user_profile}
 
 @app.post("/api/profile/save")
 async def save_profile(payload: ProfileRequest):
@@ -127,14 +178,24 @@ async def save_profile(payload: ProfileRequest):
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE users 
-        SET full_name=?, target_role=?, skills=?, resume=? 
+        SET full_name=?, target_role=?, skills=?, resume=?, linkedin_url=?, github_url=?, portfolio_url=?
         WHERE email=?
-    """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.email))
+    """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.linkedin_url, payload.github_url, payload.portfolio_url, payload.email))
     conn.commit()
     conn.close()
     return {"status": "success"}
 
-# ----------------- Job Data Endpoints -----------------
+@app.delete("/api/account/delete")
+async def delete_account(email: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM jobs WHERE user_email=?", (email,))
+    cursor.execute("DELETE FROM users WHERE email=?", (email,))
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": "Account and all associated records permanently purged."}
+
+# Job Pipeline Endpoints
 @app.get("/api/jobs")
 async def get_jobs(email: str):
     conn = sqlite3.connect(DB_PATH)
@@ -142,17 +203,7 @@ async def get_jobs(email: str):
     cursor.execute("SELECT id, company, role, date, status, tags, jd FROM jobs WHERE user_email=?", (email,))
     rows = cursor.fetchall()
     conn.close()
-    jobs = []
-    for r in rows:
-        jobs.append({
-            "id": r[0],
-            "company": r[1],
-            "role": r[2],
-            "date": r[3],
-            "status": r[4],
-            "tags": json.loads(r[5]),
-            "jd": r[6]
-        })
+    jobs = [{"id": r[0], "company": r[1], "role": r[2], "date": r[3], "status": r[4], "tags": json.loads(r[5]), "jd": r[6]} for r in rows]
     return {"jobs": jobs}
 
 @app.post("/api/jobs/save")
@@ -176,47 +227,44 @@ async def update_job_status(data: dict):
     conn.close()
     return {"status": "success"}
 
-# ----------------- AI Copilot Endpoint -----------------
-@app.post("/api/gemini")
-async def generate_career_intelligence(payload: GeminiRequest):
+# Smart Decision Engine (85% Match Logic)
+@app.post("/api/gemini/smart-decision")
+async def execute_smart_decision(payload: DecisionRequest):
     api_key = payload.apiKey or os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=400, detail="Gemini API Key missing.")
 
     client = genai.Client(api_key=api_key)
 
-    if payload.action == "match":
-        prompt = f"""
-Analyze the alignment between the Candidate Profile and the Target Job Description.
-Target Role: {payload.role} at {payload.company}
+    prompt = f"""
+You are the Chief AI Career Strategist on NexJob AI.
+Analyze the alignment between the Candidate Background and the Target Role.
+
+TARGET APPLICATION:
+Role: {payload.role} at {payload.company}
 Job Description: {payload.jd}
-Candidate Profile: {payload.resume}
 
-Provide structured output formatted in clean Markdown:
-### Match Score: [Score between 0% and 100%]
-**Executive Summary:** 2-sentence summary of overall fit.
+CANDIDATE PROFILE:
+Resume Content: {payload.resume}
+LinkedIn: {payload.linkedin}
+GitHub: {payload.github}
 
-#### Top Matching Competencies
-- Strengths aligned with requirements.
+EVALUATION PROTOCOL:
+1. First, calculate an exact Match Score between 0% and 100%.
+2. IF Match Score is >= 85%:
+   - Label: 'HIGH FIT (MATCH >= 85%)'
+   - Confirm candidate is strongly positioned for this target role.
+   - Output 3 key competitive advantages.
+   - Provide a high-converting Cold Recruiter Outreach Note (under 120 words).
 
-#### Critical Skill Gaps
-- Missing keywords or technologies.
+3. IF Match Score is < 85%:
+   - Label: 'GAP DETECTED (MATCH < 85%)'
+   - Explicitly highlight what is missing (tech stack, experience depth, systems design).
+   - ACTION PLAN TO BRIDGE GAP: Exactly what steps/projects/certifications the candidate needs to qualify for this target role.
+   - ALTERNATIVE SUITABLE ROLES: Recommend 3 specific job titles that currently fit the candidate's existing resume profile with >90% suitability.
 
-#### High-Yield Interview Prep Tip
-- 1 concise technical tip to prepare.
+Format the response cleanly in structured Markdown with clear bold headers and bullet points.
 """
-    elif payload.action == "outreach":
-        prompt = f"""
-Write a high-converting cold LinkedIn/email outreach note (under 150 words) from the candidate to the hiring manager for the {payload.role} position at {payload.company}.
-Job Description: {payload.jd}
-Candidate Background: {payload.resume}
-"""
-    elif payload.action == "nudge":
-        prompt = f"""
-Draft a polite, concise follow-up note (under 100 words) checking in on an application submitted 5 days ago for the {payload.role} role at {payload.company}.
-"""
-    else:
-        raise HTTPException(status_code=400, detail="Invalid action.")
 
     try:
         response = client.models.generate_content(
@@ -227,69 +275,6 @@ Draft a polite, concise follow-up note (under 100 words) checking in on an appli
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ----------------- Central Admin Dashboard -----------------
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
-    # Default admin credentials: username=admin, password=adminsecret (change as needed)
-    admin_user = os.getenv("ADMIN_USER", "admin")
-    admin_pass = os.getenv("ADMIN_PASS", "adminsecret")
-    
-    if credentials.username != admin_user or credentials.password != admin_pass:
-        raise HTTPException(status_code=401, detail="Unauthorized Admin Access")
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT u.email, u.full_name, u.target_role, u.created_at, COUNT(j.id) as job_count
-        FROM users u
-        LEFT JOIN jobs j ON u.email = j.user_email
-        GROUP BY u.email
-        ORDER BY u.created_at DESC
-    """)
-    users = cursor.fetchall()
-    conn.close()
-
-    table_rows = "".join([
-        f"<tr><td>{u[0]}</td><td>{u[1] or 'Not Set'}</td><td>{u[2] or 'Not Set'}</td><td>{u[3]}</td><td><b>{u[4]}</b></td></tr>"
-        for u in users
-    ])
-
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>NexJob AI - Central Admin Panel</title>
-        <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 2rem; }}
-            h1 {{ font-size: 1.5rem; margin-bottom: 1rem; color: #38bdf8; }}
-            table {{ width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }}
-            th, td {{ padding: 12px 16px; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; }}
-            th {{ background: #0b1329; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }}
-            tr:hover {{ background: #243248; }}
-        </style>
-    </head>
-    <body>
-        <h1>NexJob AI — Registered Users Dashboard</h1>
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">Total Registered Accounts: <b>{len(users)}</b></p>
-        <table>
-            <thead>
-                <tr>
-                    <th>Email Address</th>
-                    <th>Candidate Name</th>
-                    <th>Target Role</th>
-                    <th>Registered Date</th>
-                    <th>Active Jobs Tracked</th>
-                </tr>
-            </thead>
-            <tbody>
-                {table_rows if table_rows else '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No users registered yet.</td></tr>'}
-            </tbody>
-        </table>
-    </body>
-    </html>
-    """
-
-# ----------------- Static Frontend Hosting -----------------
 @app.get("/")
 async def serve_home():
     return FileResponse("index.html")
@@ -300,3 +285,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("server:app", host="0.0.0.0", port=port)
+
