@@ -34,7 +34,7 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle Ambient Glow */
+/* Ambient Glow */
 .bg-ambient {
     position: fixed;
     width: 650px;
@@ -48,7 +48,76 @@ body {
 .ambient-1 { top: -100px; left: -100px; background: #4F46E5; }
 .ambient-2 { bottom: -100px; right: -100px; background: #DB2777; }
 
-/* Sidebar Navigation Links */
+/* Sticky Header */
+.top-nav {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px;
+    background: rgba(9, 11, 16, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-toggle-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    color: #FFF;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.sidebar-toggle-btn:hover {
+    border-color: var(--border-focus);
+}
+
+.nav-brand {
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-badge {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* Floating Collapsible Sidebar */
+.app-sidebar {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    width: 280px;
+    height: 100vh;
+    background: #0C0F17;
+    border-right: 1px solid var(--border-subtle);
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 2000;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+}
+
+.app-sidebar.open {
+    left: 0;
+}
+
 .side-link {
     display: flex;
     align-items: center;
@@ -67,31 +136,31 @@ body {
     color: var(--accent-blue);
 }
 
-/* Hero Section */
-.hero {
-    position: relative;
-    z-index: 1;
-    padding: 20px 0 30px;
+/* Main Content Shell */
+.main-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 24px 60px;
 }
+
+/* Hero Section */
 .hero-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 14px;
+    padding: 5px 12px;
     background: rgba(79, 70, 229, 0.1);
     border: 1px solid rgba(79, 70, 229, 0.25);
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #A5B4FC;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .hero-title {
-    font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 800;
     line-height: 1.2;
     letter-spacing: -0.03em;
-    margin-bottom: 12px;
 }
 .gradient-text {
     background: var(--primary-gradient);
@@ -104,29 +173,23 @@ body {
     line-height: 1.6;
 }
 
-/* Metrics & Stats Grid */
+/* Stats */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
-    margin-bottom: 24px;
 }
 .stat-box {
     background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
     padding: 18px;
-    transition: border-color 0.2s ease;
-}
-.stat-box:hover {
-    border-color: rgba(255, 255, 255, 0.15);
 }
 .stat-title {
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--text-muted);
-    letter-spacing: 0.05em;
 }
 .stat-number {
     font-size: 1.8rem;
@@ -135,19 +198,18 @@ body {
     margin-top: 4px;
 }
 
-/* Kanban Board Layout */
+/* Kanban */
 .kanban-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
-    margin-bottom: 30px;
 }
 .kanban-col {
     background: rgba(14, 18, 27, 0.6);
     border: 1px solid var(--border-subtle);
     border-radius: 14px;
     padding: 16px;
-    min-height: 240px;
+    min-height: 220px;
 }
 .kanban-header {
     font-size: 0.8rem;
@@ -166,11 +228,6 @@ body {
     border-radius: 10px;
     padding: 14px;
     margin-bottom: 10px;
-    transition: all 0.2s ease;
-}
-.kanban-card:hover {
-    border-color: rgba(99, 102, 241, 0.4);
-    transform: translateY(-2px);
 }
 .kanban-role { font-weight: 700; font-size: 0.92rem; color: #FFF; margin-bottom: 2px; }
 .kanban-comp { color: var(--accent-blue); font-size: 0.82rem; font-weight: 500; margin-bottom: 8px; }
@@ -184,22 +241,21 @@ body {
     margin-right: 4px;
 }
 
-/* Smart Nudge Card */
+/* Nudge Banner */
 .nudge-card {
     background: rgba(244, 63, 94, 0.08);
     border: 1px solid rgba(244, 63, 94, 0.25);
     border-left: 4px solid var(--accent-rose);
     border-radius: 10px;
     padding: 14px 18px;
-    margin-bottom: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-/* AI Panel Workspace */
+/* AI Workspace */
 .ai-panel {
-    background: var(--bg-elevated);
+    background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: 16px;
     padding: 26px;
@@ -208,54 +264,21 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin-bottom: 16px;
 }
 .custom-input, .custom-textarea, .custom-select {
     width: 100%;
-    background: var(--bg-surface);
+    background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     padding: 11px 14px;
     color: var(--text-primary);
     font-size: 0.88rem;
     outline: none;
-    transition: border-color 0.2s ease;
 }
 .custom-input:focus, .custom-textarea:focus, .custom-select:focus {
     border-color: var(--border-focus);
 }
 
-/* AI Action Buttons */
-.ai-btn-group {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin: 20px 0;
-}
-.ai-action-btn {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    padding: 11px 22px;
-    border-radius: 8px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.ai-action-btn:hover {
-    color: var(--text-primary);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
-}
-.ai-action-btn.active {
-    background: var(--primary-gradient);
-    border-color: transparent;
-    color: #FFF;
-    box-shadow: 0 4px 16px var(--primary-glow);
-}
-
-/* AI Markdown Output Box */
 .ai-result-box {
     background: #080A0E;
     border: 1px solid var(--border-subtle);
@@ -271,27 +294,15 @@ body {
     color: var(--accent-blue);
     margin-bottom: 10px;
     font-weight: 700;
-    border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: 6px;
 }
-.ai-result-box h4 {
-    font-size: 0.98rem;
-    color: #A5B4FC;
-    margin-top: 16px;
-    margin-bottom: 6px;
-    font-weight: 600;
+.ai-result-box hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 14px 0;
 }
-.ai-result-box ul {
-    padding-left: 20px;
-    margin-bottom: 12px;
-}
-.ai-result-box li {
-    margin-bottom: 4px;
-}
-.ai-result-box strong {
-    color: #FFF;
-    font-weight: 600;
-}
+.ai-result-box ul { padding-left: 20px; margin-bottom: 12px; }
+.ai-result-box li { margin-bottom: 4px; }
+.ai-result-box strong { color: #FFF; }
 
 /* Modals */
 .modal-backdrop {
@@ -308,13 +319,10 @@ body {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: 16px;
-    width: 90%;
-    max-width: 540px;
     padding: 28px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
 }
 
-/* Button Classes */
 .btn-primary {
     background: var(--primary-gradient);
     border: none;
@@ -339,16 +347,9 @@ body {
     font-weight: 500;
     font-size: 0.88rem;
     cursor: pointer;
-    transition: all 0.2s ease;
-}
-.btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Mobile Responsiveness */
 @media (max-width: 900px) {
-    body { flex-direction: column !important; }
-    aside { width: 100% !important; height: auto !important; position: static !important; }
-    main { padding: 1.5rem !important; }
     .input-grid { grid-template-columns: 1fr; }
+    .main-wrapper { padding: 1.5rem 16px; }
 }
