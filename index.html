@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NexJob AI | Next-Gen Career Engine</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -15,15 +15,18 @@
     <div class="bg-ambient ambient-2"></div>
 
     <!-- Navigation -->
-    <nav class="navbar">
+    <nav class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;">
+        <div style="font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px;">
+            NexJob <span class="gradient-text">AI</span>
+        </div>
         <div style="display: flex; align-items: center; gap: 15px;">
-    <span id="userDisplay" style="font-size: 0.85rem; color: var(--text-muted);">Guest Mode</span>
-    <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()">Login / Sign Up</button>
-</div>
+            <span id="userDisplay" style="font-size: 0.85rem; color: var(--text-muted);">Guest Mode</span>
+            <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()">Login / Sign Up</button>
+        </div>
     </nav>
 
-    <!-- Modal Form -->
-    <div class="modal-backdrop" id="jobModal">
+    <!-- Job Application Modal -->
+    <div class="modal-backdrop" id="jobModal" style="display: none;">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
                 <h3 style="font-size:1.15rem; font-weight:700;">Add New Application</h3>
@@ -69,6 +72,28 @@
         </div>
     </div>
 
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); z-index: 99999; justify-content: center; align-items: center;">
+        <div class="modal-card" style="width: 90%; max-width: 400px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0;">Account Authentication</h3>
+                <span style="cursor:pointer; font-size:1.2rem; color:var(--text-muted);" onclick="closeAuthModal()">✕</span>
+            </div>
+            
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">EMAIL ADDRESS</label>
+            <input type="email" id="authEmail" class="custom-input" placeholder="you@example.com" style="margin-bottom: 14px;" />
+
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PASSWORD</label>
+            <input type="password" id="authPassword" class="custom-input" placeholder="••••••••" style="margin-bottom: 20px;" />
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
+                <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
+                <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Hero -->
     <section class="hero">
         <div class="hero-badge">Google Cloud & Gemini 3.6 Flash Integration</div>
@@ -92,19 +117,19 @@
             <div class="stats-grid">
                 <div class="stat-box">
                     <div class="stat-title">Total Applications</div>
-                    <div class="stat-number" id="statTotal">3</div>
+                    <div class="stat-number" id="statTotal">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-title">Active In Pipeline</div>
-                    <div class="stat-number" style="color: var(--accent-blue);" id="statPipe">2</div>
+                    <div class="stat-number" style="color: var(--accent-blue);" id="statPipe">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-title">Offers Won</div>
-                    <div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">1</div>
+                    <div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-title">Follow-Ups Due</div>
-                    <div class="stat-number" style="color: var(--accent-rose);" id="statNudges">1</div>
+                    <div class="stat-number" style="color: var(--accent-rose);" id="statNudges">0</div>
                 </div>
             </div>
 
@@ -136,7 +161,7 @@
                     </div>
                     <div>
                         <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">CANDIDATE EXPERIENCE SUMMARY</label>
-                        <textarea class="custom-textarea" id="userResume" rows="4">B.Tech in Computer Science with a strong foundation in C++ and Data Structures and Algorithms. Experienced in building full-stack applications with Python, FastAPI, Docker, and Google Cloud services.</textarea>
+                        <textarea class="custom-textarea" id="userResume" rows="4">B.Tech in Computer Science with strong foundation in C, C++, and Data Structures & Algorithms. Experienced in building full-stack applications with Python, FastAPI, Docker, and Google Cloud services.</textarea>
                     </div>
                 </div>
 
@@ -154,23 +179,7 @@
         </div>
     </section>
 
+    <!-- Scripts at the very bottom -->
     <script src="app.js"></script>
-    <!-- Auth Modal -->
-<div id="authModal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card">
-        <h3 style="margin-bottom: 1rem;">Account Authentication</h3>
-        <label class="form-label">Email Address</label>
-        <input type="email" id="authEmail" class="form-input" placeholder="you@example.com" />
-
-        <label class="form-label" style="margin-top: 10px;">Password</label>
-        <input type="password" id="authPassword" class="form-input" placeholder="••••••••" />
-
-        <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
-            <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
-            <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
-            <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
-        </div>
-    </div>
-</div>
 </body>
 </html>
