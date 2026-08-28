@@ -1,23 +1,19 @@
-// User State & Storage Management
 let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null;
-let userProfile = null;
+let userProfile = JSON.parse(localStorage.getItem('nexjob_active_profile')) || null;
 let jobs = [];
 
-function loadUserData() {
+async function loadUserData() {
     if (currentUser && currentUser.email) {
-        const storedJobs = localStorage.getItem(`nexjob_jobs_${currentUser.email}`);
-        jobs = storedJobs ? JSON.parse(storedJobs) : [];
-
-        const storedProfile = localStorage.getItem(`nexjob_profile_${currentUser.email}`);
-        userProfile = storedProfile ? JSON.parse(storedProfile) : {
-            fullName: "",
-            targetRole: "",
-            skills: "",
-            resume: ""
-        };
+        try {
+            const res = await fetch(`/api/jobs?email=${encodeURIComponent(currentUser.email)}`);
+            const data = await res.json();
+            jobs = data.jobs || [];
+        } catch (e) {
+            jobs = [];
+        }
 
         const resumeBox = document.getElementById('userResume');
-        if (resumeBox && userProfile.resume) {
+        if (resumeBox && userProfile && userProfile.resume) {
             resumeBox.value = userProfile.resume;
         }
     } else {
@@ -26,22 +22,16 @@ function loadUserData() {
     }
 }
 
-function saveUserData() {
-    if (currentUser && currentUser.email) {
-        localStorage.setItem(`nexjob_jobs_${currentUser.email}`, JSON.stringify(jobs));
-    }
-}
-
-// Profile Modal Actions
+// ----------------- Profile Actions -----------------
 function openProfileModal() {
     if (!currentUser) {
         openAuthModal();
         return;
     }
-    document.getElementById('profFullName').value = userProfile.fullName || "";
-    document.getElementById('profTargetRole').value = userProfile.targetRole || "";
-    document.getElementById('profSkills').value = userProfile.skills || "";
-    document.getElementById('profResume').value = userProfile.resume || "";
+    document.getElementById('profFullName').value = (userProfile && userProfile.fullName) || "";
+    document.getElementById('profTargetRole').value = (userProfile && userProfile.targetRole) || "";
+    document.getElementById('profSkills').value = (userProfile && userProfile.skills) || "";
+    document.getElementById('profResume').value = (userProfile && userProfile.resume) || "";
     document.getElementById('profileModal').style.display = 'flex';
 }
 
@@ -49,7 +39,7 @@ function closeProfileModal() {
     document.getElementById('profileModal').style.display = 'none';
 }
 
-function saveUserProfile() {
+async function saveUserProfile() {
     if (!currentUser) return;
 
     userProfile = {
@@ -59,35 +49,43 @@ function saveUserProfile() {
         resume: document.getElementById('profResume').value.trim()
     };
 
-    localStorage.setItem(`nexjob_profile_${currentUser.email}`, JSON.stringify(userProfile));
+    try {
+        await fetch("/api/profile/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: currentUser.email,
+                full_name: userProfile.fullName,
+                target_role: userProfile.targetRole,
+                skills: userProfile.skills,
+                resume: userProfile.resume
+            })
+        });
+        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
 
-    const resumeBox = document.getElementById('userResume');
-    if (resumeBox) {
-        resumeBox.value = userProfile.resume;
+        const resumeBox = document.getElementById('userResume');
+        if (resumeBox) resumeBox.value = userProfile.resume;
+
+        closeProfileModal();
+        updateAuthUI();
+        alert("Profile saved to database successfully!");
+    } catch (e) {
+        alert("Error saving profile to server.");
     }
-
-    closeProfileModal();
-    updateAuthUI();
-    alert("Profile and Resume updated successfully!");
 }
 
-// Authentication Actions
+// ----------------- Authentication Actions -----------------
 function openAuthModal() {
-    const modal = document.getElementById('authModal');
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('authModal').style.display = 'flex';
 }
 
 function closeAuthModal() {
-    const modal = document.getElementById('authModal');
-    if (modal) modal.style.display = 'none';
+    document.getElementById('authModal').style.display = 'none';
 }
 
-function handleAuth(type) {
+async function handleAuth(type) {
     const emailEl = document.getElementById('authEmail');
     const passwordEl = document.getElementById('authPassword');
-
-    if (!emailEl || !passwordEl) return;
-
     const email = emailEl.value.trim();
     const password = passwordEl.value.trim();
 
@@ -96,39 +94,40 @@ function handleAuth(type) {
         return;
     }
 
-    let users = JSON.parse(localStorage.getItem('nexjob_users')) || {};
+    try {
+        const endpoint = type === 'signup' ? '/api/auth/signup' : '/api/auth/login';
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
 
-    if (type === 'signup') {
-        if (users[email]) {
-            alert("An account with this email already exists. Please click 'Log In'.");
+        if (!res.ok) {
+            alert(data.detail || "Authentication error.");
             return;
         }
-        users[email] = { email, password };
-        localStorage.setItem('nexjob_users', JSON.stringify(users));
-        currentUser = { email };
+
+        currentUser = { email: data.email || email };
         localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
-        alert("Account created successfully! Please configure your Profile.");
-    } else if (type === 'login') {
-        if (!users[email]) {
-            alert("No account found with this email. Please click 'Sign Up' first to register.");
-            return;
+
+        if (data.profile) {
+            userProfile = data.profile;
+            localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
         }
-        if (users[email].password !== password) {
-            alert("Incorrect password. Please try again.");
-            return;
-        }
-        currentUser = { email };
-        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+
+        closeAuthModal();
+        await loadUserData();
+        updateAuthUI();
+        renderDashboard();
+    } catch (e) {
+        alert("Server communication error.");
     }
-
-    closeAuthModal();
-    loadUserData();
-    updateAuthUI();
-    renderDashboard();
 }
 
 function logoutUser() {
     localStorage.removeItem('nexjob_active_user');
+    localStorage.removeItem('nexjob_active_profile');
     currentUser = null;
     userProfile = null;
     jobs = [];
@@ -149,7 +148,7 @@ function updateAuthUI() {
             authBtn.onclick = logoutUser;
         }
         if (profileBtn) profileBtn.style.display = "inline-flex";
-        
+
         if (userProfile && userProfile.fullName) {
             if (userDisplay) {
                 userDisplay.innerText = userProfile.fullName;
@@ -180,27 +179,22 @@ function updateAuthUI() {
     }
 }
 
-// Application Modal
+// ----------------- Application CRUD -----------------
 function openModal() {
     if (!currentUser) {
         alert("Please Log In or Sign Up first to create job tracking entries.");
         openAuthModal();
         return;
     }
-    const modal = document.getElementById('jobModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        const dateEl = document.getElementById('modalDate');
-        if (dateEl) dateEl.valueAsDate = new Date();
-    }
+    document.getElementById('jobModal').style.display = 'flex';
+    document.getElementById('modalDate').valueAsDate = new Date();
 }
 
 function closeModal() {
-    const modal = document.getElementById('jobModal');
-    if (modal) modal.style.display = 'none';
+    document.getElementById('jobModal').style.display = 'none';
 }
 
-function submitNewJob() {
+async function submitNewJob() {
     const company = document.getElementById('modalCompany').value.trim();
     const role = document.getElementById('modalRole').value.trim();
     const date = document.getElementById('modalDate').value || new Date().toISOString().split('T')[0];
@@ -215,7 +209,8 @@ function submitNewJob() {
 
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : ["General"];
     const newJob = {
-        id: Date.now(),
+        id: "job_" + Date.now(),
+        user_email: currentUser.email,
         company: company,
         role: role,
         date: date,
@@ -224,17 +219,40 @@ function submitNewJob() {
         jd: jd || "No Job Description provided."
     };
 
-    jobs.unshift(newJob);
-    saveUserData();
-    renderDashboard();
-    closeModal();
+    try {
+        await fetch("/api/jobs/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newJob)
+        });
 
-    document.getElementById('modalCompany').value = '';
-    document.getElementById('modalRole').value = '';
-    document.getElementById('modalTags').value = '';
-    document.getElementById('modalJD').value = '';
+        jobs.unshift(newJob);
+        renderDashboard();
+        closeModal();
+
+        document.getElementById('modalCompany').value = '';
+        document.getElementById('modalRole').value = '';
+        document.getElementById('modalTags').value = '';
+        document.getElementById('modalJD').value = '';
+    } catch (e) {
+        alert("Failed to save application to server.");
+    }
 }
 
+async function changeJobStage(id, newStatus) {
+    const target = jobs.find(j => j.id === id);
+    if (target) {
+        target.status = newStatus;
+        await fetch("/api/jobs/update_status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: id, status: newStatus })
+        });
+        renderDashboard();
+    }
+}
+
+// ----------------- Dashboard Rendering -----------------
 function renderDashboard() {
     const total = jobs.length;
     const pipe = jobs.filter(j => j.status === 'Applied' || j.status === 'Interviewing').length;
@@ -265,7 +283,7 @@ function renderDashboard() {
                         <span style="font-weight:700; color:var(--accent-rose, #f43f5e);">Follow-Up Required:</span> 
                         Applied to <b>${n.company}</b> (${n.role}) 5+ days ago without recruiter response.
                     </div>
-                    <button class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="selectJobAndNudge(${n.id})">Draft Follow-Up</button>
+                    <button class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="selectJobAndNudge('${n.id}')">Draft Follow-Up</button>
                 </div>
             `).join('');
         } else {
@@ -293,7 +311,7 @@ function renderDashboard() {
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted);">
                         <span>${j.date}</span>
-                        <select onchange="changeJobStage(${j.id}, this.value)" style="background:var(--bg-surface, #1e293b); color:#FFF; border:1px solid var(--border-subtle, #334155); border-radius:4px; padding:2px 6px; font-size:0.7rem;">
+                        <select onchange="changeJobStage('${j.id}', this.value)" style="background:var(--bg-surface, #1e293b); color:#FFF; border:1px solid var(--border-subtle, #334155); border-radius:4px; padding:2px 6px; font-size:0.7rem;">
                             <option ${j.status==='Applied'?'selected':''}>Applied</option>
                             <option ${j.status==='Interviewing'?'selected':''}>Interviewing</option>
                             <option ${j.status==='Offered'?'selected':''}>Offered</option>
@@ -328,19 +346,10 @@ function renderDashboard() {
     }
 }
 
-function changeJobStage(id, newStatus) {
-    const target = jobs.find(j => j.id === id);
-    if (target) {
-        target.status = newStatus;
-        saveUserData();
-        renderDashboard();
-    }
-}
-
 function onRoleChange() {
     const selector = document.getElementById('roleSelector');
     if (!selector || !selector.value) return;
-    const selectedId = parseInt(selector.value);
+    const selectedId = selector.value;
     const target = jobs.find(j => j.id === selectedId);
     if (target) {
         const jdEl = document.getElementById('jobDesc');
@@ -357,6 +366,7 @@ function selectJobAndNudge(id) {
     triggerGemini('nudge');
 }
 
+// ----------------- Gemini API Trigger -----------------
 async function triggerGemini(action) {
     document.querySelectorAll('.ai-action-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`btn-${action}`);
@@ -368,7 +378,7 @@ async function triggerGemini(action) {
         return;
     }
 
-    const selectedId = parseInt(selector.value);
+    const selectedId = selector.value;
     const target = jobs.find(j => j.id === selectedId);
     const resume = document.getElementById('userResume').value;
     const customKey = document.getElementById('customApiKey').value;
@@ -406,8 +416,8 @@ async function triggerGemini(action) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadUserData();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadUserData();
     updateAuthUI();
     renderDashboard();
 });
