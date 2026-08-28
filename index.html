@@ -155,5 +155,22 @@
     </section>
 
     <script src="app.js"></script>
+    <!-- Auth Modal -->
+<div id="authModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+        <h3 style="margin-bottom: 1rem;">Account Authentication</h3>
+        <label class="form-label">Email Address</label>
+        <input type="email" id="authEmail" class="form-input" placeholder="you@example.com" />
+
+        <label class="form-label" style="margin-top: 10px;">Password</label>
+        <input type="password" id="authPassword" class="form-input" placeholder="••••••••" />
+
+        <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+            <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
+            <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
+            <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
