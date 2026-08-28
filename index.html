@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexJob AI | Next-Gen Career Engine</title>
+    <title>NexJob AI | Autonomous Career Intelligence</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%234F46E5'/><stop offset='100%' stop-color='%23DB2777'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%23090B10'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='5' fill='%2338BDF8'/></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="sidebar-collapsed">
+<body>
 
-    <!-- Ambient Glow Backgrounds -->
+    <!-- Ambient Glow FX -->
     <div class="bg-ambient ambient-1"></div>
     <div class="bg-ambient ambient-2"></div>
 
-    <!-- Top Sticky Header -->
+    <!-- Navigation Header -->
     <header class="top-nav">
         <div style="display: flex; align-items: center; gap: 14px;">
-            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Navigation Sidebar">☰</button>
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Menu Navigation">☰</button>
             <div class="nav-brand">
                 <svg width="28" height="28" viewBox="0 0 100 100">
                     <defs>
@@ -39,24 +40,25 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 14px;">
+            <button id="profileNavBtn" class="btn-secondary" onclick="openProfileModal()" style="display: none; padding: 6px 14px; font-size: 0.82rem;">👤 Profile & Links</button>
             <span id="userDisplayBadge" class="user-badge">Guest Mode</span>
             <button id="authNavBtn" class="btn-primary" style="padding: 7px 16px; font-size: 0.82rem;" onclick="openAuthModal()">Login / Sign Up</button>
         </div>
     </header>
 
-    <!-- Collapsible Sidebar -->
+    <!-- Sidebar Navigation -->
     <aside id="mainSidebar" class="app-sidebar">
         <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding: 0 0.5rem;">
                 <span style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Menu Navigation</span>
-                <span style="cursor: pointer; color: var(--text-muted); font-size: 1.1rem;" onclick="toggleSidebar()">✕</span>
+                <span style="cursor: pointer; color: var(--text-muted); font-size: 1.2rem;" onclick="toggleSidebar()">✕</span>
             </div>
 
             <nav style="display: flex; flex-direction: column; gap: 8px;">
                 <a href="#ats-engine" class="side-link active" onclick="toggleSidebar()">⚡ 83% ATS Match Engine</a>
-                <a href="#pipeline-section" class="side-link member-feature" onclick="toggleSidebar()">📊 Kanban Pipeline</a>
-                <a href="#resume-vault" class="side-link member-feature" onclick="toggleSidebar()">📄 Resume PDF Parser</a>
-                <a href="javascript:void(0)" onclick="openProfileModal(); toggleSidebar();" class="side-link member-feature">👤 Career Profile & Links</a>
+                <a href="#pipeline-section" class="side-link" onclick="toggleSidebar()">📊 Kanban Pipeline</a>
+                <a href="#resume-vault" class="side-link" onclick="toggleSidebar()">📄 Resume PDF Parser</a>
+                <a href="javascript:void(0)" onclick="openProfileModal(); toggleSidebar();" class="side-link">👤 Career Profile & Links</a>
             </nav>
         </div>
 
@@ -65,37 +67,39 @@
         </div>
     </aside>
 
-    <!-- Main Container -->
+    <!-- Main Content Container -->
     <main class="main-wrapper">
 
-        <!-- Guest Notice Banner -->
-        <div id="guestModeBanner" style="background: rgba(79, 70, 229, 0.12); border: 1px solid rgba(79, 70, 229, 0.35); padding: 14px 20px; border-radius: 12px; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div style="font-size: 0.88rem; color: #C7D2FE;">
-                ✨ <b>Guest Mode Active:</b> Test the <b>83% ATS Match Engine</b> below. <span style="color: #FFF;">Log in</span> to unlock PDF uploads, Kanban pipeline saving, and personalized career roadmaps.
+        <!-- Guest Mode Status Banner -->
+        <div id="guestNoticeBanner" class="guest-banner">
+            <div>
+                <span style="font-weight: 700; color: #FFF;">Guest Mode:</span> You have access to the single-run <b>83% ATS Engine</b>. 
+                <span style="color: #94A3B8;">Sign in with Google or Email to unlock cloud pipeline tracking, automated PDF parsing, and full career roadmaps.</span>
             </div>
             <button class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openAuthModal()">Sign In to Unlock All</button>
         </div>
 
         <!-- Hero -->
-        <section class="hero" style="text-align: left; padding: 20px 0 30px;">
+        <section class="hero">
             <div class="hero-badge">Google Cloud & Gemini 3.6 Flash</div>
-            <h1 class="hero-title" style="font-size: 2.2rem; margin: 0.5rem 0;">
-                Autonomous <span class="gradient-text">Career Intelligence Cockpit</span>
+            <h1 class="hero-title">
+                Streamline Career Workflows with <span class="gradient-text">Autonomous AI Intelligence</span>
             </h1>
-            <p class="hero-sub" style="margin: 0; max-width: 800px;">
-                Instant ATS gap evaluations. If match is <b>≥ 83%</b>, generate cold recruiter outreach; if <b>&lt; 83%</b>, receive an immediate roadmap and alternative target jobs.
+            <p class="hero-sub">
+                Real-time ATS benchmark evaluations. If match is <b>≥ 83%</b>, generate immediate outreach; if <b>&lt; 83%</b>, receive an automated skill-bridge roadmap and instant matching jobs.
             </p>
         </section>
 
-        <!-- 83% ATS Engine Workspace -->
+        <!-- 83% ATS Decision Engine -->
         <section id="ats-engine" class="ai-panel" style="margin-bottom: 3rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 10px;">
                 <div>
                     <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">⚡ 1-Click 83% ATS Decision Engine</h3>
-                    <p style="color: var(--text-muted); font-size: 0.84rem; margin-top: 4px;">Works for both Guests and Logged-In Members.</p>
+                    <p style="color: var(--text-muted); font-size: 0.84rem; margin-top: 4px;">Available for Guests and Logged-In Members.</p>
                 </div>
                 <div id="applicationSelectorContainer" style="display: none;">
-                    <select class="custom-select" id="roleSelector" onchange="onRoleChange()" style="max-width: 280px;"></select>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-right: 6px;">LOAD TRACKED APPLICATION:</label>
+                    <select class="custom-select" id="roleSelector" onchange="onRoleChange()" style="max-width: 260px;"></select>
                 </div>
             </div>
 
@@ -108,15 +112,15 @@
                     </div>
 
                     <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px;">TARGET JOB DESCRIPTION</label>
-                    <textarea class="custom-textarea" id="jobDesc" rows="7" placeholder="Paste target requirements and qualifications..."></textarea>
+                    <textarea class="custom-textarea" id="jobDesc" rows="7" placeholder="Paste target requirements, qualifications, and responsibilities..."></textarea>
                 </div>
 
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">CANDIDATE RESUME PROFILE</label>
-                        <span id="pdfUploadPrompt" style="font-size: 0.75rem; color: var(--accent-blue); cursor: pointer;" onclick="scrollToSection('resume-vault')">Upload PDF (Members)</span>
+                        <span id="pdfLinkGuestNotice" style="font-size: 0.75rem; color: var(--text-muted);">(Guests: paste text | Members: auto-loaded)</span>
                     </div>
-                    <textarea class="custom-textarea" id="userResume" rows="9" placeholder="Paste your complete resume details, skills, and past projects here..."></textarea>
+                    <textarea class="custom-textarea" id="userResume" rows="9" placeholder="Paste candidate resume background, tech stack, and key metrics..."></textarea>
                 </div>
             </div>
 
@@ -129,36 +133,64 @@
             </div>
         </section>
 
-        <!-- Logged In Features Container -->
-        <div id="memberFeaturesWrapper" style="opacity: 0.45; pointer-events: none; transition: all 0.3s ease;">
+        <!-- Member-Only Features Shell -->
+        <div id="memberFeaturesWrapper" class="member-locked">
             
-            <!-- Metrics -->
-            <div class="stats-grid" style="margin-bottom: 2rem;">
-                <div class="stat-box"><div class="stat-title">Total Applications</div><div class="stat-number" id="statTotal">0</div></div>
-                <div class="stat-box"><div class="stat-title">Active Pipeline</div><div class="stat-number" style="color: var(--accent-blue);" id="statPipe">0</div></div>
-                <div class="stat-box"><div class="stat-title">Offers Won</div><div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">0</div></div>
-                <div class="stat-box"><div class="stat-title">Follow-Ups Due</div><div class="stat-number" style="color: var(--accent-rose);" id="statNudges">0</div></div>
+            <div class="lock-overlay" id="lockOverlayMessage">
+                <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-focus); padding: 24px 32px; border-radius: 16px; text-align: center; max-width: 460px;">
+                    <div style="font-size: 2rem; margin-bottom: 8px;">🔒</div>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Member Features Locked</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 16px;">
+                        Sign in to activate cloud Kanban tracking, automatic PDF resume parsing, time-decay recruiter nudges, and saved profiles.
+                    </p>
+                    <button class="btn-primary" onclick="openAuthModal()">Log In / Sign Up</button>
+                </div>
             </div>
 
+            <!-- Stats Overview -->
+            <div class="stats-grid" style="margin-bottom: 2rem;">
+                <div class="stat-box">
+                    <div class="stat-title">Total Applications</div>
+                    <div class="stat-number" id="statTotal">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Tracked across stages</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Active Pipeline</div>
+                    <div class="stat-number" style="color: var(--accent-blue);" id="statPipe">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Applied & Interviewing</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Offers Won</div>
+                    <div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Accepted / In Review</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Follow-Ups Due</div>
+                    <div class="stat-number" style="color: var(--accent-rose);" id="statNudges">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Inactive for 5+ days</div>
+                </div>
+            </div>
+
+            <!-- Follow-Up Due Container -->
             <div id="nudgeAlertContainer"></div>
 
-            <!-- Kanban Pipeline -->
+            <!-- Kanban Board -->
             <section id="pipeline-section" style="margin-bottom: 3rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
                     <div>
                         <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">Application Kanban Pipeline</h2>
-                        <span style="font-size: 0.8rem; color: var(--accent-emerald);">● Logged-In Cloud Sync Active</span>
+                        <span style="font-size: 0.8rem; color: var(--accent-emerald);">● Cloud Sync Active</span>
                     </div>
-                    <button class="btn-primary" onclick="openModal()">+ Add Application</button>
+                    <button class="btn-primary" onclick="openModal()">+ Add New Application</button>
                 </div>
                 <div class="kanban-grid" id="kanbanGrid"></div>
             </section>
 
-            <!-- PDF Upload Section -->
-            <section id="resume-vault" style="margin-bottom: 3rem; background: var(--bg-surface); padding: 1.5rem; border-radius: 14px; border: 1px solid var(--border-subtle);">
+            <!-- PDF Resume Parser Section -->
+            <section id="resume-vault" style="margin-bottom: 3rem; background: var(--bg-surface); padding: 1.8rem; border-radius: 14px; border: 1px solid var(--border-subtle);">
                 <h3 style="margin-top: 0; font-size: 1.15rem; font-weight: 700;">📄 Direct Resume PDF Parser</h3>
                 <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
-                    Upload your resume PDF. The backend parses text automatically and syncs it to your profile.
+                    Upload your resume in PDF format. NexJob AI extracts the full text and saves it directly to your member profile.
                 </p>
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                     <input type="file" id="pdfFileInput" accept=".pdf" class="custom-input" style="max-width: 380px; padding: 7px;" />
@@ -183,7 +215,7 @@
                 </div>
                 <div>
                     <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET ROLE TITLE</label>
-                    <input type="text" id="profTargetRole" class="custom-input" placeholder="e.g. Cloud AI Engineer">
+                    <input type="text" id="profTargetRole" class="custom-input" placeholder="e.g. AI Platform Engineer">
                 </div>
             </div>
 
@@ -204,7 +236,7 @@
             </div>
 
             <div style="margin-bottom: 20px;">
-                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">RESUME CONTENT</label>
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">RAW RESUME TEXT (Syncs automatically with PDF parser)</label>
                 <textarea id="profResume" class="custom-textarea" rows="6" placeholder="Paste or verify resume text here..."></textarea>
             </div>
 
@@ -262,13 +294,19 @@
         </div>
     </div>
 
-    <!-- Auth Modal -->
+    <!-- Auth Modal with Google Sign-In & Error Diagnostic Box -->
     <div id="authModal" class="modal-backdrop">
         <div class="modal-card" style="width: 90%; max-width: 420px; text-align: left;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
                 <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Account Authentication</h3>
                 <span style="cursor: pointer; color: var(--text-muted); font-size: 1.2rem;" onclick="closeAuthModal()">✕</span>
             </div>
+
+            <!-- Visible Diagnostics Container for Login Errors -->
+            <div id="authErrorAlert" style="display: none; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--accent-rose); border-radius: 8px; padding: 10px; margin-bottom: 12px; color: #FECDD3; font-size: 0.8rem;"></div>
+
+            <!-- Google OAuth Button Container -->
+            <div id="googleBtnWrapper" style="display: flex; justify-content: center; margin-bottom: 12px;"></div>
 
             <button onclick="demoLogin()" style="width: 100%; background: #1E293B; border: 1px solid var(--border-focus); color: #FFF; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 ⚡ 1-Click Instant Demo Login
