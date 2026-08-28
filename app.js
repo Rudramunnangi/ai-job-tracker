@@ -1,34 +1,98 @@
-let jobs = [
-    {
-        id: 1,
-        company: "Google Cloud",
-        role: "Cloud AI Architect",
-        date: "2026-08-22",
-        status: "Applied",
-        tags: ["GCP", "Gemini 3.6", "Python", "Cloud Run"],
-        jd: "Design enterprise-grade Generative AI pipelines on Google Cloud Platform using Gemini 3.6 models, Vertex AI, Docker, and Cloud Run serverless microservices. Optimize inference latency and token costs."
-    },
-    {
-        id: 2,
-        company: "Stripe",
-        role: "Full-Stack Core Engineer",
-        date: "2026-08-26",
-        status: "Interviewing",
-        tags: ["Go", "Distributed Systems", "PostgreSQL"],
-        jd: "Architect high-throughput payment settlement engines with sub-100ms latency. Deep experience in concurrent backend services and distributed consensus algorithms."
-    },
-    {
-        id: 3,
-        company: "DeepMind",
-        role: "AI Platform Lead",
-        date: "2026-08-15",
-        status: "Offered",
-        tags: ["Kubernetes", "GPU Scheduling", "PyTorch"],
-        jd: "Manage large-scale multi-node GPU inference clusters, automated model checkpoints, and low-latency synthetic benchmark suites."
-    }
-];
+// Authentication & Application State Management
+let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null;
+let jobs = [];
 
+function loadUserData() {
+    if (currentUser) {
+        const storedJobs = localStorage.getItem(`nexjob_jobs_${currentUser.email}`);
+        jobs = storedJobs ? JSON.parse(storedJobs) : [];
+    } else {
+        jobs = [];
+    }
+}
+
+function saveUserData() {
+    if (currentUser) {
+        localStorage.setItem(`nexjob_jobs_${currentUser.email}`, JSON.stringify(jobs));
+    }
+}
+
+// Authentication Logic
+function handleAuth(type) {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
+
+    if (!email || !password) {
+        alert("Please provide both email and password.");
+        return;
+    }
+
+    const users = JSON.parse(localStorage.getItem('nexjob_users')) || {};
+
+    if (type === 'signup') {
+        if (users[email]) {
+            alert("Account already exists. Please log in.");
+            return;
+        }
+        users[email] = { email, password };
+        localStorage.setItem('nexjob_users', JSON.stringify(users));
+        currentUser = { email };
+        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+    } else {
+        if (!users[email] || users[email].password !== password) {
+            alert("Invalid email or password.");
+            return;
+        }
+        currentUser = { email };
+        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+    }
+
+    closeAuthModal();
+    loadUserData();
+    updateAuthUI();
+    renderDashboard();
+}
+
+function logoutUser() {
+    localStorage.removeItem('nexjob_active_user');
+    currentUser = null;
+    jobs = [];
+    updateAuthUI();
+    renderDashboard();
+}
+
+function openAuthModal() {
+    document.getElementById('authModal').style.display = 'flex';
+}
+
+function closeAuthModal() {
+    document.getElementById('authModal').style.display = 'none';
+}
+
+function updateAuthUI() {
+    const authBtn = document.getElementById('authNavBtn');
+    const userDisplay = document.getElementById('userDisplay');
+    const appContainer = document.getElementById('mainAppContainer');
+
+    if (currentUser) {
+        authBtn.innerText = "Logout";
+        authBtn.onclick = logoutUser;
+        if (userDisplay) userDisplay.innerText = currentUser.email;
+        if (appContainer) appContainer.style.display = "block";
+    } else {
+        authBtn.innerText = "Login / Sign Up";
+        authBtn.onclick = openAuthModal;
+        if (userDisplay) userDisplay.innerText = "Guest Mode";
+    }
+}
+
+// Modal Controllers
 function openModal() {
+    if (!currentUser) {
+        alert("Please log in to add job applications.");
+        openAuthModal();
+        return;
+    }
     document.getElementById('jobModal').style.display = 'flex';
     document.getElementById('modalDate').valueAsDate = new Date();
 }
@@ -52,7 +116,7 @@ function submitNewJob() {
 
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : ["General"];
     const newJob = {
-        id: jobs.length + 1,
+        id: Date.now(),
         company: company,
         role: role,
         date: date,
@@ -62,6 +126,7 @@ function submitNewJob() {
     };
 
     jobs.unshift(newJob);
+    saveUserData();
     renderDashboard();
     closeModal();
 
@@ -153,8 +218,14 @@ function renderDashboard() {
 
     const selector = document.getElementById('roleSelector');
     if (selector) {
-        selector.innerHTML = jobs.map(j => `<option value="${j.id}">${j.company} — ${j.role}</option>`).join('');
-        onRoleChange();
+        if (jobs.length > 0) {
+            selector.innerHTML = jobs.map(j => `<option value="${j.id}">${j.company} — ${j.role}</option>`).join('');
+            onRoleChange();
+        } else {
+            selector.innerHTML = `<option value="">No applications added yet</option>`;
+            const jdEl = document.getElementById('jobDesc');
+            if (jdEl) jdEl.value = "";
+        }
     }
 }
 
@@ -162,13 +233,14 @@ function changeJobStage(id, newStatus) {
     const target = jobs.find(j => j.id === id);
     if (target) {
         target.status = newStatus;
+        saveUserData();
         renderDashboard();
     }
 }
 
 function onRoleChange() {
     const selector = document.getElementById('roleSelector');
-    if (!selector) return;
+    if (!selector || !selector.value) return;
     const selectedId = parseInt(selector.value);
     const target = jobs.find(j => j.id === selectedId);
     if (target) {
@@ -186,23 +258,27 @@ function selectJobAndNudge(id) {
     triggerGemini('nudge');
 }
 
-// Trigger Gemini API and update Active Button State
+// Trigger Gemini API
 async function triggerGemini(action) {
     document.querySelectorAll('.ai-action-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`btn-${action}`);
     if (activeBtn) activeBtn.classList.add('active');
 
     const selector = document.getElementById('roleSelector');
+    if (!selector || !selector.value) {
+        alert("Please add and select a job application first.");
+        return;
+    }
+
     const selectedId = parseInt(selector.value);
     const target = jobs.find(j => j.id === selectedId);
     const resume = document.getElementById('userResume').value;
     const customKey = document.getElementById('customApiKey').value;
     const resultBox = document.getElementById('aiResultBox');
 
-    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Streaming response from Gemini 3.6 Flash on Google Cloud...</p>";
+    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Generating response with Gemini Flash...</p>";
 
     try {
-        // Updated to relative path for both local and cloud deployment
         const res = await fetch("/api/gemini", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -222,10 +298,12 @@ async function triggerGemini(action) {
             resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Error: " + (data.detail || "Unable to process request.") + "</p>";
         }
     } catch (err) {
-        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Connection error. Ensure the server is running.</p>";
+        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Connection error. Ensure the server is online.</p>";
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadUserData();
+    updateAuthUI();
     renderDashboard();
 });
