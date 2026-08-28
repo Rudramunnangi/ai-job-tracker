@@ -1,12 +1,13 @@
-﻿import os
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from dotenv import load_dotenv
 from google import genai
+from dotenv import load_dotenv
 
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
 
 app = FastAPI(title="NexJob AI API")
 
@@ -18,81 +19,72 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class AIRequest(BaseModel):
+class GeminiRequest(BaseModel):
     action: str
     role: str
     company: str
     jd: str
     resume: str
-    apiKey: str = ""
+    apiKey: str | None = None
 
 @app.post("/api/gemini")
-async def generate_ai(req: AIRequest):
-    use_key = req.apiKey.strip() if req.apiKey.strip() else api_key
-    if not use_key:
-        raise HTTPException(status_code=400, detail="Gemini API Key missing. Add it in the UI or .env file.")
-    
-    client = genai.Client(api_key=use_key)
-    
-    if req.action == "match":
-        prompt = f"""
-        Perform an objective technical match analysis.
-        Job Role: {req.role} at {req.company}
-        Job Description: {req.jd}
-        Candidate Resume: {req.resume}
+async def generate_career_intelligence(payload: GeminiRequest):
+    api_key = payload.apiKey or os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Gemini API Key missing.")
 
-        Return clean markdown:
-        ### 🎯 Match Score: [Score]%
-        **Executive Fit Summary:** [1-2 sentences]
-        
-        #### 🌟 Top Matching Competencies
-        - [Skill 1]
-        - [Skill 2]
-        - [Skill 3]
-        
-        #### ⚠️ Critical Skill Gaps & Keywords
-        - [Gap 1]
-        - [Gap 2]
-        
-        #### 💡 High-Yield Interview Prep Tip
-        [Specific technical focus area]
-        """
-    elif req.action == "outreach":
-        prompt = f"""
-        Write a high-converting, professional cold outreach message to the hiring manager for {req.role} at {req.company}.
-        Candidate Experience: {req.resume}
-        Job Description: {req.jd}
+    client = genai.Client(api_key=api_key)
 
-        Structure:
-        - **Subject Line:** [Punchy, high-open rate]
-        - **Body:** 3 brief, compelling paragraphs connecting skills to company needs.
-        - **Call to Action:** Confident and low friction.
-        """
-    elif req.action == "nudge":
+    if payload.action == "match":
         prompt = f"""
-        Write a polite, 100-word follow-up check-in email to the recruiter for {req.role} at {req.company}.
-        The application was submitted 6 days ago. Be enthusiastic, concise, and professional.
-        """
+Analyze the alignment between the Candidate Profile and the Target Job Description.
+Target Role: {payload.role} at {payload.company}
+Job Description: {payload.jd}
+Candidate Profile: {payload.resume}
+
+Provide structured output formatted in clean Markdown:
+### Match Score: [Score between 0% and 100%]
+**Executive Summary:** 2-sentence summary of overall fit.
+
+#### Top Matching Competencies
+- Strengths aligned with requirements.
+
+#### Critical Skill Gaps
+- Missing keywords or technologies.
+
+#### High-Yield Interview Prep Tip
+- 1 concise technical tip to prepare.
+"""
+    elif payload.action == "outreach":
+        prompt = f"""
+Write a high-converting cold LinkedIn/email outreach note (under 150 words) from the candidate to the hiring manager for the {payload.role} position at {payload.company}.
+Job Description: {payload.jd}
+Candidate Background: {payload.resume}
+"""
+    elif payload.action == "nudge":
+        prompt = f"""
+Draft a polite, concise follow-up note (under 100 words) checking in on an application submitted 5 days ago for the {payload.role} role at {payload.company}.
+"""
     else:
-        raise HTTPException(status_code=400, detail="Unknown action")
-        
+        raise HTTPException(status_code=400, detail="Invalid action.")
+
     try:
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt
+            model="gemini-2.5-flash",
+            contents=prompt,
         )
         return {"result": response.text}
     except Exception as e:
-        # Fallback to preview model if required
-        try:
-            response = client.models.generate_content(
-                model="gemini-3-flash-preview",
-                contents=prompt
-            )
-            return {"result": response.text}
-        except Exception as err:
-            raise HTTPException(status_code=500, detail=str(err))
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Serve frontend static assets
+@app.get("/")
+async def serve_home():
+    return FileResponse("index.html")
+
+app.mount("/", StaticFiles(directory="."), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port)
