@@ -2,13 +2,15 @@ import os
 import sqlite3
 import json
 import io
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from google import genai
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from pypdf import PdfReader
 from dotenv import load_dotenv
 
@@ -41,6 +43,7 @@ def init_db():
             linkedin_url TEXT DEFAULT '',
             github_url TEXT DEFAULT '',
             portfolio_url TEXT DEFAULT '',
+            auth_provider TEXT DEFAULT 'local',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -62,9 +65,13 @@ def init_db():
 
 init_db()
 
+# Request Schemas
 class AuthRequest(BaseModel):
     email: str
     password: str
+
+class GoogleAuthRequest(BaseModel):
+    credential: str
 
 class ProfileRequest(BaseModel):
     email: str
@@ -87,44 +94,75 @@ class JobPayload(BaseModel):
     jd: str
 
 class DecisionRequest(BaseModel):
-    role: str
-    company: str
+    role: str | None = "Target Role"
+    company: str | None = "Target Company"
     jd: str
     resume: str
     linkedin: str | None = ""
     github: str | None = ""
-    apiKey: str | None = None
+    isGuest: bool = False
 
-# PDF Parsing
-@app.post("/api/resume/upload-pdf")
-async def upload_pdf_resume(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF format files are supported.")
+# Google Sign-In Verification
+@app.post("/api/auth/google")
+async def google_auth(payload: GoogleAuthRequest):
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID")
     try:
-        content = await file.read()
-        pdf_reader = PdfReader(io.BytesIO(content))
-        extracted_text = ""
-        for page in pdf_reader.pages:
-            text = page.extract_text()
-            if text:
-                extracted_text += text + "\n"
-        if not extracted_text.strip():
-            raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF.")
-        return {"extracted_text": extracted_text.strip()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
+        # Verify token against Google Public Keys
+        idinfo = id_token.verify_oauth2_token(
+            payload.credential, 
+            google_requests.Request(), 
+            google_client_id if google_client_id else None
+        )
 
-# Authentication
+        email = idinfo.get("email")
+        name = idinfo.get("name", "")
+
+        if not email:
+            raise HTTPException(status_code=400, detail="Google authentication succeeded, but no email was provided.")
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url FROM users WHERE email=?", (email,))
+        user = cursor.fetchone()
+
+        if not user:
+            cursor.execute("""
+                INSERT INTO users (email, password, full_name, auth_provider) 
+                VALUES (?, 'google_oauth_verified', ?, 'google')
+            """, (email, name))
+            conn.commit()
+            user_profile = {
+                "fullName": name, "targetRole": "", "skills": "", "resume": "", 
+                "linkedin": "", "github": "", "portfolio": ""
+            }
+        else:
+            user_profile = {
+                "fullName": user[1] or name, "targetRole": user[2], "skills": user[3], 
+                "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]
+            }
+        conn.close()
+
+        return {"status": "success", "email": email, "profile": user_profile}
+    except Exception as e:
+        print(f"[AUTH ERROR] Google Token Verification Failed: {str(e)}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Google Login Failed: {str(e)}. Please ensure your Google Client ID is configured in Render environment variables."
+        )
+
+# Standard Email/Password Auth
 @app.post("/api/auth/signup")
 async def signup(payload: AuthRequest):
+    if not payload.email or not payload.password:
+        raise HTTPException(status_code=400, detail="Email and password are required.")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO users (email, password) VALUES (?, ?)", (payload.email, payload.password))
+        cursor.execute("INSERT INTO users (email, password, auth_provider) VALUES (?, ?, 'local')", (payload.email, payload.password))
         conn.commit()
         return {"status": "success", "email": payload.email}
     except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="Account already exists. Please log in.")
+        raise HTTPException(status_code=400, detail="An account with this email already exists. Please log in.")
     finally:
         conn.close()
 
@@ -140,18 +178,46 @@ async def login(payload: AuthRequest):
     return {
         "email": user[0],
         "profile": {
-            "fullName": user[1],
-            "targetRole": user[2],
-            "skills": user[3],
-            "resume": user[4],
-            "linkedin": user[5],
-            "github": user[6],
-            "portfolio": user[7]
+            "fullName": user[1], "targetRole": user[2], "skills": user[3],
+            "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]
         }
     }
 
+# Member PDF Resume Upload (Server-Side Gated)
+@app.post("/api/resume/upload-pdf")
+async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Header(None)):
+    if not user_email or user_email == "null" or user_email == "guest":
+        raise HTTPException(status_code=401, detail="PDF parsing is a Member-only feature. Please sign in.")
+
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only standard PDF files are supported.")
+    try:
+        content = await file.read()
+        pdf_reader = PdfReader(io.BytesIO(content))
+        extracted_text = ""
+        for page in pdf_reader.pages:
+            text = page.extract_text()
+            if text:
+                extracted_text += text + "\n"
+        if not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF file.")
+        
+        # Automatically update database record for user
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET resume=? WHERE email=?", (extracted_text.strip(), user_email))
+        conn.commit()
+        conn.close()
+
+        return {"extracted_text": extracted_text.strip()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
+
+# Profile Management
 @app.post("/api/profile/save")
 async def save_profile(payload: ProfileRequest):
+    if not payload.email or payload.email == "guest":
+        raise HTTPException(status_code=401, detail="Unauthorized. Log in to persist profile records.")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
@@ -165,17 +231,21 @@ async def save_profile(payload: ProfileRequest):
 
 @app.delete("/api/account/delete")
 async def delete_account(email: str):
+    if not email or email == "guest":
+        raise HTTPException(status_code=400, detail="Invalid account deletion request.")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM jobs WHERE user_email=?", (email,))
     cursor.execute("DELETE FROM users WHERE email=?", (email,))
     conn.commit()
     conn.close()
-    return {"status": "success", "message": "Account permanently deleted."}
+    return {"status": "success", "message": "Account and all associated records permanently purged."}
 
-# Job Pipeline
+# Kanban Job Routes (Server-Side Gated)
 @app.get("/api/jobs")
 async def get_jobs(email: str):
+    if not email or email == "guest":
+        return {"jobs": []}
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT id, company, role, date, status, tags, jd FROM jobs WHERE user_email=?", (email,))
@@ -186,6 +256,8 @@ async def get_jobs(email: str):
 
 @app.post("/api/jobs/save")
 async def save_job(payload: JobPayload):
+    if not payload.user_email or payload.user_email == "guest":
+        raise HTTPException(status_code=401, detail="Please log in to save applications to your cloud pipeline.")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
@@ -205,52 +277,71 @@ async def update_job_status(data: dict):
     conn.close()
     return {"status": "success"}
 
-# 83% Smart Decision Engine
+# Unified ATS Decision Engine
 @app.post("/api/gemini/smart-decision")
 async def execute_smart_decision(payload: DecisionRequest):
-    api_key = payload.apiKey or os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=400, detail="Gemini API Key missing.")
+        raise HTTPException(status_code=500, detail="Gemini API Key missing on backend server.")
 
     client = genai.Client(api_key=api_key)
 
-    prompt = f"""
+    if payload.isGuest:
+        prompt = f"""
+You are the ATS Evaluator for Guest Mode on NexJob AI.
+Compare the Candidate Resume against the Target Job Description.
+
+TARGET ROLE: {payload.role} at {payload.company}
+JOB DESCRIPTION: {payload.jd}
+CANDIDATE RESUME: {payload.resume}
+
+FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
+### Overall ATS Match Score: [Calculate precise score between 0% and 100%]%
+
+**High-Level Verdict:** (1 concise sentence stating if the candidate qualifies or has major gaps).
+
+---
+> 🔒 **Detailed Career Roadmap, Cold Recruiter Outreach Generator & Instant Matching Jobs are Member-Only Features.**
+> Sign in or create a free account to unlock your complete step-by-step skill-bridging action plan!
+"""
+    else:
+        prompt = f"""
 You are the Chief AI Career Strategist on NexJob AI.
-Analyze alignment between Candidate Background and Target Role.
+Analyze the alignment between the Candidate Background and the Target Role.
 
 TARGET APPLICATION:
-Role: {payload.role or 'Target Role'} at {payload.company or 'Target Company'}
+Role: {payload.role} at {payload.company}
 Job Description: {payload.jd}
 
-CANDIDATE BACKGROUND:
-Resume: {payload.resume}
-LinkedIn: {payload.linkedin}
-GitHub: {payload.github}
+CANDIDATE PROFILE:
+Resume Content: {payload.resume}
+LinkedIn: {payload.linkedin or 'Not Provided'}
+GitHub: {payload.github or 'Not Provided'}
 
 EVALUATION PROTOCOL:
 1. Calculate a strict Match Percentage (0% to 100%).
-2. Output format must follow this exact markdown structure:
+2. Output format must follow this exact Markdown structure:
 
-### Overall Match Score: [Score]%
+### Overall ATS Match Score: [Score]%
 
 ---
 
 ### DECISION VERDICT: [HIGH FIT (>= 83%) OR ACTIONABLE GAP (< 83%)]
 
-IF Score >= 83%:
-- **Candidate Fit Validation:** Explain top 3 aligned core competencies.
-- **Immediate Next Step:** Ready for direct recruiter engagement.
-- **Personalized Cold Outreach Note:**
-  (Provide a high-converting message under 120 words ready to send to the hiring manager)
+IF Match Score >= 83%:
+- **Candidate Fit Validation:** Highlight the top 3 matching core competencies.
+- **Immediate Strategic Step:** Application is strongly aligned for immediate recruiter submission.
+- **Ready-to-Send Cold Outreach Note:**
+(Generate a personalized, high-converting recruiter message under 120 words ready to copy and send on LinkedIn/Email).
 
-IF Score < 83%:
-- **Critical Skill & Experience Gaps:** Detail exact missing keywords, frameworks, or depth.
-- **Roadmap to Achieve This Dream Job:**
-  1. Priority project or system to build.
-  2. Specific technical certifications or concepts to master.
-  3. Estimated timeline to reach 83%+ fit.
-- **Alternative High-Probability Jobs You Can Crack Right Now:**
-  List 3 specific job titles matching the candidate's existing strengths with >88% immediate fit.
+IF Match Score < 83%:
+- **Critical Skill & Experience Gaps:** Detail exact missing keywords, tools, or domain experience.
+- **Targeted Roadmap to Crack This Dream Job:**
+  1. Priority technical project or system to build.
+  2. Specific tools/frameworks to study.
+  3. Estimated timeline to reach >=83% qualification.
+- **High-Probability Alternative Roles You Can Crack Right Now:**
+  List 3 specific realistic job titles where the candidate's existing background immediately scores >88%.
 """
 
     try:
@@ -303,20 +394,20 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         </style>
     </head>
     <body>
-        <h1>NexJob AI — Registered Users Dashboard</h1>
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">Total Registered Accounts: <b>{len(users)}</b></p>
+        <h1>NexJob AI — Central Admin User Dashboard</h1>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">Registered User Accounts: <b>{len(users)}</b></p>
         <table>
             <thead>
                 <tr>
-                    <th>Email Address</th>
+                    <th>Email</th>
                     <th>Candidate Name</th>
                     <th>Target Role</th>
-                    <th>Registered Date</th>
-                    <th>Active Jobs Tracked</th>
+                    <th>Date Joined</th>
+                    <th>Jobs In Pipeline</th>
                 </tr>
             </thead>
             <tbody>
-                {table_rows if table_rows else '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No users registered yet.</td></tr>'}
+                {table_rows if table_rows else '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No registered users found.</td></tr>'}
             </tbody>
         </table>
     </body>
