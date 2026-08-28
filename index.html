@@ -16,12 +16,10 @@
 
     <!-- Navigation -->
     <nav class="navbar">
-        <div class="nav-brand">NexJob AI</div>
-        <div class="nav-links">
-            <a href="#pipeline">Pipeline</a>
-            <a href="#copilot">Copilot</a>
-            <button class="btn-nav" onclick="openModal()">+ Add Application</button>
-        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+    <span id="userDisplay" style="font-size: 0.85rem; color: var(--text-muted);">Guest Mode</span>
+    <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()">Login / Sign Up</button>
+</div>
     </nav>
 
     <!-- Modal Form -->
