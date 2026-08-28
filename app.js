@@ -188,7 +188,6 @@ function selectJobAndNudge(id) {
 
 // Trigger Gemini API and update Active Button State
 async function triggerGemini(action) {
-    // Update active tab button highlight
     document.querySelectorAll('.ai-action-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`btn-${action}`);
     if (activeBtn) activeBtn.classList.add('active');
@@ -203,7 +202,8 @@ async function triggerGemini(action) {
     resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Streaming response from Gemini 3.6 Flash on Google Cloud...</p>";
 
     try {
-        const res = await fetch("http://127.0.0.1:8000/api/gemini", {
+        // Updated to relative path for both local and cloud deployment
+        const res = await fetch("/api/gemini", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -222,7 +222,7 @@ async function triggerGemini(action) {
             resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Error: " + (data.detail || "Unable to process request.") + "</p>";
         }
     } catch (err) {
-        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Connection error. Ensure 'python server.py' is running in PowerShell.</p>";
+        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Connection error. Ensure the server is running.</p>";
     }
 }
 
