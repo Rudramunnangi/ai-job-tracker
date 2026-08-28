@@ -48,12 +48,10 @@ body {
 .ambient-1 { top: -100px; left: -100px; background: #4F46E5; }
 .ambient-2 { bottom: -100px; right: -100px; background: #DB2777; }
 
-/* Sticky Header */
+/* Sticky Top Navigation */
 .top-nav {
     position: sticky;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     z-index: 1000;
     display: flex;
     justify-content: space-between;
@@ -96,7 +94,7 @@ body {
     border: 1px solid var(--border-subtle);
 }
 
-/* Floating Collapsible Sidebar */
+/* Collapsible Floating Sidebar */
 .app-sidebar {
     position: fixed;
     top: 0;
@@ -136,14 +134,55 @@ body {
     color: var(--accent-blue);
 }
 
-/* Main Content Shell */
+/* Main Container Shell */
 .main-wrapper {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem 24px 60px;
 }
 
+/* Guest Banner */
+.guest-banner {
+    background: rgba(79, 70, 229, 0.12);
+    border: 1px solid rgba(79, 70, 229, 0.35);
+    padding: 14px 20px;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.88rem;
+    color: #C7D2FE;
+}
+
+/* Member Locked Container */
+.member-locked {
+    position: relative;
+    user-select: none;
+}
+.member-locked > div:not(.lock-overlay), 
+.member-locked > section {
+    filter: blur(4px);
+    opacity: 0.4;
+    pointer-events: none;
+}
+.lock-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 50;
+    display: none;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 60px;
+}
+
 /* Hero Section */
+.hero {
+    text-align: left;
+    padding: 10px 0 25px;
+}
 .hero-badge {
     display: inline-flex;
     align-items: center;
@@ -158,9 +197,11 @@ body {
     margin-bottom: 8px;
 }
 .hero-title {
+    font-size: 2.2rem;
     font-weight: 800;
     line-height: 1.2;
     letter-spacing: -0.03em;
+    margin-bottom: 8px;
 }
 .gradient-text {
     background: var(--primary-gradient);
