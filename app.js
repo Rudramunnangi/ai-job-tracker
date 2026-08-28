@@ -1,13 +1,28 @@
 // User State & Storage Management
 let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null;
+let userProfile = null;
 let jobs = [];
 
 function loadUserData() {
     if (currentUser && currentUser.email) {
         const storedJobs = localStorage.getItem(`nexjob_jobs_${currentUser.email}`);
         jobs = storedJobs ? JSON.parse(storedJobs) : [];
+
+        const storedProfile = localStorage.getItem(`nexjob_profile_${currentUser.email}`);
+        userProfile = storedProfile ? JSON.parse(storedProfile) : {
+            fullName: "",
+            targetRole: "",
+            skills: "",
+            resume: ""
+        };
+
+        const resumeBox = document.getElementById('userResume');
+        if (resumeBox && userProfile.resume) {
+            resumeBox.value = userProfile.resume;
+        }
     } else {
         jobs = [];
+        userProfile = null;
     }
 }
 
@@ -15,6 +30,45 @@ function saveUserData() {
     if (currentUser && currentUser.email) {
         localStorage.setItem(`nexjob_jobs_${currentUser.email}`, JSON.stringify(jobs));
     }
+}
+
+// Profile Modal Actions
+function openProfileModal() {
+    if (!currentUser) {
+        openAuthModal();
+        return;
+    }
+    document.getElementById('profFullName').value = userProfile.fullName || "";
+    document.getElementById('profTargetRole').value = userProfile.targetRole || "";
+    document.getElementById('profSkills').value = userProfile.skills || "";
+    document.getElementById('profResume').value = userProfile.resume || "";
+    document.getElementById('profileModal').style.display = 'flex';
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+function saveUserProfile() {
+    if (!currentUser) return;
+
+    userProfile = {
+        fullName: document.getElementById('profFullName').value.trim(),
+        targetRole: document.getElementById('profTargetRole').value.trim(),
+        skills: document.getElementById('profSkills').value.trim(),
+        resume: document.getElementById('profResume').value.trim()
+    };
+
+    localStorage.setItem(`nexjob_profile_${currentUser.email}`, JSON.stringify(userProfile));
+
+    const resumeBox = document.getElementById('userResume');
+    if (resumeBox) {
+        resumeBox.value = userProfile.resume;
+    }
+
+    closeProfileModal();
+    updateAuthUI();
+    alert("Profile and Resume updated successfully!");
 }
 
 // Authentication Actions
@@ -53,7 +107,7 @@ function handleAuth(type) {
         localStorage.setItem('nexjob_users', JSON.stringify(users));
         currentUser = { email };
         localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
-        alert("Account created successfully! You are now logged in.");
+        alert("Account created successfully! Please configure your Profile.");
     } else if (type === 'login') {
         if (!users[email]) {
             alert("No account found with this email. Please click 'Sign Up' first to register.");
@@ -65,7 +119,6 @@ function handleAuth(type) {
         }
         currentUser = { email };
         localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
-        alert("Logged in successfully!");
     }
 
     closeAuthModal();
@@ -77,6 +130,7 @@ function handleAuth(type) {
 function logoutUser() {
     localStorage.removeItem('nexjob_active_user');
     currentUser = null;
+    userProfile = null;
     jobs = [];
     updateAuthUI();
     renderDashboard();
@@ -85,25 +139,44 @@ function logoutUser() {
 function updateAuthUI() {
     const authBtn = document.getElementById('authNavBtn');
     const userDisplay = document.getElementById('userDisplay');
+    const profileBtn = document.getElementById('profileNavBtn');
+    const profileLabel = document.getElementById('profileBtnLabel');
+    const resumeNotice = document.getElementById('resumeNoticeBanner');
 
     if (currentUser && currentUser.email) {
         if (authBtn) {
             authBtn.innerText = "Logout";
             authBtn.onclick = logoutUser;
         }
-        if (userDisplay) {
-            userDisplay.innerText = currentUser.email;
-            userDisplay.style.color = "var(--accent-emerald, #10b981)";
+        if (profileBtn) profileBtn.style.display = "inline-flex";
+        
+        if (userProfile && userProfile.fullName) {
+            if (userDisplay) {
+                userDisplay.innerText = userProfile.fullName;
+                userDisplay.style.color = "var(--accent-emerald, #10b981)";
+            }
+            if (profileLabel) profileLabel.innerText = "My Profile";
+        } else {
+            if (userDisplay) {
+                userDisplay.innerText = currentUser.email;
+                userDisplay.style.color = "var(--accent-emerald, #10b981)";
+            }
+        }
+
+        if (resumeNotice) {
+            resumeNotice.style.display = (!userProfile || !userProfile.resume) ? "flex" : "none";
         }
     } else {
         if (authBtn) {
             authBtn.innerText = "Login / Sign Up";
             authBtn.onclick = openAuthModal;
         }
+        if (profileBtn) profileBtn.style.display = "none";
         if (userDisplay) {
-            userDisplay.innerText = "Guest (Not Logged In)";
+            userDisplay.innerText = "Guest Mode";
             userDisplay.style.color = "var(--text-muted, #94a3b8)";
         }
+        if (resumeNotice) resumeNotice.style.display = "none";
     }
 }
 
@@ -301,7 +374,13 @@ async function triggerGemini(action) {
     const customKey = document.getElementById('customApiKey').value;
     const resultBox = document.getElementById('aiResultBox');
 
-    resultBox.innerHTML = "<p style='color:var(--accent-blue, #3b82f6);'>Generating response with Gemini Flash...</p>";
+    if (!resume || resume.trim().length < 10) {
+        alert("Please enter or save your candidate resume background first to generate accurate insights.");
+        openProfileModal();
+        return;
+    }
+
+    resultBox.innerHTML = "<p style='color:var(--accent-blue, #3b82f6);'>Evaluating semantic alignment with Gemini 3.6 Flash...</p>";
 
     try {
         const res = await fetch("/api/gemini", {
