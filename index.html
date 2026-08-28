@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexJob AI | Next-Gen Career Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-ambient ambient-1"></div>
+    <div class="bg-ambient ambient-2"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">NexJob AI</div>
+        <div class="nav-links">
+            <a href="#pipeline">Pipeline</a>
+            <a href="#copilot">Copilot</a>
+            <button class="btn-nav" onclick="openModal()">+ Add Application</button>
+        </div>
+    </nav>
+
+    <!-- Modal Form -->
+    <div class="modal-backdrop" id="jobModal">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                <h3 style="font-size:1.15rem; font-weight:700;">Add New Application</h3>
+                <span style="cursor:pointer; font-size:1.2rem; color:var(--text-muted);" onclick="closeModal()">✕</span>
+            </div>
+            <div class="input-grid">
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">COMPANY NAME</label>
+                    <input type="text" id="modalCompany" class="custom-input" placeholder="Google Cloud, Stripe, Microsoft">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">ROLE TITLE</label>
+                    <input type="text" id="modalRole" class="custom-input" placeholder="AI Solutions Engineer">
+                </div>
+            </div>
+            <div class="input-grid">
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">APPLICATION DATE</label>
+                    <input type="date" id="modalDate" class="custom-input">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">INITIAL STATUS</label>
+                    <select id="modalStatus" class="custom-select">
+                        <option value="Applied">Applied</option>
+                        <option value="Interviewing">Interviewing</option>
+                        <option value="Offered">Offered</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TECH STACK (Comma separated)</label>
+                <input type="text" id="modalTags" class="custom-input" placeholder="Python, Docker, Cloud Run, Vertex AI">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">JOB DESCRIPTION</label>
+                <textarea id="modalJD" class="custom-textarea" rows="3" placeholder="Key responsibilities and technical qualifications..."></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitNewJob()">Add to Pipeline</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-badge">Google Cloud & Gemini 3.6 Flash Integration</div>
+        <h1 class="hero-title">
+            Streamline Career Workflows with <span class="gradient-text">Autonomous AI Intelligence</span>
+        </h1>
+        <p class="hero-sub">
+            Continuous application pipeline tracking with time-decay follow-up triggers and deep semantic candidate evaluation.
+        </p>
+    </section>
+
+    <!-- Main Application Section -->
+    <section class="app-section" id="pipeline">
+        <div class="glass-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <h2 style="font-size:1.25rem; font-weight:700;">Application Pipeline</h2>
+                <button class="btn-primary" onclick="openModal()">+ Add New Role</button>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-title">Total Applications</div>
+                    <div class="stat-number" id="statTotal">3</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Active In Pipeline</div>
+                    <div class="stat-number" style="color: var(--accent-blue);" id="statPipe">2</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Offers Won</div>
+                    <div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">1</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Follow-Ups Due</div>
+                    <div class="stat-number" style="color: var(--accent-rose);" id="statNudges">1</div>
+                </div>
+            </div>
+
+            <!-- Nudge Banner Container -->
+            <div id="nudgeAlertContainer"></div>
+
+            <!-- Kanban Board -->
+            <div class="kanban-grid" id="kanbanGrid"></div>
+
+            <!-- AI Copilot Panel -->
+            <div class="ai-panel" id="copilot">
+                <h3 style="font-size: 1.15rem; margin-bottom: 16px; font-weight: 700;">Gemini Career Intelligence Workspace</h3>
+                
+                <div class="input-grid">
+                    <div>
+                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET APPLICATION</label>
+                        <select class="custom-select" id="roleSelector" onchange="onRoleChange()"></select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">CUSTOM API KEY (OPTIONAL)</label>
+                        <input type="password" class="custom-input" id="customApiKey" placeholder="Uses backend environment key if empty">
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div>
+                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">JOB DESCRIPTION</label>
+                        <textarea class="custom-textarea" id="jobDesc" rows="4"></textarea>
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">CANDIDATE EXPERIENCE SUMMARY</label>
+                        <textarea class="custom-textarea" id="userResume" rows="4">B.Tech in Computer Science with a strong foundation in C++ and Data Structures and Algorithms. Experienced in building full-stack applications with Python, FastAPI, Docker, and Google Cloud services.</textarea>
+                    </div>
+                </div>
+
+                <!-- Dynamic Action Tabs -->
+                <div class="ai-btn-group">
+                    <button class="ai-action-btn active" id="btn-match" onclick="triggerGemini('match')">Run Match & Gap Analysis</button>
+                    <button class="ai-action-btn" id="btn-outreach" onclick="triggerGemini('outreach')">Draft Cold Recruiter Note</button>
+                    <button class="ai-action-btn" id="btn-nudge" onclick="triggerGemini('nudge')">Generate Follow-up Note</button>
+                </div>
+
+                <div class="ai-result-box" id="aiResultBox">
+                    Select an action above to stream real-time insights from Gemini 3.6 Flash.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="app.js"></script>
+</body>
+</html>
