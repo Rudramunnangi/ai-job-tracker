@@ -3,60 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexJob AI | Next-Gen Career Cockpit</title>
-    <!-- Modern SVG Favicon Logo for Browser Tab -->
+    <title>NexJob AI | Next-Gen Career Engine</title>
+    <!-- Modern SVG Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233b82f6'/><stop offset='100%' stop-color='%2310b981'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230f172a'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='5' fill='%2338bdf8'/></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div class="bg-ambient ambient-1"></div>
-    <div class="bg-ambient ambient-2"></div>
+<body style="display: flex; min-height: 100vh; background: #0b1120; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif;">
 
-    <!-- Navigation Header -->
-    <nav class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 2.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <svg width="34" height="34" viewBox="0 0 100 100">
-                <defs>
-                    <linearGradient id="navG" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#3b82f6"/>
-                        <stop offset="100%" stop-color="#10b981"/>
-                    </linearGradient>
-                </defs>
-                <rect width="100" height="100" rx="24" fill="#1e293b"/>
-                <path d="M30 70V30L70 70V30" stroke="url(#navG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                <circle cx="70" cy="30" r="6" fill="#38bdf8"/>
-            </svg>
-            <span style="font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; color: #fff;">
-                NexJob <span class="gradient-text">AI</span>
-            </span>
+    <!-- Left Navigation Sidebar -->
+    <aside style="width: 260px; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem 1rem; position: sticky; top: 0; height: 100vh; box-sizing: border-box; z-index: 50;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; padding: 0 0.5rem;">
+                <svg width="32" height="32" viewBox="0 0 100 100">
+                    <defs>
+                        <linearGradient id="navG" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#3b82f6"/>
+                            <stop offset="100%" stop-color="#10b981"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="100" height="100" rx="24" fill="#1e293b"/>
+                    <path d="M30 70V30L70 70V30" stroke="url(#navG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <circle cx="70" cy="30" r="6" fill="#38bdf8"/>
+                </svg>
+                <span style="font-weight: 800; font-size: 1.25rem;">NexJob <span class="gradient-text">AI</span></span>
+            </div>
+
+            <nav style="display: flex; flex-direction: column; gap: 6px;">
+                <a href="#pipeline" class="side-link active">📊 Kanban Pipeline</a>
+                <a href="#smart-copilot" class="side-link">🧠 85% Decision Engine</a>
+                <a href="#resume-vault" class="side-link">📄 Resume Parser & Vault</a>
+                <a href="javascript:void(0)" onclick="openProfileModal()" class="side-link">👤 Candidate Profile</a>
+            </nav>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 14px;">
-            <!-- Profile Button (shown when logged in) -->
-            <button id="profileNavBtn" class="btn-secondary" onclick="openProfileModal()" style="display: none; padding: 6px 14px; font-size: 0.82rem; border-radius: 8px;">
-                👤 <span id="profileBtnLabel">Profile</span>
-            </button>
-            <span id="userDisplay" style="font-size: 0.85rem; color: var(--text-muted);">Guest Mode</span>
-            <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()" style="padding: 6px 16px; font-size: 0.82rem;">Login / Sign Up</button>
+        <div style="border-top: 1px solid #1e293b; padding-top: 1rem;">
+            <div id="userDisplay" style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 10px; padding: 0 0.5rem; word-break: break-all;">Guest Mode</div>
+            <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()" style="width: 100%; margin-bottom: 6px; font-size: 0.8rem;">Login / Sign Up</button>
+            <button id="deleteAccBtn" onclick="deleteAccount()" style="display: none; width: 100%; background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">Delete Account</button>
         </div>
-    </nav>
+    </aside>
 
-    <!-- Resume Completion Banner -->
-    <div id="resumeNoticeBanner" style="display: none; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); padding: 12px 24px; margin: 16px auto; max-width: 1200px; border-radius: 10px; justify-content: space-between; align-items: center;">
-        <div style="font-size: 0.88rem; color: #93c5fd;">
-            💡 <b>Complete your Profile:</b> Upload/paste your resume and key technical skills in your Profile to unlock high-accuracy semantic gap analyses.
+    <!-- Main Content Area -->
+    <main style="flex: 1; padding: 2rem 3rem; overflow-y: auto; max-width: 1300px; margin: 0 auto;">
+
+        <!-- Resume Alert Banner -->
+        <div id="resumeNoticeBanner" style="display: none; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); padding: 14px 20px; border-radius: 10px; margin-bottom: 2rem; justify-content: space-between; align-items: center;">
+            <div style="font-size: 0.88rem; color: #93c5fd;">
+                💡 <b>Profile Incomplete:</b> Upload your PDF Resume and links to activate autonomous $\ge 85\%$ match analytics.
+            </div>
+            <button class="btn-primary" style="padding: 6px 14px; font-size: 0.78rem;" onclick="openProfileModal()">Complete Profile</button>
         </div>
-        <button class="btn-primary" style="padding: 4px 12px; font-size: 0.78rem;" onclick="openProfileModal()">Update Profile</button>
-    </div>
 
-    <!-- User Profile Modal -->
+        <!-- Hero -->
+        <section class="hero" style="text-align: left; margin-bottom: 2.5rem;">
+            <div class="hero-badge">Google Cloud & Gemini 3.6 Flash</div>
+            <h1 class="hero-title" style="font-size: 2.2rem; margin: 0.5rem 0;">
+                Autonomous <span class="gradient-text">Career Intelligence Cockpit</span>
+            </h1>
+            <p class="hero-sub" style="margin: 0; max-width: 800px;">
+                Upload your resume once. Track active applications, get automated $\ge 85\%$ fit validations, and receive tailored bridge plans for ambitious roles.
+            </p>
+        </section>
+
+        <!-- Metrics Overview -->
+        <div class="stats-grid" style="margin-bottom: 2rem;">
+            <div class="stat-box"><div class="stat-title">Total Tracked</div><div class="stat-number" id="statTotal">0</div></div>
+            <div class="stat-box"><div class="stat-title">Active In Pipeline</div><div class="stat-number" style="color: var(--accent-blue);" id="statPipe">0</div></div>
+            <div class="stat-box"><div class="stat-title">Offers Won</div><div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">0</div></div>
+            <div class="stat-box"><div class="stat-title">Follow-Ups Due</div><div class="stat-number" style="color: var(--accent-rose);" id="statNudges">0</div></div>
+        </div>
+
+        <!-- Follow-Up Due Alert Container -->
+        <div id="nudgeAlertContainer"></div>
+
+        <!-- Pipeline Kanban -->
+        <section id="pipeline" style="margin-bottom: 3rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">Application Kanban Pipeline</h2>
+                <button class="btn-primary" onclick="openModal()">+ Add New Application</button>
+            </div>
+            <div class="kanban-grid" id="kanbanGrid"></div>
+        </section>
+
+        <!-- PDF Upload & Vault Section -->
+        <section id="resume-vault" style="margin-bottom: 3rem; background: #1e293b; padding: 1.5rem; border-radius: 12px; border: 1px solid #334155;">
+            <h3 style="margin-top: 0; font-size: 1.15rem; font-weight: 700;">📄 Direct Resume PDF Upload</h3>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1rem;">
+                Upload your updated resume PDF. NexJob AI automatically parses the text into your profile for instant Gemini gap analytics.
+            </p>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="file" id="pdfFileInput" accept=".pdf" class="custom-input" style="max-width: 380px; padding: 6px;" />
+                <button class="btn-primary" onclick="uploadResumePDF()">Upload & Parse PDF</button>
+            </div>
+        </section>
+
+        <!-- Smart Decision & Gap Analyzer (85% Logic) -->
+        <section id="smart-copilot" class="ai-panel">
+            <h3 style="font-size: 1.25rem; margin-bottom: 6px; font-weight: 700;">🧠 Gemini 85% Smart Decision Engine</h3>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem;">
+                If fit is $\ge 85\%$, outreach drafts are ready immediately. If $< 85\%$, the engine outlines the exact technical skill bridge and identifies alternative target roles.
+            </p>
+            
+            <div class="input-grid">
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">SELECT ACTIVE APPLICATION</label>
+                    <select class="custom-select" id="roleSelector" onchange="onRoleChange()"></select>
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">CUSTOM GEMINI API KEY (OPTIONAL)</label>
+                    <input type="password" class="custom-input" id="customApiKey" placeholder="Uses backend key by default">
+                </div>
+            </div>
+
+            <div class="input-grid">
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET JOB DESCRIPTION</label>
+                    <textarea class="custom-textarea" id="jobDesc" rows="5"></textarea>
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PARSED RESUME CONTENT</label>
+                    <textarea class="custom-textarea" id="userResume" rows="5" placeholder="Upload PDF above or paste resume text here..."></textarea>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.2rem;">
+                <button class="btn-primary" style="padding: 10px 24px; font-size: 0.95rem; width: 100%;" onclick="runSmartDecision()">⚡ Run 85% Smart Fit & Gap Decision Engine</button>
+            </div>
+
+            <div class="ai-result-box" id="aiResultBox" style="margin-top: 1.5rem;">
+                Select a target job and run the Decision Engine to receive semantic alignment insights.
+            </div>
+        </section>
+    </main>
+
+    <!-- Candidate Profile Modal -->
     <div id="profileModal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center;">
-        <div class="modal-card" style="width: 90%; max-width: 580px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-card" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                 <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Candidate Career Profile</h3>
                 <span style="cursor:pointer; font-size:1.2rem; color:var(--text-muted);" onclick="closeProfileModal()">✕</span>
@@ -68,21 +156,30 @@
                     <input type="text" id="profFullName" class="custom-input" placeholder="e.g. Alex Johnson">
                 </div>
                 <div>
-                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET ROLE FOCUS</label>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET ROLE TITLE</label>
                     <input type="text" id="profTargetRole" class="custom-input" placeholder="e.g. Cloud AI Engineer">
                 </div>
             </div>
 
-            <div style="margin-top: 12px; margin-bottom: 12px;">
-                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PRIMARY TECH STACK / COMPETENCIES</label>
-                <input type="text" id="profSkills" class="custom-input" placeholder="Python, FastAPI, C++, Docker, PyTorch, GCP">
+            <div class="input-grid" style="margin-top: 10px;">
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">LINKEDIN PROFILE URL</label>
+                    <input type="url" id="profLinkedin" class="custom-input" placeholder="https://linkedin.com/in/username">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">GITHUB / PORTFOLIO URL</label>
+                    <input type="url" id="profGithub" class="custom-input" placeholder="https://github.com/username">
+                </div>
+            </div>
+
+            <div style="margin-top: 10px; margin-bottom: 10px;">
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PRIMARY SKILLS & TECH STACK</label>
+                <input type="text" id="profSkills" class="custom-input" placeholder="Python, FastAPI, C++, Docker, GCP, PyTorch">
             </div>
 
             <div style="margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">RESUME / BACKGROUND DETAILS (Used for AI Matching)</label>
-                </div>
-                <textarea id="profResume" class="custom-textarea" rows="6" placeholder="Paste your structured resume, education, key projects, and metrics here..."></textarea>
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">RAW RESUME TEXT (Updated automatically via PDF upload)</label>
+                <textarea id="profResume" class="custom-textarea" rows="6" placeholder="Paste or verify your resume text here..."></textarea>
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -92,7 +189,7 @@
         </div>
     </div>
 
-    <!-- Job Application Modal -->
+    <!-- Application Modal -->
     <div class="modal-backdrop" id="jobModal" style="display: none;">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
@@ -130,7 +227,7 @@
             </div>
             <div style="margin-bottom:20px;">
                 <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">JOB DESCRIPTION</label>
-                <textarea id="modalJD" class="custom-textarea" rows="3" placeholder="Key responsibilities and technical qualifications..."></textarea>
+                <textarea id="modalJD" class="custom-textarea" rows="3" placeholder="Key responsibilities and qualifications..."></textarea>
             </div>
             <div style="display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -139,114 +236,39 @@
         </div>
     </div>
 
-    <!-- Auth Modal -->
-    <div id="authModal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); z-index: 99999; justify-content: center; align-items: center;">
-        <div class="modal-card" style="width: 90%; max-width: 400px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0;">Account Authentication</h3>
-                <span style="cursor:pointer; font-size:1.2rem; color:var(--text-muted);" onclick="closeAuthModal()">✕</span>
-            </div>
+    <!-- Auth Modal with Google Sign-In -->
+    <div id="authModal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center;">
+        <div class="modal-card" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Account Authentication</h3>
             
-            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">EMAIL ADDRESS</label>
-            <input type="email" id="authEmail" class="custom-input" placeholder="you@example.com" style="margin-bottom: 14px;" />
+            <!-- One-Tap Google Button -->
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                 data-callback="handleGoogleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_black" data-text="signin_with" data-size="large" style="margin-bottom: 1.2rem; display: flex; justify-content: center;"></div>
 
-            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PASSWORD</label>
-            <input type="password" id="authPassword" class="custom-input" placeholder="••••••••" style="margin-bottom: 20px;" />
+            <div style="position: relative; margin: 1.2rem 0; border-bottom: 1px solid #334155;">
+                <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #1e293b; padding: 0 10px; color: #94a3b8; font-size: 0.75rem;">OR EMAIL</span>
+            </div>
 
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
-                <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
-                <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
+            <div style="text-align: left;">
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">EMAIL ADDRESS</label>
+                <input type="email" id="authEmail" class="custom-input" placeholder="you@example.com" style="margin-bottom: 12px;" />
+
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PASSWORD</label>
+                <input type="password" id="authPassword" class="custom-input" placeholder="••••••••" style="margin-bottom: 18px;" />
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
+                    <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
+                    <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Hero -->
-    <section class="hero">
-        <div class="hero-badge">Google Cloud & Gemini 3.6 Flash Integration</div>
-        <h1 class="hero-title">
-            Streamline Career Workflows with <span class="gradient-text">Autonomous AI Intelligence</span>
-        </h1>
-        <p class="hero-sub">
-            Continuous application pipeline tracking with time-decay follow-up triggers and deep semantic candidate evaluation.
-        </p>
-    </section>
-
-    <!-- Main Application Section -->
-    <section class="app-section" id="pipeline">
-        <div class="glass-container">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-                <h2 style="font-size:1.25rem; font-weight:700;">Application Pipeline</h2>
-                <button class="btn-primary" onclick="openModal()">+ Add New Role</button>
-            </div>
-
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-title">Total Applications</div>
-                    <div class="stat-number" id="statTotal">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-title">Active In Pipeline</div>
-                    <div class="stat-number" style="color: var(--accent-blue);" id="statPipe">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-title">Offers Won</div>
-                    <div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-title">Follow-Ups Due</div>
-                    <div class="stat-number" style="color: var(--accent-rose);" id="statNudges">0</div>
-                </div>
-            </div>
-
-            <!-- Nudge Banner Container -->
-            <div id="nudgeAlertContainer"></div>
-
-            <!-- Kanban Board -->
-            <div class="kanban-grid" id="kanbanGrid"></div>
-
-            <!-- AI Copilot Panel -->
-            <div class="ai-panel" id="copilot">
-                <h3 style="font-size: 1.15rem; margin-bottom: 16px; font-weight: 700;">Gemini Career Intelligence Workspace</h3>
-                
-                <div class="input-grid">
-                    <div>
-                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET APPLICATION</label>
-                        <select class="custom-select" id="roleSelector" onchange="onRoleChange()"></select>
-                    </div>
-                    <div>
-                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">CUSTOM API KEY (OPTIONAL)</label>
-                        <input type="password" class="custom-input" id="customApiKey" placeholder="Uses backend environment key if empty">
-                    </div>
-                </div>
-
-                <div class="input-grid">
-                    <div>
-                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">JOB DESCRIPTION</label>
-                        <textarea class="custom-textarea" id="jobDesc" rows="4"></textarea>
-                    </div>
-                    <div>
-                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">ACTIVE CANDIDATE PROFILE / RESUME</label>
-                        <textarea class="custom-textarea" id="userResume" rows="4" placeholder="Update your resume in your Profile (top right) or paste directly here..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Dynamic Action Tabs -->
-                <div class="ai-btn-group">
-                    <button class="ai-action-btn active" id="btn-match" onclick="triggerGemini('match')">Run Match & Gap Analysis</button>
-                    <button class="ai-action-btn" id="btn-outreach" onclick="triggerGemini('outreach')">Draft Cold Recruiter Note</button>
-                    <button class="ai-action-btn" id="btn-nudge" onclick="triggerGemini('nudge')">Generate Follow-up Note</button>
-                </div>
-
-                <div class="ai-result-box" id="aiResultBox">
-                    Select an action above to stream real-time insights from Gemini 3.6 Flash.
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Scripts -->
     <script src="app.js"></script>
 </body>
 </html>
