@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexJob AI | Next-Gen Career Engine</title>
+    <title>NexJob AI | Next-Gen Career Cockpit</title>
+    <!-- Modern SVG Favicon Logo for Browser Tab -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233b82f6'/><stop offset='100%' stop-color='%2310b981'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230f172a'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='5' fill='%2338bdf8'/></svg>">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -14,16 +17,80 @@
     <div class="bg-ambient ambient-1"></div>
     <div class="bg-ambient ambient-2"></div>
 
-    <!-- Navigation -->
-    <nav class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;">
-        <div style="font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px;">
-            NexJob <span class="gradient-text">AI</span>
+    <!-- Navigation Header -->
+    <nav class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 2.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <svg width="34" height="34" viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="navG" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#3b82f6"/>
+                        <stop offset="100%" stop-color="#10b981"/>
+                    </linearGradient>
+                </defs>
+                <rect width="100" height="100" rx="24" fill="#1e293b"/>
+                <path d="M30 70V30L70 70V30" stroke="url(#navG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="70" cy="30" r="6" fill="#38bdf8"/>
+            </svg>
+            <span style="font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; color: #fff;">
+                NexJob <span class="gradient-text">AI</span>
+            </span>
         </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
+
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <!-- Profile Button (shown when logged in) -->
+            <button id="profileNavBtn" class="btn-secondary" onclick="openProfileModal()" style="display: none; padding: 6px 14px; font-size: 0.82rem; border-radius: 8px;">
+                👤 <span id="profileBtnLabel">Profile</span>
+            </button>
             <span id="userDisplay" style="font-size: 0.85rem; color: var(--text-muted);">Guest Mode</span>
-            <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()">Login / Sign Up</button>
+            <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()" style="padding: 6px 16px; font-size: 0.82rem;">Login / Sign Up</button>
         </div>
     </nav>
+
+    <!-- Resume Completion Banner -->
+    <div id="resumeNoticeBanner" style="display: none; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); padding: 12px 24px; margin: 16px auto; max-width: 1200px; border-radius: 10px; justify-content: space-between; align-items: center;">
+        <div style="font-size: 0.88rem; color: #93c5fd;">
+            💡 <b>Complete your Profile:</b> Upload/paste your resume and key technical skills in your Profile to unlock high-accuracy semantic gap analyses.
+        </div>
+        <button class="btn-primary" style="padding: 4px 12px; font-size: 0.78rem;" onclick="openProfileModal()">Update Profile</button>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div id="profileModal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center;">
+        <div class="modal-card" style="width: 90%; max-width: 580px; max-height: 90vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Candidate Career Profile</h3>
+                <span style="cursor:pointer; font-size:1.2rem; color:var(--text-muted);" onclick="closeProfileModal()">✕</span>
+            </div>
+            
+            <div class="input-grid">
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">FULL NAME</label>
+                    <input type="text" id="profFullName" class="custom-input" placeholder="e.g. Alex Johnson">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET ROLE FOCUS</label>
+                    <input type="text" id="profTargetRole" class="custom-input" placeholder="e.g. Cloud AI Engineer">
+                </div>
+            </div>
+
+            <div style="margin-top: 12px; margin-bottom: 12px;">
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PRIMARY TECH STACK / COMPETENCIES</label>
+                <input type="text" id="profSkills" class="custom-input" placeholder="Python, FastAPI, C++, Docker, PyTorch, GCP">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">RESUME / BACKGROUND DETAILS (Used for AI Matching)</label>
+                </div>
+                <textarea id="profResume" class="custom-textarea" rows="6" placeholder="Paste your structured resume, education, key projects, and metrics here..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="closeProfileModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveUserProfile()">Save Profile</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Job Application Modal -->
     <div class="modal-backdrop" id="jobModal" style="display: none;">
@@ -160,8 +227,8 @@
                         <textarea class="custom-textarea" id="jobDesc" rows="4"></textarea>
                     </div>
                     <div>
-                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">CANDIDATE EXPERIENCE SUMMARY</label>
-                        <textarea class="custom-textarea" id="userResume" rows="4">B.Tech in Computer Science with strong foundation in C, C++, and Data Structures & Algorithms. Experienced in building full-stack applications with Python, FastAPI, Docker, and Google Cloud services.</textarea>
+                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">ACTIVE CANDIDATE PROFILE / RESUME</label>
+                        <textarea class="custom-textarea" id="userResume" rows="4" placeholder="Update your resume in your Profile (top right) or paste directly here..."></textarea>
                     </div>
                 </div>
 
@@ -179,7 +246,7 @@
         </div>
     </section>
 
-    <!-- Scripts at the very bottom -->
+    <!-- Scripts -->
     <script src="app.js"></script>
 </body>
 </html>
