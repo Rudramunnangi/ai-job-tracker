@@ -48,71 +48,30 @@ body {
 .ambient-1 { top: -100px; left: -100px; background: #4F46E5; }
 .ambient-2 { bottom: -100px; right: -100px; background: #DB2777; }
 
-/* Navbar */
-.navbar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 1000;
-    padding: 16px 48px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(9, 11, 16, 0.75);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border-subtle);
-    transition: all 0.25s ease;
-}
-.nav-brand {
-    font-size: 1.25rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #FFFFFF 40%, #94A3B8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+/* Sidebar Navigation Links */
+.side-link {
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-.nav-links {
-    display: flex;
-    gap: 28px;
-    align-items: center;
-}
-.nav-links a {
+    gap: 10px;
+    padding: 10px 14px;
     color: var(--text-secondary);
     text-decoration: none;
     font-size: 0.88rem;
-    font-weight: 500;
-    transition: color 0.2s;
-}
-.nav-links a:hover {
-    color: var(--text-primary);
-}
-.btn-nav {
-    background: var(--primary-gradient);
-    border: none;
-    color: #FFF;
-    padding: 9px 20px;
-    border-radius: 8px;
-    font-size: 0.85rem;
     font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 4px 14px var(--primary-glow);
+    border-radius: 8px;
     transition: all 0.2s ease;
 }
-.btn-nav:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+
+.side-link:hover, .side-link.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--accent-blue);
 }
 
 /* Hero Section */
 .hero {
     position: relative;
     z-index: 1;
-    padding: 130px 24px 60px;
-    text-align: center;
-    max-width: 900px;
-    margin: 0 auto;
+    padding: 20px 0 30px;
 }
 .hero-badge {
     display: inline-flex;
@@ -125,14 +84,14 @@ body {
     font-size: 0.78rem;
     font-weight: 600;
     color: #A5B4FC;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
 }
 .hero-title {
-    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 800;
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: -0.03em;
-    margin-bottom: 18px;
+    margin-bottom: 12px;
 }
 .gradient-text {
     background: var(--primary-gradient);
@@ -140,41 +99,23 @@ body {
     -webkit-text-fill-color: transparent;
 }
 .hero-sub {
-    font-size: 1.05rem;
+    font-size: 0.98rem;
     color: var(--text-secondary);
     line-height: 1.6;
-    max-width: 650px;
-    margin: 0 auto 32px;
 }
 
-/* Glass & Card Layouts */
-.app-section {
-    position: relative;
-    z-index: 1;
-    max-width: 1200px;
-    margin: 0 auto 80px;
-    padding: 0 24px;
-}
-.glass-container {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 20px;
-    padding: 32px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
-
-/* Stats */
+/* Metrics & Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
 }
 .stat-box {
     background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 20px;
+    padding: 18px;
     transition: border-color 0.2s ease;
 }
 .stat-box:hover {
@@ -188,25 +129,25 @@ body {
     letter-spacing: 0.05em;
 }
 .stat-number {
-    font-size: 1.9rem;
+    font-size: 1.8rem;
     font-weight: 800;
     color: var(--text-primary);
     margin-top: 4px;
 }
 
-/* Kanban */
+/* Kanban Board Layout */
 .kanban-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
-    margin-bottom: 36px;
+    margin-bottom: 30px;
 }
 .kanban-col {
     background: rgba(14, 18, 27, 0.6);
     border: 1px solid var(--border-subtle);
     border-radius: 14px;
     padding: 16px;
-    min-height: 260px;
+    min-height: 240px;
 }
 .kanban-header {
     font-size: 0.8rem;
@@ -243,7 +184,7 @@ body {
     margin-right: 4px;
 }
 
-/* Smart Nudge Banner */
+/* Smart Nudge Card */
 .nudge-card {
     background: rgba(244, 63, 94, 0.08);
     border: 1px solid rgba(244, 63, 94, 0.25);
@@ -256,7 +197,7 @@ body {
     align-items: center;
 }
 
-/* AI Workspace Panel */
+/* AI Panel Workspace */
 .ai-panel {
     background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
@@ -284,7 +225,7 @@ body {
     border-color: var(--border-focus);
 }
 
-/* Interactive AI Action Tabs */
+/* AI Action Buttons */
 .ai-btn-group {
     display: flex;
     gap: 12px;
@@ -307,7 +248,6 @@ body {
     border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-1px);
 }
-/* Active Tab Style */
 .ai-action-btn.active {
     background: var(--primary-gradient);
     border-color: transparent;
@@ -315,7 +255,7 @@ body {
     box-shadow: 0 4px 16px var(--primary-glow);
 }
 
-/* Rendered Output Window */
+/* AI Markdown Output Box */
 .ai-result-box {
     background: #080A0E;
     border: 1px solid var(--border-subtle);
@@ -353,14 +293,14 @@ body {
     font-weight: 600;
 }
 
-/* Modal */
+/* Modals */
 .modal-backdrop {
     display: none;
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(5, 7, 13, 0.85);
     backdrop-filter: blur(12px);
-    z-index: 2000;
+    z-index: 99999;
     justify-content: center;
     align-items: center;
 }
@@ -373,6 +313,8 @@ body {
     padding: 28px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
 }
+
+/* Button Classes */
 .btn-primary {
     background: var(--primary-gradient);
     border: none;
@@ -397,9 +339,16 @@ body {
     font-weight: 500;
     font-size: 0.88rem;
     cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-@media (max-width: 768px) {
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+    body { flex-direction: column !important; }
+    aside { width: 100% !important; height: auto !important; position: static !important; }
+    main { padding: 1.5rem !important; }
     .input-grid { grid-template-columns: 1fr; }
-    .navbar { padding: 14px 20px; }
 }
