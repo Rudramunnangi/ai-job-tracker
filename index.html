@@ -4,146 +4,172 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NexJob AI | Next-Gen Career Engine</title>
-    <!-- Modern SVG Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233b82f6'/><stop offset='100%' stop-color='%2310b981'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230f172a'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='5' fill='%2338bdf8'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%234F46E5'/><stop offset='100%' stop-color='%23DB2777'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%23090B10'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='5' fill='%2338BDF8'/></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body style="display: flex; min-height: 100vh; background: #0b1120; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif;">
+<body class="sidebar-collapsed">
 
-    <!-- Left Navigation Sidebar -->
-    <aside style="width: 260px; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem 1rem; position: sticky; top: 0; height: 100vh; box-sizing: border-box; z-index: 50;">
-        <div>
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; padding: 0 0.5rem;">
-                <svg width="32" height="32" viewBox="0 0 100 100">
+    <!-- Ambient Glow Backgrounds -->
+    <div class="bg-ambient ambient-1"></div>
+    <div class="bg-ambient ambient-2"></div>
+
+    <!-- Top Sticky Header -->
+    <header class="top-nav">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Navigation Sidebar">☰</button>
+            <div class="nav-brand">
+                <svg width="28" height="28" viewBox="0 0 100 100">
                     <defs>
                         <linearGradient id="navG" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#3b82f6"/>
-                            <stop offset="100%" stop-color="#10b981"/>
+                            <stop offset="0%" stop-color="#4F46E5"/>
+                            <stop offset="100%" stop-color="#DB2777"/>
                         </linearGradient>
                     </defs>
-                    <rect width="100" height="100" rx="24" fill="#1e293b"/>
+                    <rect width="100" height="100" rx="24" fill="#151A26"/>
                     <path d="M30 70V30L70 70V30" stroke="url(#navG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    <circle cx="70" cy="30" r="6" fill="#38bdf8"/>
+                    <circle cx="70" cy="30" r="6" fill="#38BDF8"/>
                 </svg>
-                <span style="font-weight: 800; font-size: 1.25rem;">NexJob <span class="gradient-text">AI</span></span>
+                <span>NexJob <span class="gradient-text">AI</span></span>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <span id="userDisplayBadge" class="user-badge">Guest Mode</span>
+            <button id="authNavBtn" class="btn-primary" style="padding: 7px 16px; font-size: 0.82rem;" onclick="openAuthModal()">Login / Sign Up</button>
+        </div>
+    </header>
+
+    <!-- Collapsible Sidebar -->
+    <aside id="mainSidebar" class="app-sidebar">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding: 0 0.5rem;">
+                <span style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Menu Navigation</span>
+                <span style="cursor: pointer; color: var(--text-muted); font-size: 1.1rem;" onclick="toggleSidebar()">✕</span>
             </div>
 
-            <nav style="display: flex; flex-direction: column; gap: 6px;">
-                <a href="#pipeline" class="side-link active">📊 Kanban Pipeline</a>
-                <a href="#smart-copilot" class="side-link">🧠 85% Decision Engine</a>
-                <a href="#resume-vault" class="side-link">📄 Resume Parser & Vault</a>
-                <a href="javascript:void(0)" onclick="openProfileModal()" class="side-link">👤 Candidate Profile</a>
+            <nav style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="#ats-engine" class="side-link active" onclick="toggleSidebar()">⚡ 83% ATS Match Engine</a>
+                <a href="#pipeline-section" class="side-link member-feature" onclick="toggleSidebar()">📊 Kanban Pipeline</a>
+                <a href="#resume-vault" class="side-link member-feature" onclick="toggleSidebar()">📄 Resume PDF Parser</a>
+                <a href="javascript:void(0)" onclick="openProfileModal(); toggleSidebar();" class="side-link member-feature">👤 Career Profile & Links</a>
             </nav>
         </div>
 
-        <div style="border-top: 1px solid #1e293b; padding-top: 1rem;">
-            <div id="userDisplay" style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 10px; padding: 0 0.5rem; word-break: break-all;">Guest Mode</div>
-            <button id="authNavBtn" class="btn-primary" onclick="openAuthModal()" style="width: 100%; margin-bottom: 6px; font-size: 0.8rem;">Login / Sign Up</button>
-            <button id="deleteAccBtn" onclick="deleteAccount()" style="display: none; width: 100%; background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">Delete Account</button>
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <button id="deleteAccBtn" onclick="deleteAccount()" style="display: none; width: 100%; background: transparent; border: 1px solid var(--accent-rose); color: var(--accent-rose); padding: 8px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">Delete Account</button>
         </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <main style="flex: 1; padding: 2rem 3rem; overflow-y: auto; max-width: 1300px; margin: 0 auto;">
+    <!-- Main Container -->
+    <main class="main-wrapper">
 
-        <!-- Resume Alert Banner -->
-        <div id="resumeNoticeBanner" style="display: none; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); padding: 14px 20px; border-radius: 10px; margin-bottom: 2rem; justify-content: space-between; align-items: center;">
-            <div style="font-size: 0.88rem; color: #93c5fd;">
-                💡 <b>Profile Incomplete:</b> Upload your PDF Resume and links to activate autonomous $\ge 85\%$ match analytics.
+        <!-- Guest Notice Banner -->
+        <div id="guestModeBanner" style="background: rgba(79, 70, 229, 0.12); border: 1px solid rgba(79, 70, 229, 0.35); padding: 14px 20px; border-radius: 12px; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 0.88rem; color: #C7D2FE;">
+                ✨ <b>Guest Mode Active:</b> Test the <b>83% ATS Match Engine</b> below. <span style="color: #FFF;">Log in</span> to unlock PDF uploads, Kanban pipeline saving, and personalized career roadmaps.
             </div>
-            <button class="btn-primary" style="padding: 6px 14px; font-size: 0.78rem;" onclick="openProfileModal()">Complete Profile</button>
+            <button class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openAuthModal()">Sign In to Unlock All</button>
         </div>
 
         <!-- Hero -->
-        <section class="hero" style="text-align: left; margin-bottom: 2.5rem;">
+        <section class="hero" style="text-align: left; padding: 20px 0 30px;">
             <div class="hero-badge">Google Cloud & Gemini 3.6 Flash</div>
             <h1 class="hero-title" style="font-size: 2.2rem; margin: 0.5rem 0;">
                 Autonomous <span class="gradient-text">Career Intelligence Cockpit</span>
             </h1>
             <p class="hero-sub" style="margin: 0; max-width: 800px;">
-                Upload your resume once. Track active applications, get automated $\ge 85\%$ fit validations, and receive tailored bridge plans for ambitious roles.
+                Instant ATS gap evaluations. If match is <b>≥ 83%</b>, generate cold recruiter outreach; if <b>&lt; 83%</b>, receive an immediate roadmap and alternative target jobs.
             </p>
         </section>
 
-        <!-- Metrics Overview -->
-        <div class="stats-grid" style="margin-bottom: 2rem;">
-            <div class="stat-box"><div class="stat-title">Total Tracked</div><div class="stat-number" id="statTotal">0</div></div>
-            <div class="stat-box"><div class="stat-title">Active In Pipeline</div><div class="stat-number" style="color: var(--accent-blue);" id="statPipe">0</div></div>
-            <div class="stat-box"><div class="stat-title">Offers Won</div><div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">0</div></div>
-            <div class="stat-box"><div class="stat-title">Follow-Ups Due</div><div class="stat-number" style="color: var(--accent-rose);" id="statNudges">0</div></div>
-        </div>
-
-        <!-- Follow-Up Due Alert Container -->
-        <div id="nudgeAlertContainer"></div>
-
-        <!-- Pipeline Kanban -->
-        <section id="pipeline" style="margin-bottom: 3rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">Application Kanban Pipeline</h2>
-                <button class="btn-primary" onclick="openModal()">+ Add New Application</button>
-            </div>
-            <div class="kanban-grid" id="kanbanGrid"></div>
-        </section>
-
-        <!-- PDF Upload & Vault Section -->
-        <section id="resume-vault" style="margin-bottom: 3rem; background: #1e293b; padding: 1.5rem; border-radius: 12px; border: 1px solid #334155;">
-            <h3 style="margin-top: 0; font-size: 1.15rem; font-weight: 700;">📄 Direct Resume PDF Upload</h3>
-            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1rem;">
-                Upload your updated resume PDF. NexJob AI automatically parses the text into your profile for instant Gemini gap analytics.
-            </p>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <input type="file" id="pdfFileInput" accept=".pdf" class="custom-input" style="max-width: 380px; padding: 6px;" />
-                <button class="btn-primary" onclick="uploadResumePDF()">Upload & Parse PDF</button>
-            </div>
-        </section>
-
-        <!-- Smart Decision & Gap Analyzer (85% Logic) -->
-        <section id="smart-copilot" class="ai-panel">
-            <h3 style="font-size: 1.25rem; margin-bottom: 6px; font-weight: 700;">🧠 Gemini 85% Smart Decision Engine</h3>
-            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem;">
-                If fit is $\ge 85\%$, outreach drafts are ready immediately. If $< 85\%$, the engine outlines the exact technical skill bridge and identifies alternative target roles.
-            </p>
-            
-            <div class="input-grid">
+        <!-- 83% ATS Engine Workspace -->
+        <section id="ats-engine" class="ai-panel" style="margin-bottom: 3rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 10px;">
                 <div>
-                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">SELECT ACTIVE APPLICATION</label>
-                    <select class="custom-select" id="roleSelector" onchange="onRoleChange()"></select>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">⚡ 1-Click 83% ATS Decision Engine</h3>
+                    <p style="color: var(--text-muted); font-size: 0.84rem; margin-top: 4px;">Works for both Guests and Logged-In Members.</p>
                 </div>
-                <div>
-                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">CUSTOM GEMINI API KEY (OPTIONAL)</label>
-                    <input type="password" class="custom-input" id="customApiKey" placeholder="Uses backend key by default">
+                <div id="applicationSelectorContainer" style="display: none;">
+                    <select class="custom-select" id="roleSelector" onchange="onRoleChange()" style="max-width: 280px;"></select>
                 </div>
             </div>
 
             <div class="input-grid">
                 <div>
-                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">TARGET JOB DESCRIPTION</label>
-                    <textarea class="custom-textarea" id="jobDesc" rows="5"></textarea>
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px;">TARGET ROLE TITLE & COMPANY</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="targetJobRole" class="custom-input" placeholder="e.g. AI Platform Engineer">
+                        <input type="text" id="targetJobCompany" class="custom-input" placeholder="e.g. Google Cloud">
+                    </div>
+
+                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px;">TARGET JOB DESCRIPTION</label>
+                    <textarea class="custom-textarea" id="jobDesc" rows="7" placeholder="Paste target requirements and qualifications..."></textarea>
                 </div>
+
                 <div>
-                    <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PARSED RESUME CONTENT</label>
-                    <textarea class="custom-textarea" id="userResume" rows="5" placeholder="Upload PDF above or paste resume text here..."></textarea>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">CANDIDATE RESUME PROFILE</label>
+                        <span id="pdfUploadPrompt" style="font-size: 0.75rem; color: var(--accent-blue); cursor: pointer;" onclick="scrollToSection('resume-vault')">Upload PDF (Members)</span>
+                    </div>
+                    <textarea class="custom-textarea" id="userResume" rows="9" placeholder="Paste your complete resume details, skills, and past projects here..."></textarea>
                 </div>
             </div>
 
             <div style="margin-top: 1.2rem;">
-                <button class="btn-primary" style="padding: 10px 24px; font-size: 0.95rem; width: 100%;" onclick="runSmartDecision()">⚡ Run 85% Smart Fit & Gap Decision Engine</button>
+                <button class="btn-primary" style="padding: 12px 24px; font-size: 0.95rem; width: 100%;" onclick="runSmartDecision()">⚡ Execute 83% ATS Evaluation & Career Roadmap</button>
             </div>
 
             <div class="ai-result-box" id="aiResultBox" style="margin-top: 1.5rem;">
-                Select a target job and run the Decision Engine to receive semantic alignment insights.
+                Enter a target role and resume background above to evaluate fit against the 83% threshold.
             </div>
         </section>
+
+        <!-- Logged In Features Container -->
+        <div id="memberFeaturesWrapper" style="opacity: 0.45; pointer-events: none; transition: all 0.3s ease;">
+            
+            <!-- Metrics -->
+            <div class="stats-grid" style="margin-bottom: 2rem;">
+                <div class="stat-box"><div class="stat-title">Total Applications</div><div class="stat-number" id="statTotal">0</div></div>
+                <div class="stat-box"><div class="stat-title">Active Pipeline</div><div class="stat-number" style="color: var(--accent-blue);" id="statPipe">0</div></div>
+                <div class="stat-box"><div class="stat-title">Offers Won</div><div class="stat-number" style="color: var(--accent-emerald);" id="statOffers">0</div></div>
+                <div class="stat-box"><div class="stat-title">Follow-Ups Due</div><div class="stat-number" style="color: var(--accent-rose);" id="statNudges">0</div></div>
+            </div>
+
+            <div id="nudgeAlertContainer"></div>
+
+            <!-- Kanban Pipeline -->
+            <section id="pipeline-section" style="margin-bottom: 3rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <div>
+                        <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">Application Kanban Pipeline</h2>
+                        <span style="font-size: 0.8rem; color: var(--accent-emerald);">● Logged-In Cloud Sync Active</span>
+                    </div>
+                    <button class="btn-primary" onclick="openModal()">+ Add Application</button>
+                </div>
+                <div class="kanban-grid" id="kanbanGrid"></div>
+            </section>
+
+            <!-- PDF Upload Section -->
+            <section id="resume-vault" style="margin-bottom: 3rem; background: var(--bg-surface); padding: 1.5rem; border-radius: 14px; border: 1px solid var(--border-subtle);">
+                <h3 style="margin-top: 0; font-size: 1.15rem; font-weight: 700;">📄 Direct Resume PDF Parser</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Upload your resume PDF. The backend parses text automatically and syncs it to your profile.
+                </p>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <input type="file" id="pdfFileInput" accept=".pdf" class="custom-input" style="max-width: 380px; padding: 7px;" />
+                    <button class="btn-primary" onclick="uploadResumePDF()">Upload & Parse PDF</button>
+                </div>
+            </section>
+        </div>
     </main>
 
     <!-- Candidate Profile Modal -->
-    <div id="profileModal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center;">
+    <div id="profileModal" class="modal-backdrop">
         <div class="modal-card" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                 <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Candidate Career Profile</h3>
@@ -178,8 +204,8 @@
             </div>
 
             <div style="margin-bottom: 20px;">
-                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">RAW RESUME TEXT (Updated automatically via PDF upload)</label>
-                <textarea id="profResume" class="custom-textarea" rows="6" placeholder="Paste or verify your resume text here..."></textarea>
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">RESUME CONTENT</label>
+                <textarea id="profResume" class="custom-textarea" rows="6" placeholder="Paste or verify resume text here..."></textarea>
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -190,7 +216,7 @@
     </div>
 
     <!-- Application Modal -->
-    <div class="modal-backdrop" id="jobModal" style="display: none;">
+    <div class="modal-backdrop" id="jobModal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
                 <h3 style="font-size:1.15rem; font-weight:700;">Add New Application</h3>
@@ -236,35 +262,32 @@
         </div>
     </div>
 
-    <!-- Auth Modal with Google Sign-In -->
-    <div id="authModal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center;">
-        <div class="modal-card" style="width: 90%; max-width: 400px; text-align: center;">
-            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Account Authentication</h3>
-            
-            <!-- One-Tap Google Button -->
-            <div id="g_id_onload"
-                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-                 data-callback="handleGoogleCredentialResponse"
-                 data-auto_prompt="false">
-            </div>
-            <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_black" data-text="signin_with" data-size="large" style="margin-bottom: 1.2rem; display: flex; justify-content: center;"></div>
-
-            <div style="position: relative; margin: 1.2rem 0; border-bottom: 1px solid #334155;">
-                <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #1e293b; padding: 0 10px; color: #94a3b8; font-size: 0.75rem;">OR EMAIL</span>
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal-backdrop">
+        <div class="modal-card" style="width: 90%; max-width: 420px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Account Authentication</h3>
+                <span style="cursor: pointer; color: var(--text-muted); font-size: 1.2rem;" onclick="closeAuthModal()">✕</span>
             </div>
 
-            <div style="text-align: left;">
-                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">EMAIL ADDRESS</label>
-                <input type="email" id="authEmail" class="custom-input" placeholder="you@example.com" style="margin-bottom: 12px;" />
+            <button onclick="demoLogin()" style="width: 100%; background: #1E293B; border: 1px solid var(--border-focus); color: #FFF; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                ⚡ 1-Click Instant Demo Login
+            </button>
 
-                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PASSWORD</label>
-                <input type="password" id="authPassword" class="custom-input" placeholder="••••••••" style="margin-bottom: 18px;" />
+            <div style="position: relative; margin: 1.2rem 0; border-bottom: 1px solid var(--border-subtle); text-align: center;">
+                <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--bg-surface); padding: 0 10px; color: var(--text-muted); font-size: 0.75rem;">OR EMAIL</span>
+            </div>
 
-                <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                    <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
-                    <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
-                    <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
-                </div>
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">EMAIL ADDRESS</label>
+            <input type="email" id="authEmail" class="custom-input" placeholder="you@example.com" style="margin-bottom: 12px;" />
+
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">PASSWORD</label>
+            <input type="password" id="authPassword" class="custom-input" placeholder="••••••••" style="margin-bottom: 18px;" />
+
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
+                <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
+                <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
             </div>
         </div>
     </div>
