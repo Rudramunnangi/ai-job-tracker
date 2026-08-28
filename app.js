@@ -2,17 +2,12 @@ let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null
 let userProfile = JSON.parse(localStorage.getItem('nexjob_active_profile')) || null;
 let jobs = [];
 
-// Sidebar Toggle Controller
+// Sidebar Toggle Functionality (One-Click open / One-Click close)
 function toggleSidebar() {
     const sidebar = document.getElementById('mainSidebar');
     if (sidebar) {
         sidebar.classList.toggle('open');
     }
-}
-
-function scrollToSection(id) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
 }
 
 // Data Synchronization
@@ -30,23 +25,28 @@ async function loadUserData() {
         if (resumeBox && userProfile && userProfile.resume) {
             resumeBox.value = userProfile.resume;
         }
+
+        const roleBox = document.getElementById('targetJobRole');
+        if (roleBox && userProfile && userProfile.targetRole && !roleBox.value) {
+            roleBox.value = userProfile.targetRole;
+        }
     } else {
         jobs = [];
         userProfile = null;
     }
 }
 
-// PDF Resume Upload & Parse
+// PDF Resume Upload (Members Only)
 async function uploadResumePDF() {
     if (!currentUser) {
-        alert("Please log in first to save your resume to your account.");
+        alert("PDF Parsing is a Member feature. Please log in first.");
         openAuthModal();
         return;
     }
 
     const fileInput = document.getElementById('pdfFileInput');
     if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please select a PDF file first.");
+        alert("Please choose a PDF file first.");
         return;
     }
 
@@ -55,11 +55,12 @@ async function uploadResumePDF() {
     formData.append("file", file);
 
     const resultBox = document.getElementById('aiResultBox');
-    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Parsing PDF resume content in memory...</p>";
+    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Parsing PDF resume in memory...</p>";
 
     try {
         const res = await fetch("/api/resume/upload-pdf", {
             method: "POST",
+            headers: { "user-email": currentUser.email },
             body: formData
         });
         const data = await res.json();
@@ -67,37 +68,22 @@ async function uploadResumePDF() {
         if (res.ok) {
             if (!userProfile) userProfile = {};
             userProfile.resume = data.extracted_text;
-            
-            await fetch("/api/profile/save", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: currentUser.email,
-                    full_name: userProfile.fullName || "",
-                    target_role: userProfile.targetRole || "",
-                    skills: userProfile.skills || "",
-                    resume: userProfile.resume,
-                    linkedin_url: userProfile.linkedin || "",
-                    github_url: userProfile.github || "",
-                    portfolio_url: ""
-                })
-            });
-
             localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
+
             document.getElementById('userResume').value = userProfile.resume;
             document.getElementById('profResume').value = userProfile.resume;
-            updateAuthUI();
-            resultBox.innerHTML = "<p style='color:var(--accent-emerald);'>Resume PDF successfully parsed and synced to your profile!</p>";
-            alert("Resume PDF successfully parsed and synced to your profile!");
+            resultBox.innerHTML = "<p style='color:var(--accent-emerald);'>Resume PDF successfully parsed and attached to your member profile!</p>";
+            alert("Resume PDF successfully parsed and synced!");
         } else {
             resultBox.innerHTML = `<p style='color:var(--accent-rose);'>Upload Error: ${data.detail}</p>`;
+            alert(data.detail);
         }
     } catch (err) {
-        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Server connection error during PDF upload.</p>";
+        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Connection error during PDF parsing.</p>";
     }
 }
 
-// Profile Modal Handlers
+// Profile Actions
 function openProfileModal() {
     if (!currentUser) {
         openAuthModal();
@@ -151,27 +137,91 @@ async function saveUserProfile() {
 
         closeProfileModal();
         updateAuthUI();
-        alert("Career profile updated successfully!");
+        alert("Career profile saved successfully!");
     } catch (e) {
         alert("Error saving profile to server.");
     }
 }
 
-// Authentication Actions
+// Auth Actions & Diagnostics
+function showAuthError(msg) {
+    const box = document.getElementById('authErrorAlert');
+    if (box) {
+        box.innerText = msg;
+        box.style.display = 'block';
+    }
+}
+
+function clearAuthError() {
+    const box = document.getElementById('authErrorAlert');
+    if (box) {
+        box.innerText = '';
+        box.style.display = 'none';
+    }
+}
+
 function openAuthModal() {
+    clearAuthError();
     document.getElementById('authModal').style.display = 'flex';
+    initGoogleAuthBtn();
 }
 
 function closeAuthModal() {
     document.getElementById('authModal').style.display = 'none';
 }
 
+function initGoogleAuthBtn() {
+    const googleWrapper = document.getElementById('googleBtnWrapper');
+    if (window.google && googleWrapper && googleWrapper.children.length === 0) {
+        google.accounts.id.initialize({
+            client_id: "680789423456-example.apps.googleusercontent.com", // Will log diagnostic on failure
+            callback: handleGoogleResponse
+        });
+        google.accounts.id.renderButton(googleWrapper, {
+            theme: "filled_black",
+            size: "large",
+            shape: "rectangular",
+            text: "signin_with"
+        });
+    }
+}
+
+async function handleGoogleResponse(response) {
+    clearAuthError();
+    try {
+        const res = await fetch("/api/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.detail || "Google Login failed.");
+            return;
+        }
+
+        currentUser = { email: data.email };
+        userProfile = data.profile;
+        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
+
+        closeAuthModal();
+        await loadUserData();
+        updateAuthUI();
+        renderDashboard();
+    } catch (err) {
+        showAuthError(`Network error during Google sign-in: ${err.message}`);
+    }
+}
+
 async function handleAuth(type) {
+    clearAuthError();
     const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value.trim();
 
     if (!email || !password) {
-        alert("Please enter both email and password.");
+        showAuthError("Please provide both email and password.");
         return;
     }
 
@@ -185,7 +235,7 @@ async function handleAuth(type) {
         const data = await res.json();
 
         if (!res.ok) {
-            alert(data.detail || "Authentication error.");
+            showAuthError(data.detail || "Authentication error.");
             return;
         }
 
@@ -202,11 +252,12 @@ async function handleAuth(type) {
         updateAuthUI();
         renderDashboard();
     } catch (e) {
-        alert("Server communication error.");
+        showAuthError(`Server connection error: ${e.message}`);
     }
 }
 
 async function demoLogin() {
+    clearAuthError();
     const demoEmail = "demo.candidate@nexjob.ai";
     const demoPass = "demo1234";
 
@@ -241,19 +292,19 @@ async function demoLogin() {
         updateAuthUI();
         renderDashboard();
     } catch (e) {
-        alert("Demo login error.");
+        showAuthError("Demo login error.");
     }
 }
 
 async function deleteAccount() {
     if (!currentUser) return;
-    const confirmDelete = confirm("Are you sure you want to permanently delete your account, applications, and saved resume?");
+    const confirmDelete = confirm("Are you sure you want to permanently delete your account, applications, and saved profile? This cannot be undone.");
     if (!confirmDelete) return;
 
     try {
         await fetch(`/api/account/delete?email=${encodeURIComponent(currentUser.email)}`, { method: "DELETE" });
         logoutUser();
-        alert("Your account has been deleted.");
+        alert("Your account and all associated records have been purged.");
     } catch (e) {
         alert("Error deleting account.");
     }
@@ -272,9 +323,11 @@ function logoutUser() {
 function updateAuthUI() {
     const authBtn = document.getElementById('authNavBtn');
     const userDisplay = document.getElementById('userDisplayBadge');
+    const profileBtn = document.getElementById('profileNavBtn');
     const deleteBtn = document.getElementById('deleteAccBtn');
-    const guestBanner = document.getElementById('guestModeBanner');
+    const guestBanner = document.getElementById('guestNoticeBanner');
     const memberWrapper = document.getElementById('memberFeaturesWrapper');
+    const lockOverlay = document.getElementById('lockOverlayMessage');
     const selectorContainer = document.getElementById('applicationSelectorContainer');
 
     if (currentUser && currentUser.email) {
@@ -282,12 +335,14 @@ function updateAuthUI() {
             authBtn.innerText = "Logout";
             authBtn.onclick = logoutUser;
         }
+        if (profileBtn) profileBtn.style.display = "inline-flex";
         if (deleteBtn) deleteBtn.style.display = "block";
         if (guestBanner) guestBanner.style.display = "none";
+        
         if (memberWrapper) {
-            memberWrapper.style.opacity = "1";
-            memberWrapper.style.pointerEvents = "auto";
+            memberWrapper.classList.remove('member-locked');
         }
+        if (lockOverlay) lockOverlay.style.display = "none";
         if (selectorContainer) selectorContainer.style.display = "block";
 
         if (userDisplay) {
@@ -299,12 +354,14 @@ function updateAuthUI() {
             authBtn.innerText = "Login / Sign Up";
             authBtn.onclick = openAuthModal;
         }
+        if (profileBtn) profileBtn.style.display = "none";
         if (deleteBtn) deleteBtn.style.display = "none";
         if (guestBanner) guestBanner.style.display = "flex";
+        
         if (memberWrapper) {
-            memberWrapper.style.opacity = "0.45";
-            memberWrapper.style.pointerEvents = "none";
+            memberWrapper.classList.add('member-locked');
         }
+        if (lockOverlay) lockOverlay.style.display = "flex";
         if (selectorContainer) selectorContainer.style.display = "none";
 
         if (userDisplay) userDisplay.innerText = "Guest Mode";
@@ -411,8 +468,8 @@ function renderDashboard() {
             nudgeContainer.innerHTML = nudges.map(n => `
                 <div class="nudge-card" style="margin-bottom: 1.5rem;">
                     <div>
-                        <span style="font-weight:700; color:var(--accent-rose);">Follow-Up Required:</span> 
-                        Applied to <b>${n.company}</b> (${n.role}) 5+ days ago without recruiter response.
+                        <span style="font-weight:700; color:var(--accent-rose);">Follow-Up Due:</span> 
+                        Applied to <b>${n.company}</b> (${n.role}) 5+ days ago without response.
                     </div>
                     <button class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="selectJobAndNudge('${n.id}')">Evaluate & Follow-Up</button>
                 </div>
@@ -494,7 +551,8 @@ function selectJobAndNudge(id) {
     const selector = document.getElementById('roleSelector');
     if (selector) selector.value = id;
     onRoleChange();
-    scrollToSection('ats-engine');
+    const atsSection = document.getElementById('ats-engine');
+    if (atsSection) atsSection.scrollIntoView({ behavior: 'smooth' });
     runSmartDecision();
 }
 
@@ -507,16 +565,18 @@ async function runSmartDecision() {
     const resultBox = document.getElementById('aiResultBox');
 
     if (!jd || jd.length < 10) {
-        alert("Please enter a target Job Description to run the match calculation.");
+        alert("Please paste the target Job Description first.");
         return;
     }
 
     if (!resume || resume.length < 10) {
-        alert("Please enter or upload your resume text.");
+        alert("Please enter or paste candidate resume content first.");
         return;
     }
 
-    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Calculating match against 83% threshold with Gemini 3.6 Flash...</p>";
+    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Calculating ATS alignment against the 83% benchmark with Gemini 3.6 Flash...</p>";
+
+    const isGuest = (!currentUser || !currentUser.email);
 
     try {
         const res = await fetch("/api/gemini/smart-decision", {
@@ -529,7 +589,7 @@ async function runSmartDecision() {
                 resume: resume,
                 linkedin: (userProfile && userProfile.linkedin) || "",
                 github: (userProfile && userProfile.github) || "",
-                apiKey: null
+                isGuest: isGuest
             })
         });
         const data = await res.json();
