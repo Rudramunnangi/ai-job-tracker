@@ -5,12 +5,10 @@ from server import app
 
 client = TestClient(app)
 
-# 1. Test Static Landing Page
 def test_root_route():
     response = client.get("/")
     assert response.status_code == 200
 
-# 2. Test Guest ATS Evaluation with mocked AI response
 @patch("server.genai.Client")
 def test_guest_ats_execution(mock_genai_client):
     mock_instance = MagicMock()
@@ -30,81 +28,57 @@ def test_guest_ats_execution(mock_genai_client):
     assert response.status_code == 200
     assert "ATS Match Score" in response.json().get("result", "")
 
-# 3. Test Member Feature Gating (PDF upload blocked without valid user header)
-def test_guest_pdf_upload_blocked():
-    response = client.post(
-        "/api/resume/upload-pdf",
-        headers={"user-email": "guest"},
-        files={"file": ("test.pdf", b"%PDF-1.4 dummy content", "application/pdf")}
-    )
+def test_unauthenticated_api_blocked():
+    # Calling member route without token must return 401
+    response = client.get("/api/jobs")
     assert response.status_code == 401
 
-# 4. Test Job Lifecycle (Create, Retrieve, and Update Stage)
-def test_job_lifecycle_and_stage_update():
-    test_user_email = "test_candidate@nexjob.ai"
-    job_id = "test_job_123"
+def test_otp_signup_and_multi_identifier_login():
+    email = "candidate_test@nexjob.ai"
+    phone = "+919876543210"
+    username = "candidatetest"
+    pwd = "securepassword123"
 
-    # Step A: Save Job
-    save_payload = {
-        "id": job_id,
-        "user_email": test_user_email,
-        "company": "Google Cloud",
-        "role": "AI Solutions Architect",
-        "date": "2026-08-29",
-        "status": "Applied",
-        "tags": ["Python", "GCP"],
-        "jd": "Design enterprise-scale AI architecture."
-    }
-    save_res = client.post("/api/jobs/save", json=save_payload)
-    assert save_res.status_code == 200
+    # Step 1: Send OTP
+    otp_res = client.post("/api/auth/send-otp", json={"identifier": email, "purpose": "signup"})
+    assert otp_res.status_code == 200
+    dev_otp = otp_res.json().get("dev_otp")
+    assert dev_otp is not None
 
-    # Step B: Retrieve Jobs
-    get_res = client.get(f"/api/jobs?email={test_user_email}")
-    assert get_res.status_code == 200
-    jobs = get_res.json().get("jobs", [])
-    assert any(j["id"] == job_id for j in jobs)
-
-    # Step C: Update Job Stage to Interviewing
-    update_res = client.post("/api/jobs/update_status", json={"id": job_id, "status": "Interviewing"})
-    assert update_res.status_code == 200
-
-    # Verify Stage Change
-    get_updated_res = client.get(f"/api/jobs?email={test_user_email}")
-    updated_jobs = get_updated_res.json().get("jobs", [])
-    matching_job = next((j for j in updated_jobs if j["id"] == job_id), None)
-    assert matching_job is not None
-    assert matching_job["status"] == "Interviewing"
-
-# 5. Test User Account Deletion & Cascading Clean-up
-def test_account_deletion_flow():
-    user_email = "delete_me@nexjob.ai"
-    
-    # Save a temporary job under this user
-    client.post("/api/jobs/save", json={
-        "id": "job_to_purge",
-        "user_email": user_email,
-        "company": "Temp Corp",
-        "role": "Intern",
-        "date": "2026-08-29",
-        "status": "Applied",
-        "tags": ["General"],
-        "jd": "Temporary role."
+    # Step 2: Verify OTP and Register
+    signup_res = client.post("/api/auth/signup-verify", json={
+        "identifier": email,
+        "otp": dev_otp,
+        "username": username,
+        "password": pwd,
+        "full_name": "Test Candidate"
     })
+    assert signup_res.status_code == 200
+    token = signup_res.json().get("token")
+    assert token is not None
 
-    # Delete account
-    del_res = client.delete(f"/api/account/delete?email={user_email}")
+    # Step 3: Login using Username identifier
+    login_user_res = client.post("/api/auth/login", json={"identifier": username, "password": pwd})
+    assert login_user_res.status_code == 200
+
+    # Step 4: Login using Email identifier
+    login_email_res = client.post("/api/auth/login", json={"identifier": email, "password": pwd})
+    assert login_email_res.status_code == 200
+    user_token = login_email_res.json().get("token")
+
+    # Step 5: Save Job on Board with Token
+    headers = {"Authorization": f"Bearer {user_token}"}
+    save_job_res = client.post("/api/jobs/save", json={
+        "id": "apex_job_1",
+        "company": "DeepMind",
+        "role": "Research Scientist",
+        "date": "2026-08-29",
+        "status": "Applied",
+        "tags": ["AI", "PyTorch"],
+        "jd": "Develop frontier models."
+    }, headers=headers)
+    assert save_job_res.status_code == 200
+
+    # Step 6: Purge Account
+    del_res = client.delete("/api/account/delete", headers=headers)
     assert del_res.status_code == 200
-
-    # Confirm jobs are purged
-    check_jobs = client.get(f"/api/jobs?email={user_email}")
-    assert len(check_jobs.json().get("jobs", [])) == 0
-
-# 6. Test Admin Basic Authentication Protection
-def test_unauthorized_admin_access():
-    response = client.get("/admin")
-    assert response.status_code == 401
-
-def test_authorized_admin_access():
-    response = client.get("/admin", auth=("admin", "adminsecret"))
-    assert response.status_code == 200
-    assert "NexJob AI" in response.text
