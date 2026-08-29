@@ -2,6 +2,10 @@ import os
 import sqlite3
 import json
 import io
+import time
+import random
+import hashlib
+import secrets
 import urllib.parse
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,13 +34,24 @@ app.add_middleware(
 
 DB_PATH = "nexjob.db"
 
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+def hash_otp(otp: str) -> str:
+    return hashlib.sha256(otp.encode("utf-8")).hexdigest()
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # 1. Users Table (Supports email, phone, username, hashed passwords, and tokens)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
+            username TEXT UNIQUE,
+            phone TEXT UNIQUE,
             password TEXT NOT NULL,
+            token TEXT DEFAULT '',
             full_name TEXT DEFAULT '',
             target_role TEXT DEFAULT '',
             skills TEXT DEFAULT '',
@@ -48,6 +63,19 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    
+    # 2. OTP Store (Supports Signup & Forgot Password with TTL and attempt lockout)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS otps (
+            identifier TEXT PRIMARY KEY,
+            otp_hash TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            expires_at REAL NOT NULL,
+            attempts INTEGER DEFAULT 0
+        )
+    """)
+
+    # 3. Application Pipeline Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id TEXT PRIMARY KEY,
@@ -69,15 +97,49 @@ try:
 except Exception as e:
     print(f"[DB INIT ERROR]: {e}")
 
-class AuthRequest(BaseModel):
-    email: str
+def get_current_user_email(authorization: str = Header(None)) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required. Please log in.")
+    token = authorization.replace("Bearer ", "").strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Invalid session token.")
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT email FROM users WHERE token=?", (token,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        raise HTTPException(status_code=401, detail="Session expired or invalid. Please log in again.")
+    return row[0]
+
+# --- Pydantic Data Models ---
+
+class SendOTPRequest(BaseModel):
+    identifier: str  # Email or Phone Number
+    purpose: str     # 'signup' or 'forgot_password'
+
+class SignupVerifyRequest(BaseModel):
+    identifier: str
+    otp: str
+    username: str
+    password: str
+    full_name: str = ""
+
+class ResetPasswordRequest(BaseModel):
+    identifier: str
+    otp: str
+    new_password: str
+
+class LoginRequest(BaseModel):
+    identifier: str  # Email, Phone, or Username
     password: str
 
 class GoogleAuthRequest(BaseModel):
     credential: str
 
 class ProfileRequest(BaseModel):
-    email: str
     full_name: str
     target_role: str
     skills: str
@@ -88,7 +150,6 @@ class ProfileRequest(BaseModel):
 
 class JobPayload(BaseModel):
     id: str
-    user_email: str
     company: str
     role: str
     date: str
@@ -104,6 +165,198 @@ class DecisionRequest(BaseModel):
     linkedin: str | None = ""
     github: str | None = ""
     isGuest: bool = False
+
+# --- OTP & Authentication Endpoints ---
+
+@app.post("/api/auth/send-otp")
+async def send_otp(payload: SendOTPRequest):
+    identifier = payload.identifier.strip().lower()
+    if not identifier or len(identifier) < 4:
+        raise HTTPException(status_code=400, detail="Please provide a valid email or phone number.")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT email FROM users WHERE email=? OR phone=?", (identifier, identifier))
+    user_exists = cursor.fetchone()
+
+    if payload.purpose == "signup" and user_exists:
+        conn.close()
+        raise HTTPException(status_code=400, detail="An account with this email/phone already exists. Please log in.")
+    
+    if payload.purpose == "forgot_password" and not user_exists:
+        conn.close()
+        raise HTTPException(status_code=404, detail="No account registered with this email/phone.")
+
+    # Generate 6-digit OTP (10-minute expiry)
+    otp_code = f"{random.randint(100000, 999999)}"
+    otp_hash = hash_otp(otp_code)
+    expires_at = time.time() + 600  # 10 minutes
+
+    cursor.execute("""
+        INSERT OR REPLACE INTO otps (identifier, otp_hash, purpose, expires_at, attempts)
+        VALUES (?, ?, ?, ?, 0)
+    """, (identifier, otp_hash, payload.purpose, expires_at))
+    conn.commit()
+    conn.close()
+
+    # In production, dispatch via Twilio SMS or SendGrid/SMTP.
+    print(f"\n==========================================")
+    print(f" [AUTH OTP DISPATCH] -> To: {identifier}")
+    print(f" [CODE]: {otp_code} (Expires in 10 minutes)")
+    print(f"==========================================\n")
+
+    return {
+        "status": "success",
+        "message": f"Verification code sent to {identifier}.",
+        "dev_otp": otp_code  # Exposed for testing/demo environments
+    }
+
+@app.post("/api/auth/signup-verify")
+async def signup_verify(payload: SignupVerifyRequest):
+    identifier = payload.identifier.strip().lower()
+    username = payload.username.strip().lower()
+    otp = payload.otp.strip()
+    
+    if len(payload.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Verify OTP
+    cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE identifier=?", (identifier,))
+    otp_record = cursor.fetchone()
+
+    if not otp_record:
+        conn.close()
+        raise HTTPException(status_code=400, detail="OTP expired or request not found. Please request a new code.")
+
+    otp_hash, expires_at, attempts, purpose = otp_record
+
+    if time.time() > expires_at:
+        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        conn.commit()
+        conn.close()
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+
+    if attempts >= 5:
+        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        conn.commit()
+        conn.close()
+        raise HTTPException(status_code=429, detail="Too many invalid attempts. Request a new OTP.")
+
+    if hash_otp(otp) != otp_hash or purpose != "signup":
+        cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE identifier=?", (identifier,))
+        conn.commit()
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid OTP code.")
+
+    # Determine email or phone
+    is_email = "@" in identifier
+    email = identifier if is_email else f"{username}@nexjob.ai"
+    phone = identifier if not is_email else None
+
+    hashed_pwd = hash_password(payload.password)
+    new_token = secrets.token_hex(24)
+
+    try:
+        cursor.execute("""
+            INSERT INTO users (email, username, phone, password, token, full_name, auth_provider)
+            VALUES (?, ?, ?, ?, ?, ?, 'local')
+        """, (email, username, phone, hashed_pwd, new_token, payload.full_name or username))
+        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Username, email, or phone is already registered.")
+    
+    conn.close()
+    return {
+        "status": "success",
+        "token": new_token,
+        "email": email,
+        "profile": {"fullName": payload.full_name or username, "targetRole": "", "skills": "", "resume": "", "linkedin": "", "github": ""}
+    }
+
+@app.post("/api/auth/reset-password")
+async def reset_password(payload: ResetPasswordRequest):
+    identifier = payload.identifier.strip().lower()
+    otp = payload.otp.strip()
+
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE identifier=?", (identifier,))
+    otp_record = cursor.fetchone()
+
+    if not otp_record:
+        conn.close()
+        raise HTTPException(status_code=400, detail="No active password reset request found. Request a new OTP.")
+
+    otp_hash, expires_at, attempts, purpose = otp_record
+
+    if time.time() > expires_at or attempts >= 5:
+        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        conn.commit()
+        conn.close()
+        raise HTTPException(status_code=400, detail="OTP expired or too many failed attempts.")
+
+    if hash_otp(otp) != otp_hash or purpose != "forgot_password":
+        cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE identifier=?", (identifier,))
+        conn.commit()
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid OTP code.")
+
+    # Update password and invalidate previous session tokens
+    new_hashed_pwd = hash_password(payload.new_password)
+    new_token = secrets.token_hex(24)
+
+    cursor.execute("""
+        UPDATE users 
+        SET password=?, token=?
+        WHERE email=? OR phone=?
+    """, (new_hashed_pwd, new_token, identifier, identifier))
+    cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+    conn.commit()
+    conn.close()
+
+    return {"status": "success", "message": "Password updated successfully. Please log in with your new credentials."}
+
+@app.post("/api/auth/login")
+async def login(payload: LoginRequest):
+    identifier = payload.identifier.strip().lower()
+    hashed_pwd = hash_password(payload.password)
+    new_token = secrets.token_hex(24)
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url 
+        FROM users 
+        WHERE (email=? OR username=? OR phone=?) AND password=?
+    """, (identifier, identifier, identifier, hashed_pwd))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=401, detail="Invalid credentials. Check your username/email/phone and password.")
+
+    user_email = user[0]
+    cursor.execute("UPDATE users SET token=? WHERE email=?", (new_token, user_email))
+    conn.commit()
+    conn.close()
+
+    return {
+        "token": new_token,
+        "email": user_email,
+        "profile": {
+            "fullName": user[1], "targetRole": user[2], "skills": user[3],
+            "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]
+        }
+    }
 
 @app.post("/api/auth/google")
 async def google_auth(payload: GoogleAuthRequest):
@@ -121,6 +374,8 @@ async def google_auth(payload: GoogleAuthRequest):
             raise HTTPException(status_code=400, detail="Google authentication succeeded, but no email was provided.")
 
         email_clean = email.strip().lower()
+        new_token = secrets.token_hex(24)
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url FROM users WHERE email=?", (email_clean,))
@@ -128,66 +383,29 @@ async def google_auth(payload: GoogleAuthRequest):
 
         if not user:
             cursor.execute("""
-                INSERT INTO users (email, password, full_name, auth_provider) 
-                VALUES (?, 'google_oauth_verified', ?, 'google')
-            """, (email_clean, name))
-            conn.commit()
+                INSERT INTO users (email, username, password, token, full_name, auth_provider) 
+                VALUES (?, ?, 'google_oauth_verified', ?, ?, 'google')
+            """, (email_clean, email_clean.split('@')[0], new_token, name))
             user_profile = {
                 "fullName": name, "targetRole": "", "skills": "", "resume": "", 
                 "linkedin": "", "github": "", "portfolio": ""
             }
         else:
+            cursor.execute("UPDATE users SET token=? WHERE email=?", (new_token, email_clean))
             user_profile = {
                 "fullName": user[1] or name, "targetRole": user[2], "skills": user[3], 
                 "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]
             }
-        conn.close()
-        return {"status": "success", "email": email_clean, "profile": user_profile}
-    except Exception as e:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Google Login Error: {str(e)}. Check authorized origins in Google Cloud Console."
-        )
-
-@app.post("/api/auth/signup")
-async def signup(payload: AuthRequest):
-    if not payload.email or not payload.password:
-        raise HTTPException(status_code=400, detail="Email and password are required.")
-    
-    email_clean = payload.email.strip().lower()
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO users (email, password, auth_provider) VALUES (?, ?, 'local')", (email_clean, payload.password))
         conn.commit()
-        return {"status": "success", "email": email_clean}
-    except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="An account with this email already exists. Please log in.")
-    finally:
         conn.close()
+        return {"status": "success", "token": new_token, "email": email_clean, "profile": user_profile}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Google Login Error: {str(e)}")
 
-@app.post("/api/auth/login")
-async def login(payload: AuthRequest):
-    email_clean = payload.email.strip().lower()
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url FROM users WHERE email=? AND password=?", (email_clean, payload.password))
-    user = cursor.fetchone()
-    conn.close()
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
-    return {
-        "email": user[0],
-        "profile": {
-            "fullName": user[1], "targetRole": user[2], "skills": user[3],
-            "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]
-        }
-    }
+# --- Core Member Features (Protected by Bearer Token) ---
 
 @app.post("/api/resume/upload-pdf")
-async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Header(None)):
-    if not user_email or user_email in ("null", "guest", ""):
-        raise HTTPException(status_code=401, detail="PDF parsing is a member-only feature. Please sign in.")
+async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Depends(get_current_user_email)):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only standard PDF files are supported.")
     try:
@@ -201,10 +419,9 @@ async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Head
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF.")
         
-        email_clean = user_email.strip().lower()
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET resume=? WHERE email=?", (extracted_text.strip(), email_clean))
+        cursor.execute("UPDATE users SET resume=? WHERE email=?", (extracted_text.strip(), user_email))
         conn.commit()
         conn.close()
         return {"extracted_text": extracted_text.strip()}
@@ -212,74 +429,60 @@ async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Head
         raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
 
 @app.post("/api/profile/save")
-async def save_profile(payload: ProfileRequest):
-    if not payload.email or payload.email == "guest":
-        raise HTTPException(status_code=401, detail="Unauthorized. Log in to persist profile records.")
-    
-    email_clean = payload.email.strip().lower()
+async def save_profile(payload: ProfileRequest, user_email: str = Depends(get_current_user_email)):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE users 
         SET full_name=?, target_role=?, skills=?, resume=?, linkedin_url=?, github_url=?, portfolio_url=?
         WHERE email=?
-    """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.linkedin_url, payload.github_url, payload.portfolio_url, email_clean))
+    """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.linkedin_url, payload.github_url, payload.portfolio_url, user_email))
     conn.commit()
     conn.close()
     return {"status": "success"}
 
 @app.delete("/api/account/delete")
-async def delete_account(email: str):
-    if not email or email == "guest":
-        raise HTTPException(status_code=400, detail="Invalid account deletion request.")
-    
-    email_clean = email.strip().lower()
+async def delete_account(user_email: str = Depends(get_current_user_email)):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM jobs WHERE user_email=?", (email_clean,))
-    cursor.execute("DELETE FROM users WHERE email=?", (email_clean,))
+    cursor.execute("DELETE FROM jobs WHERE user_email=?", (user_email,))
+    cursor.execute("DELETE FROM users WHERE email=?", (user_email,))
     conn.commit()
     conn.close()
     return {"status": "success", "message": "Account permanently deleted."}
 
 @app.get("/api/jobs")
-async def get_jobs(email: str):
-    if not email or email == "guest":
-        return {"jobs": []}
-    
-    email_clean = email.strip().lower()
+async def get_jobs(user_email: str = Depends(get_current_user_email)):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, company, role, date, status, tags, jd FROM jobs WHERE user_email=?", (email_clean,))
+    cursor.execute("SELECT id, company, role, date, status, tags, jd FROM jobs WHERE user_email=?", (user_email,))
     rows = cursor.fetchall()
     conn.close()
     jobs = [{"id": r[0], "company": r[1], "role": r[2], "date": r[3], "status": r[4], "tags": json.loads(r[5]), "jd": r[6]} for r in rows]
     return {"jobs": jobs}
 
 @app.post("/api/jobs/save")
-async def save_job(payload: JobPayload):
-    if not payload.user_email or payload.user_email == "guest":
-        raise HTTPException(status_code=401, detail="Please log in to save applications.")
-    
-    email_clean = payload.user_email.strip().lower()
+async def save_job(payload: JobPayload, user_email: str = Depends(get_current_user_email)):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
         INSERT OR REPLACE INTO jobs (id, user_email, company, role, date, status, tags, jd)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (payload.id, email_clean, payload.company, payload.role, payload.date, payload.status, json.dumps(payload.tags), payload.jd))
+    """, (payload.id, user_email, payload.company, payload.role, payload.date, payload.status, json.dumps(payload.tags), payload.jd))
     conn.commit()
     conn.close()
     return {"status": "success"}
 
 @app.post("/api/jobs/update_status")
-async def update_job_status(data: dict):
+async def update_job_status(data: dict, user_email: str = Depends(get_current_user_email)):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("UPDATE jobs SET status=? WHERE id=?", (data.get("status"), data.get("id")))
+    cursor.execute("UPDATE jobs SET status=? WHERE id=? AND user_email=?", (data.get("status"), data.get("id"), user_email))
     conn.commit()
     conn.close()
     return {"status": "success"}
+
+# --- AI Decision Engine ---
 
 @app.post("/api/gemini/smart-decision")
 async def execute_smart_decision(payload: DecisionRequest):
@@ -301,7 +504,7 @@ TARGET ROLE: {payload.role} at {payload.company}
 JOB DESCRIPTION: {payload.jd}
 CANDIDATE RESUME: {payload.resume}
 
-FORMAT EXACTLY AS FOLLOWS (Never mention internal threshold numbers):
+FORMAT EXACTLY AS FOLLOWS:
 <div class="result-score-card">
   <div class="score-badge">ATS Match Score: [Score between 0% and 100%]%</div>
   <p><strong>Overview:</strong> 1-sentence verdict on qualification level.</p>
@@ -356,7 +559,7 @@ EVALUATION PROTOCOL:
       <br>
       🚀 <b>1-Click Apply:</b> 
       <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_1]&f_TPR=r86400" target="_blank" class="verified-job-link">LinkedIn Jobs (Live)</a> | 
-      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_1]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> |
+      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_1]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> | 
       <a href="https://www.google.com/search?q=[URL_ENCODED_ROLE_1]+jobs&ibp=htl;jobs" target="_blank" class="verified-job-link">Google Careers</a>
     </li>
     <li>
@@ -364,7 +567,7 @@ EVALUATION PROTOCOL:
       <br>
       🚀 <b>1-Click Apply:</b> 
       <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_2]&f_TPR=r86400" target="_blank" class="verified-job-link">LinkedIn Jobs (Live)</a> | 
-      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_2]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> |
+      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_2]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> | 
       <a href="https://www.google.com/search?q=[URL_ENCODED_ROLE_2]+jobs&ibp=htl;jobs" target="_blank" class="verified-job-link">Google Careers</a>
     </li>
     <li>
@@ -372,7 +575,7 @@ EVALUATION PROTOCOL:
       <br>
       🚀 <b>1-Click Apply:</b> 
       <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_3]&f_TPR=r86400" target="_blank" class="verified-job-link">LinkedIn Jobs (Live)</a> | 
-      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_3]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> |
+      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_3]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> | 
       <a href="https://www.google.com/search?q=[URL_ENCODED_ROLE_3]+jobs&ibp=htl;jobs" target="_blank" class="verified-job-link">Google Careers</a>
     </li>
   </ul>
@@ -403,7 +606,7 @@ Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%2
         if remote_models:
             models_to_try = list(dict.fromkeys(remote_models + models_to_try))
     except Exception as list_err:
-        print(f"[MODEL DISCOVERY] Using default fallback: {list_err}")
+        print(f"[MODEL DISCOVERY] Using fallback list: {list_err}")
 
     last_error = None
     for model_name in models_to_try:
@@ -421,8 +624,10 @@ Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%2
 
     raise HTTPException(
         status_code=429, 
-        detail=f"AI model generation temporarily rate-limited. Please wait 15 seconds and retry. ({str(last_error)})"
+        detail=f"AI model generation temporarily rate-limited. Please retry shortly. ({str(last_error)})"
     )
+
+# --- Admin Cockpit Endpoints ---
 
 @app.post("/admin/delete-user")
 async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depends(security)):
@@ -447,13 +652,11 @@ async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depe
 async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
     admin_pass = os.getenv("ADMIN_PASS", "adminsecret")
-    
     if credentials.username != admin_user or credentials.password != admin_pass:
         raise HTTPException(status_code=401, detail="Unauthorized Admin Access")
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
     cursor.execute("""
         SELECT u.email, u.full_name, u.target_role, u.created_at, COUNT(j.id) as job_count
         FROM users u
@@ -475,26 +678,15 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
 
     cursor.execute("""
         SELECT strftime('%Y-%m-%d', created_at) as day, COUNT(*)
-        FROM users
-        GROUP BY day
-        ORDER BY day ASC
-        LIMIT 30
+        FROM users GROUP BY day ORDER BY day ASC LIMIT 30
     """)
     daily_signups = cursor.fetchall()
-    
-    cursor.execute("""
-        SELECT strftime('%Y-%m', created_at) as month, COUNT(*)
-        FROM users
-        GROUP BY month
-        ORDER BY month ASC
-    """)
-    monthly_signups = cursor.fetchall()
 
     conn.close()
 
     total_users_count = len(users)
     avg_per_week = round(total_users_count / 4.3, 1) if total_users_count > 0 else 0
-    avg_per_month = round(total_users_count / max(len(monthly_signups), 1), 1) if total_users_count > 0 else 0
+    avg_per_month = round(total_users_count / 1.0, 1) if total_users_count > 0 else 0
 
     daily_labels = json.dumps([d[0] for d in daily_signups] or ["Today"])
     daily_values = json.dumps([d[1] for d in daily_signups] or [total_users_count])
@@ -527,91 +719,54 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
         <style>
             :root {{
-                --bg: #07090F;
-                --surface: #0E1424;
-                --elevated: #151D33;
-                --border: rgba(255,255,255,0.08);
-                --indigo: #6366F1;
-                --teal: #14B8A6;
-                --coral: #F43F5E;
-                --amber: #F59E0B;
-                --text: #F8FAFC;
-                --muted: #94A3B8;
+                --bg: #07090F; --surface: #0E1424; --elevated: #151D33;
+                --border: rgba(255,255,255,0.08); --indigo: #6366F1;
+                --teal: #14B8A6; --coral: #F43F5E; --amber: #F59E0B;
+                --text: #F8FAFC; --muted: #94A3B8;
             }}
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
             body {{ font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); padding: 2rem; min-height: 100vh; }}
             .header-bar {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }}
             .title {{ font-size: 1.6rem; font-weight: 800; }}
             .gradient-txt {{ background: linear-gradient(135deg, var(--indigo), var(--teal)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-            
             .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }}
             .stat-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }}
-            .stat-label {{ font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: 0.05em; }}
+            .stat-label {{ font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 700; }}
             .stat-val {{ font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 800; margin-top: 6px; }}
-            
             .charts-grid {{ display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem; margin-bottom: 2.5rem; }}
             .chart-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }}
             .chart-title {{ font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; color: #FFF; }}
-
             .table-container {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; overflow-x: auto; }}
             .table-top {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px; }}
             .search-box {{ background: var(--elevated); border: 1px solid var(--border); color: #FFF; padding: 8px 14px; border-radius: 8px; font-size: 0.88rem; min-width: 260px; outline: none; }}
-            .search-box:focus {{ border-color: var(--indigo); }}
             table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }}
             th, td {{ padding: 12px 16px; border-bottom: 1px solid var(--border); }}
-            th {{ background: #0A0E1A; color: var(--muted); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; }}
-            tr:hover {{ background: rgba(255,255,255,0.02); }}
+            th {{ background: #0A0E1A; color: var(--muted); text-transform: uppercase; font-size: 0.72rem; }}
             .badge {{ font-family: 'JetBrains Mono', monospace; background: rgba(99, 102, 241, 0.15); color: #818CF8; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }}
-            
-            .btn-del {{ background: rgba(244, 63, 94, 0.15); border: 1px solid var(--coral); color: #FECDD3; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }}
+            .btn-del {{ background: rgba(244, 63, 94, 0.15); border: 1px solid var(--coral); color: #FECDD3; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }}
             .btn-del:hover {{ background: var(--coral); color: #FFF; }}
             .btn-home {{ background: var(--elevated); border: 1px solid var(--border); color: #FFF; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; }}
-            .btn-home:hover {{ border-color: var(--indigo); }}
-
-            @media (max-width: 900px) {{
-                .charts-grid {{ grid-template-columns: 1fr; }}
-            }}
+            @media (max-width: 900px) {{ .charts-grid {{ grid-template-columns: 1fr; }} }}
         </style>
     </head>
     <body>
         <div class="header-bar">
             <div>
                 <h1 class="title">NexJob AI <span class="gradient-txt">Central Cockpit</span></h1>
-                <p style="color: var(--muted); font-size: 0.85rem; margin-top: 4px;">System metrics, user directory, and recruitment pipeline analytics.</p>
+                <p style="color: var(--muted); font-size: 0.85rem; margin-top: 4px;">System metrics, candidate directory, and recruitment analytics.</p>
             </div>
             <a href="/" class="btn-home">← Open App</a>
         </div>
-
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Total Accounts</div>
-                <div class="stat-val" style="color: var(--indigo);">{total_users_count}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Avg Users / Week</div>
-                <div class="stat-val" style="color: var(--teal);">{avg_per_week}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Avg Users / Month</div>
-                <div class="stat-val" style="color: var(--amber);">{avg_per_month}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Tracked Applications</div>
-                <div class="stat-val" style="color: #A855F7;">{total_jobs_count}</div>
-            </div>
+            <div class="stat-card"><div class="stat-label">Total Accounts</div><div class="stat-val" style="color: var(--indigo);">{total_users_count}</div></div>
+            <div class="stat-card"><div class="stat-label">Avg Users / Week</div><div class="stat-val" style="color: var(--teal);">{avg_per_week}</div></div>
+            <div class="stat-card"><div class="stat-label">Avg Users / Month</div><div class="stat-val" style="color: var(--amber);">{avg_per_month}</div></div>
+            <div class="stat-card"><div class="stat-label">Tracked Applications</div><div class="stat-val" style="color: #A855F7;">{total_jobs_count}</div></div>
         </div>
-
         <div class="charts-grid">
-            <div class="chart-card">
-                <div class="chart-title">📈 User Registration Growth (Daily / Trend)</div>
-                <canvas id="growthChart" height="120"></canvas>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">📊 Global Application Pipeline Status</div>
-                <canvas id="pipelineChart" height="120"></canvas>
-            </div>
+            <div class="chart-card"><div class="chart-title">📈 User Growth</div><canvas id="growthChart" height="120"></canvas></div>
+            <div class="chart-card"><div class="chart-title">📊 Global Pipeline Status</div><canvas id="pipelineChart" height="120"></canvas></div>
         </div>
-
         <div class="table-container">
             <div class="table-top">
                 <h3 style="font-size: 1.1rem; font-weight: 700;">Registered Candidate Directory ({total_users_count})</h3>
@@ -619,100 +774,47 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             </div>
             <table>
                 <thead>
-                    <tr>
-                        <th>Candidate Email</th>
-                        <th>Full Name</th>
-                        <th>Target Role</th>
-                        <th>Joined Date</th>
-                        <th>Applications</th>
-                        <th>Action</th>
-                    </tr>
+                    <tr><th>Candidate Email</th><th>Full Name</th><th>Target Role</th><th>Joined Date</th><th>Applications</th><th>Action</th></tr>
                 </thead>
                 <tbody id="userTableBody">
-                    {table_rows if table_rows else '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:2rem;">No registered candidate records found.</td></tr>'}
+                    {table_rows if table_rows else '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:2rem;">No registered candidates found.</td></tr>'}
                 </tbody>
             </table>
         </div>
-
         <script>
             const ctxGrowth = document.getElementById('growthChart').getContext('2d');
             new Chart(ctxGrowth, {{
                 type: 'line',
                 data: {{
                     labels: {daily_labels},
-                    datasets: [{{
-                        label: 'Candidate Signups',
-                        data: {daily_values},
-                        borderColor: '#6366F1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#14B8A6'
-                    }}]
+                    datasets: [{{ label: 'Signups', data: {daily_values}, borderColor: '#6366F1', backgroundColor: 'rgba(99, 102, 241, 0.15)', fill: true, tension: 0.35, borderWidth: 2, pointBackgroundColor: '#14B8A6' }}]
                 }},
-                options: {{
-                    responsive: true,
-                    plugins: {{ legend: {{ display: false }} }},
-                    scales: {{
-                        y: {{ beginAtZero: true, grid: {{ color: 'rgba(255,255,255,0.05)' }}, ticks: {{ color: '#94A3B8' }} }},
-                        x: {{ grid: {{ display: false }}, ticks: {{ color: '#94A3B8' }} }}
-                    }}
-                }}
+                options: {{ responsive: true, plugins: {{ legend: {{ display: false }} }}, scales: {{ y: {{ beginAtZero: true }}, x: {{ grid: {{ display: false }} }} }} }}
             }});
-
             const ctxPipe = document.getElementById('pipelineChart').getContext('2d');
             new Chart(ctxPipe, {{
                 type: 'doughnut',
-                data: {{
-                    labels: {status_labels},
-                    datasets: [{{
-                        data: {status_values},
-                        backgroundColor: ['#6366F1', '#F59E0B', '#14B8A6', '#64748B'],
-                        borderWidth: 0
-                    }}]
-                }},
-                options: {{
-                    responsive: true,
-                    plugins: {{ legend: {{ position: 'bottom', labels: {{ color: '#94A3B8' }} }} }}
-                }}
+                data: {{ labels: {status_labels}, datasets: [{{ data: {status_values}, backgroundColor: ['#6366F1', '#F59E0B', '#14B8A6', '#64748B'], borderWidth: 0 }}] }},
+                options: {{ responsive: true, plugins: {{ legend: {{ position: 'bottom' }} }} }}
             }});
-
             function filterUserTable() {{
                 const input = document.getElementById('userSearch').value.toLowerCase();
-                const rows = document.querySelectorAll('#userTableBody tr');
-                rows.forEach(row => {{
-                    const text = row.innerText.toLowerCase();
-                    row.style.display = text.includes(input) ? '' : 'none';
+                document.querySelectorAll('#userTableBody tr').forEach(row => {{
+                    row.style.display = row.innerText.toLowerCase().includes(input) ? '' : 'none';
                 }});
             }}
-
             async function deleteUserRow(email, rowId) {{
-                if (!confirm(`Are you sure you want to permanently delete user ${{email}} and all their tracked applications?`)) return;
-                try {{
-                    const res = await fetch('/admin/delete-user', {{
-                        method: 'POST',
-                        headers: {{ 'Content-Type': 'application/json' }},
-                        body: JSON.stringify({{ email: email }})
-                    }});
-                    const data = await res.json();
-                    if (res.ok) {{
-                        const row = document.getElementById(rowId);
-                        if (row) row.remove();
-                        alert(`User ${{email}} successfully deleted.`);
-                    }} else {{
-                        alert(data.detail || "Deletion failed.");
-                    }}
-                }} catch (e) {{
-                    alert("Error deleting user.");
-                }}
+                if (!confirm(`Permanently delete ${{email}}?`)) return;
+                const res = await fetch('/admin/delete-user', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ email: email }}) }});
+                if (res.ok) document.getElementById(rowId).remove();
             }}
         </script>
     </body>
     </html>
     """
 
-# Search Engine Indexing & Crawler Endpoints
+# --- Sitemap & Robots Endpoints ---
+
 @app.get("/sitemap.xml")
 async def get_sitemap():
     sitemap_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -735,6 +837,5 @@ async def get_robots():
 async def serve_home():
     return FileResponse("index.html")
 
-# Serve assets (style.css, app.js)
 app.mount("/static", StaticFiles(directory="."), name="static")
 app.mount("/", StaticFiles(directory=".", html=True), name="root_static")
