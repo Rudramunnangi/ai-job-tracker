@@ -93,14 +93,14 @@ try:
 except Exception as e:
     print(f"[DB INIT ERROR]: {e}")
 
-# --- HTTPS Email Dispatcher (Bypasses Render SMTP Port Blocks) ---
+# --- HTTPS Email Dispatcher (Brevo API: Unrestricted to all users, Port 443) ---
 
 def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
-    resend_api_key = os.getenv("RESEND_API_KEY")
-    sender_email = os.getenv("SENDER_EMAIL", "NexJob AI <onboarding@resend.dev>")
+    brevo_api_key = os.getenv("BREVO_API_KEY")
+    sender_email = os.getenv("SENDER_EMAIL", "nexjobai.official@gmail.com")
 
-    if not resend_api_key:
-        print(f"\n[DEV FALLBACK - NO RESEND API KEY] OTP for {recipient_email}: {otp_code}\n")
+    if not brevo_api_key:
+        print(f"\n[DEV FALLBACK - NO BREVO API KEY] OTP for {recipient_email}: {otp_code}\n")
         return
 
     action_text = "complete your registration" if purpose == "signup" else "reset your password"
@@ -138,32 +138,32 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
     """
 
     payload = json.dumps({
-        "from": sender_email,
-        "to": [recipient_email],
+        "sender": {"name": "NexJob AI", "email": sender_email},
+        "to": [{"email": recipient_email}],
         "subject": subject,
-        "html": html_content
+        "htmlContent": html_content
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        "https://api.resend.com/emails",
+        "https://api.brevo.com/v3/smtp/email",
         data=payload,
         headers={
-            "Authorization": f"Bearer {resend_api_key}",
+            "api-key": brevo_api_key,
             "Content-Type": "application/json",
-            "User-Agent": "NexJobAI/1.0"
+            "Accept": "application/json"
         },
         method="POST"
     )
 
     try:
         with urllib.request.urlopen(req) as response:
-            print(f"[RESEND SUCCESS]: OTP dispatched to {recipient_email} (HTTP {response.status})")
+            print(f"[BREVO SUCCESS]: OTP dispatched to {recipient_email} (HTTP {response.status})")
     except urllib.error.HTTPError as e:
         err_msg = e.read().decode("utf-8")
-        print(f"[RESEND HTTP ERROR]: {e.code} - {err_msg}")
+        print(f"[BREVO HTTP ERROR]: {e.code} - {err_msg}")
         raise HTTPException(status_code=500, detail="Failed to dispatch verification email. Please retry.")
     except Exception as e:
-        print(f"[RESEND DISPATCH ERROR]: {str(e)}")
+        print(f"[BREVO DISPATCH ERROR]: {str(e)}")
         raise HTTPException(status_code=500, detail="Network error during email dispatch.")
 
 def get_current_user_email(authorization: str = Header(None)) -> str:
