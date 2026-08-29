@@ -301,7 +301,7 @@ FORMAT EXACTLY AS FOLLOWS (Never mention internal threshold numbers):
     else:
         prompt = f"""
 You are the Chief AI Career Strategist on NexJob AI.
-Analyze the candidate's alignment against the target role.
+Analyze the candidate's actual capabilities and technical background against the target role.
 
 TARGET APPLICATION:
 Role: {payload.role} at {payload.company}
@@ -314,7 +314,9 @@ GitHub: {payload.github or 'Not Provided'}
 
 EVALUATION PROTOCOL:
 1. Calculate a strict Match Percentage (0% to 100%).
-2. Output your response formatted in clean distinct sections:
+2. Extract the candidate's strongest 3 high-probability alternative job roles based solely on their proven abilities.
+3. Generate direct 1-click verified search links with URL encoded keywords for immediate submission.
+4. Output your response formatted in clean distinct sections:
 
 <div class="result-score-card">
   <div class="score-badge">ATS Match Score: [Score]%</div>
@@ -334,28 +336,31 @@ EVALUATION PROTOCOL:
 
 <div class="highlight-section jobs-section">
   <h3>🎯 Alternative High-Probability Roles You Can Target Right Now</h3>
-  <p>Based on your current resume profile, these positions match your immediate strengths:</p>
+  <p>Based on your current resume profile, these positions match your immediate strengths with 1-click direct apply links:</p>
   <ul>
     <li>
-      <strong>[Role 1 Title]</strong> — Match Probability: High
+      <strong>[Role 1 Title]</strong> — Match Probability: <b>High</b>
       <br>
-      🔗 Direct Verified Search: 
-      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_1]" target="_blank" class="verified-job-link">LinkedIn Jobs</a> | 
-      <a href="https://in.indeed.com/jobs?q=[URL_ENCODED_ROLE_1]" target="_blank" class="verified-job-link">Indeed</a>
+      🚀 <b>1-Click Apply:</b> 
+      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_1]&f_TPR=r86400" target="_blank" class="verified-job-link">LinkedIn Jobs (Live)</a> | 
+      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_1]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> |
+      <a href="https://www.google.com/search?q=[URL_ENCODED_ROLE_1]+jobs&ibp=htl;jobs" target="_blank" class="verified-job-link">Google Careers</a>
     </li>
     <li>
-      <strong>[Role 2 Title]</strong> — Match Probability: High
+      <strong>[Role 2 Title]</strong> — Match Probability: <b>High</b>
       <br>
-      🔗 Direct Verified Search: 
-      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_2]" target="_blank" class="verified-job-link">LinkedIn Jobs</a> | 
-      <a href="https://in.indeed.com/jobs?q=[URL_ENCODED_ROLE_2]" target="_blank" class="verified-job-link">Indeed</a>
+      🚀 <b>1-Click Apply:</b> 
+      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_2]&f_TPR=r86400" target="_blank" class="verified-job-link">LinkedIn Jobs (Live)</a> | 
+      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_2]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> |
+      <a href="https://www.google.com/search?q=[URL_ENCODED_ROLE_2]+jobs&ibp=htl;jobs" target="_blank" class="verified-job-link">Google Careers</a>
     </li>
     <li>
-      <strong>[Role 3 Title]</strong> — Match Probability: High
+      <strong>[Role 3 Title]</strong> — Match Probability: <b>High</b>
       <br>
-      🔗 Direct Verified Search: 
-      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_3]" target="_blank" class="verified-job-link">LinkedIn Jobs</a> | 
-      <a href="https://in.indeed.com/jobs?q=[URL_ENCODED_ROLE_3]" target="_blank" class="verified-job-link">Indeed</a>
+      🚀 <b>1-Click Apply:</b> 
+      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_3]&f_TPR=r86400" target="_blank" class="verified-job-link">LinkedIn Jobs (Live)</a> | 
+      <a href="https://www.indeed.com/jobs?q=[URL_ENCODED_ROLE_3]&sort=date" target="_blank" class="verified-job-link">Indeed (Latest)</a> |
+      <a href="https://www.google.com/search?q=[URL_ENCODED_ROLE_3]+jobs&ibp=htl;jobs" target="_blank" class="verified-job-link">Google Careers</a>
     </li>
   </ul>
 </div>
@@ -369,10 +374,28 @@ EVALUATION PROTOCOL:
 Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%20Engineer).
 """
 
-    MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"]
-    last_error = None
+    # Active endpoints with auto-fallback
+    models_to_try = [
+        "gemini-2.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.5-flash",
+        "gemini-3.1-pro-preview"
+    ]
 
-    for model_name in MODELS_TO_TRY:
+    # Dynamically prepend active content-generation models from account
+    try:
+        remote_models = [
+            m.name.replace("models/", "")
+            for m in client.models.list()
+            if hasattr(m, 'supported_generation_methods') and "generateContent" in (m.supported_generation_methods or [])
+        ]
+        if remote_models:
+            models_to_try = list(dict.fromkeys(remote_models + models_to_try))
+    except Exception as list_err:
+        print(f"[MODEL DISCOVERY] Using default fallback sequence: {list_err}")
+
+    last_error = None
+    for model_name in models_to_try:
         try:
             response = client.models.generate_content(
                 model=model_name,
