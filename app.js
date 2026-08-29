@@ -2,7 +2,7 @@ let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null
 let userProfile = JSON.parse(localStorage.getItem('nexjob_active_profile')) || null;
 let jobs = [];
 
-// Drawer Controller (Open / Close on Click)
+// Drawer Controller
 function toggleDrawer() {
     const drawer = document.getElementById('profileDrawer');
     const scrim = document.getElementById('drawerScrim');
@@ -12,7 +12,7 @@ function toggleDrawer() {
     }
 }
 
-// Interactive File Selection Handler for Impressive Dropzone
+// File Selection Handler
 function handleFileSelect(event) {
     const file = event.target.files[0];
     const nameEl = document.getElementById('selectedFileName');
@@ -48,7 +48,7 @@ async function loadUserData() {
     }
 }
 
-// PDF Resume Parsing (Members Only)
+// PDF Resume Parsing
 async function uploadResumePDF() {
     if (!currentUser) {
         alert("PDF Parsing is a member-only feature. Please sign in.");
@@ -155,7 +155,7 @@ async function saveUserProfile() {
     }
 }
 
-// Auth Handlers & Error Diagnostics
+// Auth Handlers
 function showAuthError(msg) {
     const box = document.getElementById('authDiagnosticBox');
     if (box) {
@@ -345,6 +345,7 @@ function updateAuthUI() {
     const memberPipeline = document.getElementById('memberPipelineContainer');
     const resumeVaultBox = document.getElementById('resumeVaultBox');
     const resumeStatusNote = document.getElementById('resumeStatusNote');
+    const jobSelectionControl = document.getElementById('jobSelectionControl');
 
     if (currentUser && currentUser.email) {
         const name = (userProfile && userProfile.fullName) || currentUser.email.split('@')[0];
@@ -363,6 +364,7 @@ function updateAuthUI() {
 
         if (memberPipeline) memberPipeline.style.display = 'block';
         if (resumeVaultBox) resumeVaultBox.style.display = 'block';
+        if (jobSelectionControl) jobSelectionControl.style.display = 'block';
         if (resumeStatusNote) resumeStatusNote.innerText = "Synced with profile resume";
     } else {
         if (guestTop) guestTop.style.display = 'flex';
@@ -376,7 +378,20 @@ function updateAuthUI() {
 
         if (memberPipeline) memberPipeline.style.display = 'none';
         if (resumeVaultBox) resumeVaultBox.style.display = 'none';
+        if (jobSelectionControl) jobSelectionControl.style.display = 'none';
         if (resumeStatusNote) resumeStatusNote.innerText = "Guest Mode: Paste text below";
+    }
+}
+
+// Tracked Job Switcher for Step 01
+function onTrackedJobChange() {
+    const selector = document.getElementById('roleSelector');
+    if (!selector || !selector.value) return;
+    const selectedJob = jobs.find(j => j.id === selector.value);
+    if (selectedJob) {
+        document.getElementById('targetJobRole').value = selectedJob.role;
+        document.getElementById('targetJobCompany').value = selectedJob.company;
+        document.getElementById('jobDesc').value = selectedJob.jd;
     }
 }
 
@@ -474,6 +489,16 @@ function renderDashboard() {
     const statNudgesEl = document.getElementById('statNudges');
     if (statNudgesEl) statNudgesEl.innerText = nudges.length;
 
+    // Populate Job Selector
+    const selector = document.getElementById('roleSelector');
+    if (selector) {
+        if (jobs.length > 0) {
+            selector.innerHTML = jobs.map(j => `<option value="${j.id}">${j.company} — ${j.role}</option>`).join('');
+        } else {
+            selector.innerHTML = `<option value="">No applications logged yet</option>`;
+        }
+    }
+
     const nudgeContainer = document.getElementById('nudgeAlertContainer');
     if (nudgeContainer) {
         if (nudges.length > 0) {
@@ -540,6 +565,8 @@ function selectJobAndNudge(id) {
         document.getElementById('targetJobRole').value = target.role;
         document.getElementById('targetJobCompany').value = target.company;
         document.getElementById('jobDesc').value = target.jd;
+        const selector = document.getElementById('roleSelector');
+        if (selector) selector.value = id;
         const step2 = document.getElementById('step-2');
         if (step2) step2.scrollIntoView({ behavior: 'smooth' });
         runATSExecution();
@@ -569,7 +596,6 @@ async function runATSExecution() {
     resultBox.innerHTML = "<p class='text-indigo'>Evaluating candidate alignment with Gemini 3.6 Flash...</p>";
     document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
 
-    // Progress route fill animation to 100% on execution
     const fillLine = document.getElementById('activeProgressLine');
     if (fillLine) fillLine.style.height = '100%';
 
@@ -606,8 +632,6 @@ function initScrollAnimations() {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('active');
-                
-                // Adjust route line progress height based on active step
                 const fillLine = document.getElementById('activeProgressLine');
                 if (fillLine) {
                     if (entry.target.id === 'step-1') fillLine.style.height = '33%';
