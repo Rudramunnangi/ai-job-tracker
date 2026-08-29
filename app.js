@@ -51,6 +51,51 @@ function getBrandedBufferingHTML(statusText = "Evaluating candidate alignment wi
     `;
 }
 
+// 60-Second Cooldown Timers
+function startSignupTimer() {
+    let timeLeft = 60;
+    const countEl = document.getElementById('signupTimerCount');
+    const noticeEl = document.getElementById('signupTimerNotice');
+    const resendBtn = document.getElementById('btnResendSignupCode');
+
+    if (noticeEl) noticeEl.style.display = 'inline';
+    if (resendBtn) resendBtn.style.display = 'none';
+    if (countEl) countEl.innerText = timeLeft;
+
+    if (signupCountdownInterval) clearInterval(signupCountdownInterval);
+    signupCountdownInterval = setInterval(() => {
+        timeLeft--;
+        if (countEl) countEl.innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(signupCountdownInterval);
+            if (noticeEl) noticeEl.style.display = 'none';
+            if (resendBtn) resendBtn.style.display = 'inline';
+        }
+    }, 1000);
+}
+
+function startForgotTimer() {
+    let timeLeft = 60;
+    const countEl = document.getElementById('forgotTimerCount');
+    const noticeEl = document.getElementById('forgotTimerNotice');
+    const resendBtn = document.getElementById('btnResendForgotCode');
+
+    if (noticeEl) noticeEl.style.display = 'inline';
+    if (resendBtn) resendBtn.style.display = 'none';
+    if (countEl) countEl.innerText = timeLeft;
+
+    if (forgotCountdownInterval) clearInterval(forgotCountdownInterval);
+    forgotCountdownInterval = setInterval(() => {
+        timeLeft--;
+        if (countEl) countEl.innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(forgotCountdownInterval);
+            if (noticeEl) noticeEl.style.display = 'none';
+            if (resendBtn) resendBtn.style.display = 'inline';
+        }
+    }, 1000);
+}
+
 // Authentication Modal View Switcher
 function switchAuthView(viewName) {
     clearAuthError();
@@ -112,51 +157,6 @@ function clearAuthError() {
         box.innerText = '';
         box.style.display = 'none';
     }
-}
-
-// 60-Second Cooldown Timers
-function startSignupTimer() {
-    let timeLeft = 60;
-    const countEl = document.getElementById('signupTimerCount');
-    const noticeEl = document.getElementById('signupTimerNotice');
-    const resendBtn = document.getElementById('btnResendSignupCode');
-
-    if (noticeEl) noticeEl.style.display = 'inline';
-    if (resendBtn) resendBtn.style.display = 'none';
-    if (countEl) countEl.innerText = timeLeft;
-
-    if (signupCountdownInterval) clearInterval(signupCountdownInterval);
-    signupCountdownInterval = setInterval(() => {
-        timeLeft--;
-        if (countEl) countEl.innerText = timeLeft;
-        if (timeLeft <= 0) {
-            clearInterval(signupCountdownInterval);
-            if (noticeEl) noticeEl.style.display = 'none';
-            if (resendBtn) resendBtn.style.display = 'inline';
-        }
-    }, 1000);
-}
-
-function startForgotTimer() {
-    let timeLeft = 60;
-    const countEl = document.getElementById('forgotTimerCount');
-    const noticeEl = document.getElementById('forgotTimerNotice');
-    const resendBtn = document.getElementById('btnResendForgotCode');
-
-    if (noticeEl) noticeEl.style.display = 'inline';
-    if (resendBtn) resendBtn.style.display = 'none';
-    if (countEl) countEl.innerText = timeLeft;
-
-    if (forgotCountdownInterval) clearInterval(forgotCountdownInterval);
-    forgotCountdownInterval = setInterval(() => {
-        timeLeft--;
-        if (countEl) countEl.innerText = timeLeft;
-        if (timeLeft <= 0) {
-            clearInterval(forgotCountdownInterval);
-            if (noticeEl) noticeEl.style.display = 'none';
-            if (resendBtn) resendBtn.style.display = 'inline';
-        }
-    }, 1000);
 }
 
 // 1. Submit Login (Email or Username)
@@ -911,7 +911,7 @@ async function runATSExecution() {
             resultBox.innerHTML = `<p style="color: var(--accent-coral); text-align: center;">Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
         }
     } catch (err) {
-        resultBox.innerHTML = "<p style="color: var(--accent-coral); text-align: center;">Connection error. Ensure the server is online.</p>";
+        resultBox.innerHTML = '<p style="color: var(--accent-coral); text-align: center;">Connection error. Ensure the server is online.</p>';
     }
 }
 
