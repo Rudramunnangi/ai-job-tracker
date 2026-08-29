@@ -97,7 +97,7 @@ async function submitLogin() {
     const password = document.getElementById('loginPassword').value.trim();
 
     if (!identifier || !password) {
-        showAuthError("Please enter your identifier and password.");
+        showAuthError("Please enter your email/username and password.");
         return;
     }
 
@@ -134,7 +134,7 @@ async function submitLogin() {
 // 2. Signup Flow: Request OTP via Email
 async function requestSignupOTP() {
     clearAuthError();
-    const idInput = document.getElementById('signupEmailInput') || document.getElementById('signupIdentifier');
+    const idInput = document.getElementById('signupIdentifier');
     const idVal = idInput ? idInput.value.trim() : "";
 
     if (!idVal || !idVal.includes('@')) {
@@ -219,7 +219,7 @@ async function submitSignupVerification() {
 // 4. Forgot Password Flow: Request OTP
 async function requestForgotOTP() {
     clearAuthError();
-    const idInput = document.getElementById('forgotEmailInput') || document.getElementById('forgotIdentifier');
+    const idInput = document.getElementById('forgotIdentifier');
     const idVal = idInput ? idInput.value.trim() : "";
 
     if (!idVal || !idVal.includes('@')) {
@@ -874,4 +874,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateAuthUI();
     renderDashboard();
     initScrollAnimations();
+});
+
+// Subtle Mouse Glow Interaction
+window.addEventListener('mousemove', (e) => {
+    const orb1 = document.querySelector('.orb-1');
+    const orb2 = document.querySelector('.orb-2');
+    if (orb1 && orb2) {
+        const moveX = (e.clientX / window.innerWidth - 0.5) * 30;
+        const moveY = (e.clientY / window.innerHeight - 0.5) * 30;
+        orb1.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        orb2.style.transform = `translate(${-moveX}px, ${-moveY}px)`;
+    }
 });
