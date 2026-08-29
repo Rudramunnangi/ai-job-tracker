@@ -2,12 +2,24 @@ let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null
 let userProfile = JSON.parse(localStorage.getItem('nexjob_active_profile')) || null;
 let jobs = [];
 
-// Sidebar Toggle Functionality (One-Click open / One-Click close)
-function toggleSidebar() {
-    const sidebar = document.getElementById('mainSidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('open');
+// Drawer Controller
+function toggleDrawer() {
+    const drawer = document.getElementById('profileDrawer');
+    const scrim = document.getElementById('drawerScrim');
+    if (drawer && scrim) {
+        drawer.classList.toggle('open');
+        scrim.classList.toggle('active');
     }
+}
+
+function scrollToPipeline() {
+    const el = document.getElementById('memberPipelineContainer');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function scrollToVault() {
+    const el = document.getElementById('resumeVaultBox');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
 }
 
 // Data Synchronization
@@ -36,10 +48,10 @@ async function loadUserData() {
     }
 }
 
-// PDF Resume Upload (Members Only)
+// PDF Resume Parsing (Members Only)
 async function uploadResumePDF() {
     if (!currentUser) {
-        alert("PDF Parsing is a Member feature. Please log in first.");
+        alert("PDF Parsing is a member-only feature. Please sign in.");
         openAuthModal();
         return;
     }
@@ -54,8 +66,8 @@ async function uploadResumePDF() {
     const formData = new FormData();
     formData.append("file", file);
 
-    const resultBox = document.getElementById('aiResultBox');
-    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Parsing PDF resume in memory...</p>";
+    const resultBox = document.getElementById('atsResultWindow');
+    resultBox.innerHTML = "<p class='text-indigo'>Parsing PDF resume content in memory...</p>";
 
     try {
         const res = await fetch("/api/resume/upload-pdf", {
@@ -72,18 +84,18 @@ async function uploadResumePDF() {
 
             document.getElementById('userResume').value = userProfile.resume;
             document.getElementById('profResume').value = userProfile.resume;
-            resultBox.innerHTML = "<p style='color:var(--accent-emerald);'>Resume PDF successfully parsed and attached to your member profile!</p>";
+            resultBox.innerHTML = "<p class='text-teal'>Resume PDF successfully parsed and synced to your profile.</p>";
             alert("Resume PDF successfully parsed and synced!");
         } else {
-            resultBox.innerHTML = `<p style='color:var(--accent-rose);'>Upload Error: ${data.detail}</p>`;
+            resultBox.innerHTML = `<p class='text-coral'>Upload Error: ${data.detail}</p>`;
             alert(data.detail);
         }
     } catch (err) {
-        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Connection error during PDF parsing.</p>";
+        resultBox.innerHTML = "<p class='text-coral'>Connection error during PDF parsing.</p>";
     }
 }
 
-// Profile Actions
+// Profile Modal Controllers
 function openProfileModal() {
     if (!currentUser) {
         openAuthModal();
@@ -143,9 +155,9 @@ async function saveUserProfile() {
     }
 }
 
-// Auth Actions & Diagnostics
+// Auth Handlers & Error Diagnostics
 function showAuthError(msg) {
-    const box = document.getElementById('authErrorAlert');
+    const box = document.getElementById('authDiagnosticBox');
     if (box) {
         box.innerText = msg;
         box.style.display = 'block';
@@ -153,7 +165,7 @@ function showAuthError(msg) {
 }
 
 function clearAuthError() {
-    const box = document.getElementById('authErrorAlert');
+    const box = document.getElementById('authDiagnosticBox');
     if (box) {
         box.innerText = '';
         box.style.display = 'none';
@@ -163,21 +175,21 @@ function clearAuthError() {
 function openAuthModal() {
     clearAuthError();
     document.getElementById('authModal').style.display = 'flex';
-    initGoogleAuthBtn();
+    initGoogleAuth();
 }
 
 function closeAuthModal() {
     document.getElementById('authModal').style.display = 'none';
 }
 
-function initGoogleAuthBtn() {
-    const googleWrapper = document.getElementById('googleBtnWrapper');
-    if (window.google && googleWrapper && googleWrapper.children.length === 0) {
+function initGoogleAuth() {
+    const wrapper = document.getElementById('googleAuthWrapper');
+    if (window.google && wrapper && wrapper.children.length === 0) {
         google.accounts.id.initialize({
             client_id: "367560024253-20ebmeiedvdammukrcplc5uh2orqedpl.apps.googleusercontent.com",
             callback: handleGoogleResponse
         });
-        google.accounts.id.renderButton(googleWrapper, {
+        google.accounts.id.renderButton(wrapper, {
             theme: "filled_black",
             size: "large",
             shape: "rectangular",
@@ -283,7 +295,7 @@ async function demoLogin() {
 
         const data = await res.json();
         currentUser = { email: data.email };
-        userProfile = data.profile || { fullName: "Alex Demo", targetRole: "Full Stack Engineer" };
+        userProfile = data.profile || { fullName: "Alex Demo", targetRole: "Full Stack AI Engineer" };
         localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
         localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
 
@@ -298,13 +310,13 @@ async function demoLogin() {
 
 async function deleteAccount() {
     if (!currentUser) return;
-    const confirmDelete = confirm("Are you sure you want to permanently delete your account, applications, and saved profile? This cannot be undone.");
+    const confirmDelete = confirm("Are you sure you want to permanently delete your account, applications, and saved profile?");
     if (!confirmDelete) return;
 
     try {
         await fetch(`/api/account/delete?email=${encodeURIComponent(currentUser.email)}`, { method: "DELETE" });
         logoutUser();
-        alert("Your account and all associated records have been purged.");
+        alert("Your account has been purged.");
     } catch (e) {
         alert("Error deleting account.");
     }
@@ -321,55 +333,55 @@ function logoutUser() {
 }
 
 function updateAuthUI() {
-    const authBtn = document.getElementById('authNavBtn');
-    const userDisplay = document.getElementById('userDisplayBadge');
-    const profileBtn = document.getElementById('profileNavBtn');
-    const deleteBtn = document.getElementById('deleteAccBtn');
-    const guestBanner = document.getElementById('guestNoticeBanner');
-    const memberWrapper = document.getElementById('memberFeaturesWrapper');
-    const lockOverlay = document.getElementById('lockOverlayMessage');
-    const selectorContainer = document.getElementById('applicationSelectorContainer');
+    const guestTop = document.getElementById('guestTopControls');
+    const userTop = document.getElementById('userTopControls');
+    const userDisplayName = document.getElementById('userDisplayName');
+    const userAvatarLetter = document.getElementById('userAvatarLetter');
+    const drawerGuestActions = document.getElementById('drawerGuestActions');
+    const drawerMemberActions = document.getElementById('drawerMemberActions');
+    const drawerAvatar = document.getElementById('drawerAvatar');
+    const drawerUserName = document.getElementById('drawerUserName');
+    const drawerUserEmail = document.getElementById('drawerUserEmail');
+    const memberPipeline = document.getElementById('memberPipelineContainer');
+    const resumeVaultBox = document.getElementById('resumeVaultBox');
+    const resumeStatusNote = document.getElementById('resumeStatusNote');
 
     if (currentUser && currentUser.email) {
-        if (authBtn) {
-            authBtn.innerText = "Logout";
-            authBtn.onclick = logoutUser;
-        }
-        if (profileBtn) profileBtn.style.display = "inline-flex";
-        if (deleteBtn) deleteBtn.style.display = "block";
-        if (guestBanner) guestBanner.style.display = "none";
-        
-        if (memberWrapper) {
-            memberWrapper.classList.remove('member-locked');
-        }
-        if (lockOverlay) lockOverlay.style.display = "none";
-        if (selectorContainer) selectorContainer.style.display = "block";
+        const name = (userProfile && userProfile.fullName) || currentUser.email.split('@')[0];
+        const initial = name.charAt(0).toUpperCase();
 
-        if (userDisplay) {
-            const name = (userProfile && userProfile.fullName) ? userProfile.fullName : currentUser.email;
-            userDisplay.innerHTML = `<span style="color:var(--accent-emerald);">●</span> ${name}`;
-        }
+        if (guestTop) guestTop.style.display = 'none';
+        if (userTop) userTop.style.display = 'flex';
+        if (userDisplayName) userDisplayName.innerText = name;
+        if (userAvatarLetter) userAvatarLetter.innerText = initial;
+
+        if (drawerGuestActions) drawerGuestActions.style.display = 'none';
+        if (drawerMemberActions) drawerMemberActions.style.display = 'block';
+        if (drawerAvatar) drawerAvatar.innerText = initial;
+        if (drawerUserName) drawerUserName.innerText = name;
+        if (drawerUserEmail) drawerUserEmail.innerText = currentUser.email;
+
+        if (memberPipeline) memberPipeline.style.display = 'block';
+        if (resumeVaultBox) resumeVaultBox.style.display = 'block';
+        if (resumeStatusNote) resumeStatusNote.innerText = "Synced with profile resume";
     } else {
-        if (authBtn) {
-            authBtn.innerText = "Login / Sign Up";
-            authBtn.onclick = openAuthModal;
-        }
-        if (profileBtn) profileBtn.style.display = "none";
-        if (deleteBtn) deleteBtn.style.display = "none";
-        if (guestBanner) guestBanner.style.display = "flex";
-        
-        if (memberWrapper) {
-            memberWrapper.classList.add('member-locked');
-        }
-        if (lockOverlay) lockOverlay.style.display = "flex";
-        if (selectorContainer) selectorContainer.style.display = "none";
+        if (guestTop) guestTop.style.display = 'flex';
+        if (userTop) userTop.style.display = 'none';
 
-        if (userDisplay) userDisplay.innerText = "Guest Mode";
+        if (drawerGuestActions) drawerGuestActions.style.display = 'block';
+        if (drawerMemberActions) drawerMemberActions.style.display = 'none';
+        if (drawerAvatar) drawerAvatar.innerText = 'G';
+        if (drawerUserName) drawerUserName.innerText = 'Guest User';
+        if (drawerUserEmail) drawerUserEmail.innerText = 'Not signed in';
+
+        if (memberPipeline) memberPipeline.style.display = 'none';
+        if (resumeVaultBox) resumeVaultBox.style.display = 'none';
+        if (resumeStatusNote) resumeStatusNote.innerText = "Guest Mode: Paste text below";
     }
 }
 
 // Kanban Management
-function openModal() {
+function openJobModal() {
     if (!currentUser) {
         alert("Please log in first to track job applications.");
         openAuthModal();
@@ -379,7 +391,7 @@ function openModal() {
     document.getElementById('modalDate').valueAsDate = new Date();
 }
 
-function closeModal() {
+function closeJobModal() {
     document.getElementById('jobModal').style.display = 'none';
 }
 
@@ -417,7 +429,7 @@ async function submitNewJob() {
 
         jobs.unshift(newJob);
         renderDashboard();
-        closeModal();
+        closeJobModal();
 
         document.getElementById('modalCompany').value = '';
         document.getElementById('modalRole').value = '';
@@ -466,12 +478,12 @@ function renderDashboard() {
     if (nudgeContainer) {
         if (nudges.length > 0) {
             nudgeContainer.innerHTML = nudges.map(n => `
-                <div class="nudge-card" style="margin-bottom: 1.5rem;">
+                <div class="nudge-card">
                     <div>
-                        <span style="font-weight:700; color:var(--accent-rose);">Follow-Up Due:</span> 
+                        <span style="font-weight:700; color:var(--accent-coral);">Follow-Up Due:</span> 
                         Applied to <b>${n.company}</b> (${n.role}) 5+ days ago without response.
                     </div>
-                    <button class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="selectJobAndNudge('${n.id}')">Evaluate & Follow-Up</button>
+                    <button class="btn-primary compact" onclick="selectJobAndNudge('${n.id}')">Run ATS</button>
                 </div>
             `).join('');
         } else {
@@ -480,9 +492,9 @@ function renderDashboard() {
     }
 
     const stages = [
-        { name: "Applied", key: "Applied", color: "var(--accent-blue)" },
+        { name: "Applied", key: "Applied", color: "var(--accent-indigo)" },
         { name: "Interviewing", key: "Interviewing", color: "var(--accent-amber)" },
-        { name: "Offered", key: "Offered", color: "var(--accent-emerald)" },
+        { name: "Offered", key: "Offered", color: "var(--accent-teal)" },
         { name: "Archived", key: "Rejected", color: "var(--text-muted)" }
     ];
 
@@ -499,7 +511,7 @@ function renderDashboard() {
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted);">
                         <span>${j.date}</span>
-                        <select onchange="changeJobStage('${j.id}', this.value)" style="background:var(--bg-surface); color:#FFF; border:1px solid var(--border-subtle); border-radius:4px; padding:2px 6px; font-size:0.7rem;">
+                        <select onchange="changeJobStage('${j.id}', this.value)" class="form-select mini">
                             <option ${j.status==='Applied'?'selected':''}>Applied</option>
                             <option ${j.status==='Interviewing'?'selected':''}>Interviewing</option>
                             <option ${j.status==='Offered'?'selected':''}>Offered</option>
@@ -511,70 +523,51 @@ function renderDashboard() {
 
             return `
                 <div class="kanban-col">
-                    <div class="kanban-header" style="color: ${stage.color}; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle);">
+                    <div class="kanban-header" style="color: ${stage.color};">
                         <span>${stage.name}</span>
-                        <span>${stageJobs.length}</span>
+                        <span class="mono-data">${stageJobs.length}</span>
                     </div>
-                    ${cards || '<p style="color:var(--text-muted); font-size:0.78rem; text-align:center; margin-top:20px;">No applications</p>'}
+                    ${cards || '<p class="empty-col-text">No entries</p>'}
                 </div>
             `;
         }).join('');
     }
-
-    const selector = document.getElementById('roleSelector');
-    if (selector) {
-        if (jobs.length > 0) {
-            selector.innerHTML = jobs.map(j => `<option value="${j.id}">${j.company} — ${j.role}</option>`).join('');
-            onRoleChange();
-        } else {
-            selector.innerHTML = `<option value="">No applications added</option>`;
-        }
-    }
-}
-
-function onRoleChange() {
-    const selector = document.getElementById('roleSelector');
-    if (!selector || !selector.value) return;
-    const selectedId = selector.value;
-    const target = jobs.find(j => j.id === selectedId);
-    if (target) {
-        const jdEl = document.getElementById('jobDesc');
-        const roleEl = document.getElementById('targetJobRole');
-        const compEl = document.getElementById('targetJobCompany');
-        if (jdEl) jdEl.value = target.jd;
-        if (roleEl) roleEl.value = target.role;
-        if (compEl) compEl.value = target.company;
-    }
 }
 
 function selectJobAndNudge(id) {
-    const selector = document.getElementById('roleSelector');
-    if (selector) selector.value = id;
-    onRoleChange();
-    const atsSection = document.getElementById('ats-engine');
-    if (atsSection) atsSection.scrollIntoView({ behavior: 'smooth' });
-    runSmartDecision();
+    const target = jobs.find(j => j.id === id);
+    if (target) {
+        document.getElementById('targetJobRole').value = target.role;
+        document.getElementById('targetJobCompany').value = target.company;
+        document.getElementById('jobDesc').value = target.jd;
+        const step2 = document.getElementById('step-2');
+        if (step2) step2.scrollIntoView({ behavior: 'smooth' });
+        runATSExecution();
+    }
 }
 
-// 83% Smart Decision Engine Trigger
-async function runSmartDecision() {
+// 1-Click ATS Execution
+async function runATSExecution() {
     const role = document.getElementById('targetJobRole').value.trim() || "Target Role";
     const company = document.getElementById('targetJobCompany').value.trim() || "Target Company";
     const jd = document.getElementById('jobDesc').value.trim();
     const resume = document.getElementById('userResume').value.trim();
-    const resultBox = document.getElementById('aiResultBox');
+    const resultBox = document.getElementById('atsResultWindow');
 
     if (!jd || jd.length < 10) {
-        alert("Please paste the target Job Description first.");
+        alert("Please paste the target Job Description in Step 1.");
+        document.getElementById('step-1').scrollIntoView({ behavior: 'smooth' });
         return;
     }
 
     if (!resume || resume.length < 10) {
-        alert("Please enter or paste candidate resume content first.");
+        alert("Please paste or upload your resume in Step 2.");
+        document.getElementById('step-2').scrollIntoView({ behavior: 'smooth' });
         return;
     }
 
-    resultBox.innerHTML = "<p style='color:var(--accent-blue);'>Calculating ATS alignment against the 83% benchmark with Gemini 3.6 Flash...</p>";
+    resultBox.innerHTML = "<p class='text-indigo'>Evaluating candidate alignment with Gemini 3.6 Flash...</p>";
+    document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
 
     const isGuest = (!currentUser || !currentUser.email);
 
@@ -596,15 +589,29 @@ async function runSmartDecision() {
         if (res.ok) {
             resultBox.innerHTML = typeof marked !== 'undefined' ? marked.parse(data.result) : data.result;
         } else {
-            resultBox.innerHTML = `<p style='color:var(--accent-rose);'>Error: ${data.detail || "Unable to process request."}</p>`;
+            resultBox.innerHTML = `<p class='text-coral'>Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
         }
     } catch (err) {
-        resultBox.innerHTML = "<p style='color:var(--accent-rose);'>Connection error. Ensure the server is online.</p>";
+        resultBox.innerHTML = "<p class='text-coral'>Connection error. Ensure the server is online.</p>";
     }
+}
+
+// Sequence Reveal Scroll Observer
+function initScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active');
+            }
+        });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadUserData();
     updateAuthUI();
     renderDashboard();
+    initScrollAnimations();
 });
