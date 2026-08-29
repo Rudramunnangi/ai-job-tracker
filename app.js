@@ -5,6 +5,8 @@ let jobs = [];
 
 let activeSignupIdentifier = "";
 let activeForgotIdentifier = "";
+let signupCountdownInterval = null;
+let forgotCountdownInterval = null;
 
 function getAuthHeaders() {
     return {
@@ -27,6 +29,26 @@ function togglePasswordVisibility(fieldId) {
     if (field) {
         field.type = field.type === 'password' ? 'text' : 'password';
     }
+}
+
+// Branded Logo Loading Spinner Generator
+function getBrandedBufferingHTML(statusText = "Evaluating candidate alignment with AI...") {
+    return `
+        <div class="buffering-container">
+            <svg class="buffering-logo-spinner" viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="spinG" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#6366F1"/>
+                        <stop offset="100%" stop-color="#14B8A6"/>
+                    </linearGradient>
+                </defs>
+                <rect width="100" height="100" rx="24" fill="#151A26"/>
+                <path d="M30 70V30L70 70V30" stroke="url(#spinG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="70" cy="30" r="6" fill="#2DD4BF"/>
+            </svg>
+            <span class="buffering-text">${statusText}</span>
+        </div>
+    `;
 }
 
 // Authentication Modal View Switcher
@@ -52,6 +74,7 @@ function switchAuthView(viewName) {
         const view = document.getElementById('authViewSignupStep2');
         if (view) view.style.display = 'block';
         if (titleEl) titleEl.innerText = "Verify Email OTP";
+        startSignupTimer();
     } else if (viewName === 'forgot') {
         const view = document.getElementById('authViewForgotStep1');
         if (view) view.style.display = 'block';
@@ -60,6 +83,7 @@ function switchAuthView(viewName) {
         const view = document.getElementById('authViewForgotStep2');
         if (view) view.style.display = 'block';
         if (titleEl) titleEl.innerText = "Enter Reset OTP";
+        startForgotTimer();
     }
 }
 
@@ -88,6 +112,51 @@ function clearAuthError() {
         box.innerText = '';
         box.style.display = 'none';
     }
+}
+
+// 60-Second Cooldown Timers
+function startSignupTimer() {
+    let timeLeft = 60;
+    const countEl = document.getElementById('signupTimerCount');
+    const noticeEl = document.getElementById('signupTimerNotice');
+    const resendBtn = document.getElementById('btnResendSignupCode');
+
+    if (noticeEl) noticeEl.style.display = 'inline';
+    if (resendBtn) resendBtn.style.display = 'none';
+    if (countEl) countEl.innerText = timeLeft;
+
+    if (signupCountdownInterval) clearInterval(signupCountdownInterval);
+    signupCountdownInterval = setInterval(() => {
+        timeLeft--;
+        if (countEl) countEl.innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(signupCountdownInterval);
+            if (noticeEl) noticeEl.style.display = 'none';
+            if (resendBtn) resendBtn.style.display = 'inline';
+        }
+    }, 1000);
+}
+
+function startForgotTimer() {
+    let timeLeft = 60;
+    const countEl = document.getElementById('forgotTimerCount');
+    const noticeEl = document.getElementById('forgotTimerNotice');
+    const resendBtn = document.getElementById('btnResendForgotCode');
+
+    if (noticeEl) noticeEl.style.display = 'inline';
+    if (resendBtn) resendBtn.style.display = 'none';
+    if (countEl) countEl.innerText = timeLeft;
+
+    if (forgotCountdownInterval) clearInterval(forgotCountdownInterval);
+    forgotCountdownInterval = setInterval(() => {
+        timeLeft--;
+        if (countEl) countEl.innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(forgotCountdownInterval);
+            if (noticeEl) noticeEl.style.display = 'none';
+            if (resendBtn) resendBtn.style.display = 'inline';
+        }
+    }, 1000);
 }
 
 // 1. Submit Login (Email or Username)
@@ -142,6 +211,9 @@ async function requestSignupOTP() {
         return;
     }
 
+    const btn = document.getElementById('btnSendSignupCode');
+    if (btn) btn.innerText = "Dispatching Code...";
+
     try {
         const res = await fetch("/api/auth/send-otp", {
             method: "POST",
@@ -150,8 +222,10 @@ async function requestSignupOTP() {
         });
         const data = await res.json();
 
+        if (btn) btn.innerText = "Send Verification Code";
+
         if (!res.ok) {
-            showAuthError(data.detail || "Unable to send verification OTP.");
+            showAuthError(data.detail || "Unable to send verification code.");
             return;
         }
 
@@ -162,7 +236,22 @@ async function requestSignupOTP() {
         }
         switchAuthView('signup_step2');
     } catch (e) {
+        if (btn) btn.innerText = "Send Verification Code";
         showAuthError("Connection error while requesting OTP.");
+    }
+}
+
+async function resendSignupCode() {
+    if (!activeSignupIdentifier) return;
+    try {
+        await fetch("/api/auth/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: activeSignupIdentifier, identifier: activeSignupIdentifier, purpose: "signup" })
+        });
+        startSignupTimer();
+    } catch (e) {
+        showAuthError("Failed to resend verification code.");
     }
 }
 
@@ -216,7 +305,7 @@ async function submitSignupVerification() {
     }
 }
 
-// 4. Forgot Password Flow: Request OTP
+// 4. Forgot Password Flow
 async function requestForgotOTP() {
     clearAuthError();
     const idInput = document.getElementById('forgotIdentifier');
@@ -247,7 +336,21 @@ async function requestForgotOTP() {
     }
 }
 
-// 5. Forgot Password Flow: Verify OTP & Reset Password
+async function resendForgotCode() {
+    if (!activeForgotIdentifier) return;
+    try {
+        await fetch("/api/auth/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: activeForgotIdentifier, identifier: activeForgotIdentifier, purpose: "forgot_password" })
+        });
+        startForgotTimer();
+    } catch (e) {
+        showAuthError("Failed to resend reset code.");
+    }
+}
+
+// 5. Verify Reset OTP & Reset Password
 async function submitPasswordReset() {
     clearAuthError();
     const otp = document.getElementById('forgotOtpCode').value.trim();
@@ -283,19 +386,30 @@ async function submitPasswordReset() {
     }
 }
 
-// Google OAuth Handler
+// Google OAuth Trigger
+function triggerGoogleSignIn() {
+    const hiddenWrap = document.getElementById('googleHiddenRenderWrapper');
+    if (hiddenWrap && hiddenWrap.querySelector('div[role="button"]')) {
+        hiddenWrap.querySelector('div[role="button"]').click();
+    } else {
+        initGoogleAuth();
+        setTimeout(() => {
+            if (hiddenWrap && hiddenWrap.querySelector('div[role="button"]')) {
+                hiddenWrap.querySelector('div[role="button"]').click();
+            }
+        }, 500);
+    }
+}
+
 function initGoogleAuth() {
-    const wrapper = document.getElementById('googleAuthWrapper');
+    const wrapper = document.getElementById('googleHiddenRenderWrapper');
     if (window.google && wrapper && wrapper.children.length === 0) {
         google.accounts.id.initialize({
             client_id: "367560024253-20ebmeiedvdammukrcplc5uh2orqedpl.apps.googleusercontent.com",
             callback: handleGoogleResponse
         });
         google.accounts.id.renderButton(wrapper, {
-            theme: "filled_black",
-            size: "large",
-            shape: "rectangular",
-            text: "signin_with"
+            theme: "outline", size: "large", type: "standard"
         });
     }
 }
@@ -327,54 +441,6 @@ async function handleGoogleResponse(response) {
         renderDashboard();
     } catch (err) {
         showAuthError(`Network error during Google sign-in: ${err.message}`);
-    }
-}
-
-async function demoLogin() {
-    const demoEmail = "demo.candidate@nexjob.ai";
-    const demoPass = "demo1234";
-
-    try {
-        let res = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier: demoEmail, password: demoPass })
-        });
-
-        if (!res.ok) {
-            await fetch("/api/auth/signup-verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: demoEmail,
-                    identifier: demoEmail,
-                    otp: "000000",
-                    username: "alexdemo",
-                    password: demoPass,
-                    full_name: "Alex Demo"
-                })
-            });
-            res = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifier: demoEmail, password: demoPass })
-            });
-        }
-
-        const data = await res.json();
-        currentUser = { email: data.email };
-        authToken = data.token;
-        userProfile = data.profile || { fullName: "Alex Demo", targetRole: "Full Stack AI Engineer" };
-        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
-        localStorage.setItem('nexjob_auth_token', authToken);
-        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
-
-        closeAuthModal();
-        await loadUserData();
-        updateAuthUI();
-        renderDashboard();
-    } catch (e) {
-        showAuthError("Demo login error.");
     }
 }
 
@@ -421,7 +487,7 @@ async function loadUserData() {
 
 async function uploadResumePDF() {
     if (!currentUser || !authToken) {
-        alert("PDF Parsing is a member-only feature. Please sign in.");
+        alert("Please sign in to upload and parse PDF resumes.");
         openAuthModal('login');
         return;
     }
@@ -436,7 +502,7 @@ async function uploadResumePDF() {
     formData.append("file", fileInput.files[0]);
 
     const resultBox = document.getElementById('atsResultWindow');
-    resultBox.innerHTML = "<p class='text-indigo'>Parsing PDF resume securely...</p>";
+    resultBox.innerHTML = getBrandedBufferingHTML("Parsing and analyzing PDF resume securely...");
 
     try {
         const res = await fetch("/api/resume/upload-pdf", {
@@ -453,14 +519,14 @@ async function uploadResumePDF() {
 
             document.getElementById('userResume').value = userProfile.resume;
             document.getElementById('profResume').value = userProfile.resume;
-            resultBox.innerHTML = "<p class='text-teal'>Resume parsed and synced successfully.</p>";
+            resultBox.innerHTML = "<p style='color: var(--accent-teal); text-align: center;'>Resume successfully parsed and synced with your profile.</p>";
             alert("Resume PDF successfully parsed and synced!");
         } else {
-            resultBox.innerHTML = `<p class='text-coral'>Upload Error: ${data.detail}</p>`;
+            resultBox.innerHTML = `<p style='color: var(--accent-coral); text-align: center;'>Upload Error: ${data.detail}</p>`;
             alert(data.detail);
         }
     } catch (err) {
-        resultBox.innerHTML = "<p class='text-coral'>Connection error during PDF parsing.</p>";
+        resultBox.innerHTML = "<p style='color: var(--accent-coral); text-align: center;'>Connection error during PDF parsing.</p>";
     }
 }
 
@@ -557,7 +623,6 @@ function updateAuthUI() {
     const drawerUserEmail = document.getElementById('drawerUserEmail');
     const memberPipeline = document.getElementById('memberPipelineContainer');
     const resumeVaultBox = document.getElementById('resumeVaultBox');
-    const resumeStatusNote = document.getElementById('resumeStatusNote');
     const jobSelectionControl = document.getElementById('jobSelectionControl');
 
     if (currentUser && currentUser.email && authToken) {
@@ -578,28 +643,26 @@ function updateAuthUI() {
         if (memberPipeline) memberPipeline.style.display = 'block';
         if (resumeVaultBox) resumeVaultBox.style.display = 'block';
         if (jobSelectionControl) jobSelectionControl.style.display = 'block';
-        if (resumeStatusNote) resumeStatusNote.innerText = "Synced with profile resume";
     } else {
         if (guestTop) guestTop.style.display = 'flex';
         if (userTop) userTop.style.display = 'none';
 
         if (drawerGuestActions) drawerGuestActions.style.display = 'block';
         if (drawerMemberActions) drawerMemberActions.style.display = 'none';
-        if (drawerAvatar) drawerAvatar.innerText = 'G';
-        if (drawerUserName) drawerUserName.innerText = 'Guest User';
+        if (drawerAvatar) drawerAvatar.innerText = 'U';
+        if (drawerUserName) drawerUserName.innerText = 'User Account';
         if (drawerUserEmail) drawerUserEmail.innerText = 'Not signed in';
 
         if (memberPipeline) memberPipeline.style.display = 'none';
         if (resumeVaultBox) resumeVaultBox.style.display = 'none';
         if (jobSelectionControl) jobSelectionControl.style.display = 'none';
-        if (resumeStatusNote) resumeStatusNote.innerText = "Guest Mode: Paste text below";
     }
 
     updateDynamicJobLinks();
 }
 
-function updateDynamicJobLinks() {
-    const role = (userProfile && userProfile.targetRole) || (document.getElementById('targetJobRole') && document.getElementById('targetJobRole').value) || "AI Engineer";
+function updateDynamicJobLinks(customRole = null) {
+    const role = customRole || (userProfile && userProfile.targetRole) || (document.getElementById('targetJobRole') && document.getElementById('targetJobRole').value) || "AI Software Engineer";
     const encodedRole = encodeURIComponent(role.trim());
 
     const lnk = document.getElementById('footerLinkedInLink');
@@ -818,7 +881,7 @@ async function runATSExecution() {
         return;
     }
 
-    resultBox.innerHTML = "<p class='text-indigo'>Evaluating candidate alignment with Gemini AI...</p>";
+    resultBox.innerHTML = getBrandedBufferingHTML("Evaluating candidate alignment with AI...");
     document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
 
     const fillLine = document.getElementById('activeProgressLine');
@@ -843,11 +906,12 @@ async function runATSExecution() {
         const data = await res.json();
         if (res.ok) {
             resultBox.innerHTML = typeof marked !== 'undefined' ? marked.parse(data.result) : data.result;
+            updateDynamicJobLinks(role);
         } else {
-            resultBox.innerHTML = `<p class='text-coral'>Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
+            resultBox.innerHTML = `<p style="color: var(--accent-coral); text-align: center;">Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
         }
     } catch (err) {
-        resultBox.innerHTML = "<p class='text-coral'>Connection error. Ensure the server is online.</p>";
+        resultBox.innerHTML = "<p style="color: var(--accent-coral); text-align: center;">Connection error. Ensure the server is online.</p>";
     }
 }
 
@@ -876,7 +940,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initScrollAnimations();
 });
 
-// Subtle Mouse Glow Interaction
+// Interactive Dynamic Background Mouse Follower
 window.addEventListener('mousemove', (e) => {
     const orb1 = document.querySelector('.orb-1');
     const orb2 = document.querySelector('.orb-2');
