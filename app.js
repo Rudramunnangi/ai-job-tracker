@@ -40,31 +40,38 @@ function switchAuthView(viewName) {
 
     const titleEl = document.getElementById('authModalTitle');
     if (viewName === 'login') {
-        document.getElementById('authViewLogin').style.display = 'block';
+        const view = document.getElementById('authViewLogin');
+        if (view) view.style.display = 'block';
         if (titleEl) titleEl.innerText = "Sign In";
         initGoogleAuth();
     } else if (viewName === 'signup_step1') {
-        document.getElementById('authViewSignupStep1').style.display = 'block';
-        if (titleEl) titleEl.innerText = "Create Account (Step 1)";
+        const view = document.getElementById('authViewSignupStep1');
+        if (view) view.style.display = 'block';
+        if (titleEl) titleEl.innerText = "Create Account";
     } else if (viewName === 'signup_step2') {
-        document.getElementById('authViewSignupStep2').style.display = 'block';
-        if (titleEl) titleEl.innerText = "Verify OTP (Step 2)";
+        const view = document.getElementById('authViewSignupStep2');
+        if (view) view.style.display = 'block';
+        if (titleEl) titleEl.innerText = "Verify Email OTP";
     } else if (viewName === 'forgot') {
-        document.getElementById('authViewForgotStep1').style.display = 'block';
+        const view = document.getElementById('authViewForgotStep1');
+        if (view) view.style.display = 'block';
         if (titleEl) titleEl.innerText = "Reset Password";
     } else if (viewName === 'forgot_step2') {
-        document.getElementById('authViewForgotStep2').style.display = 'block';
+        const view = document.getElementById('authViewForgotStep2');
+        if (view) view.style.display = 'block';
         if (titleEl) titleEl.innerText = "Enter Reset OTP";
     }
 }
 
 function openAuthModal(defaultView = 'login') {
     switchAuthView(defaultView);
-    document.getElementById('authModal').style.display = 'flex';
+    const modal = document.getElementById('authModal');
+    if (modal) modal.style.display = 'flex';
 }
 
 function closeAuthModal() {
-    document.getElementById('authModal').style.display = 'none';
+    const modal = document.getElementById('authModal');
+    if (modal) modal.style.display = 'none';
 }
 
 function showAuthError(msg) {
@@ -83,7 +90,7 @@ function clearAuthError() {
     }
 }
 
-// 1. Submit Multi-Identifier Login (Email / Phone / Username)
+// 1. Submit Login (Email or Username)
 async function submitLogin() {
     clearAuthError();
     const identifier = document.getElementById('loginIdentifier').value.trim();
@@ -124,12 +131,14 @@ async function submitLogin() {
     }
 }
 
-// 2. Signup Flow: Request OTP
+// 2. Signup Flow: Request OTP via Email
 async function requestSignupOTP() {
     clearAuthError();
-    const idVal = document.getElementById('signupIdentifier').value.trim();
-    if (!idVal) {
-        showAuthError("Please provide an email address or mobile phone number.");
+    const idInput = document.getElementById('signupEmailInput') || document.getElementById('signupIdentifier');
+    const idVal = idInput ? idInput.value.trim() : "";
+
+    if (!idVal || !idVal.includes('@')) {
+        showAuthError("Please provide a valid email address.");
         return;
     }
 
@@ -137,7 +146,7 @@ async function requestSignupOTP() {
         const res = await fetch("/api/auth/send-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier: idVal, purpose: "signup" })
+            body: JSON.stringify({ email: idVal, identifier: idVal, purpose: "signup" })
         });
         const data = await res.json();
 
@@ -147,8 +156,9 @@ async function requestSignupOTP() {
         }
 
         activeSignupIdentifier = idVal;
-        if (data.dev_otp) {
-            alert(`[DEMO CODE]: Your verification OTP is ${data.dev_otp}`);
+        const promptEl = document.getElementById('signupOtpPrompt');
+        if (promptEl) {
+            promptEl.innerText = `Verification code sent to ${idVal}:`;
         }
         switchAuthView('signup_step2');
     } catch (e) {
@@ -174,6 +184,7 @@ async function submitSignupVerification() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                email: activeSignupIdentifier,
                 identifier: activeSignupIdentifier,
                 otp: otp,
                 username: username,
@@ -208,9 +219,11 @@ async function submitSignupVerification() {
 // 4. Forgot Password Flow: Request OTP
 async function requestForgotOTP() {
     clearAuthError();
-    const idVal = document.getElementById('forgotIdentifier').value.trim();
-    if (!idVal) {
-        showAuthError("Please enter your registered email or phone.");
+    const idInput = document.getElementById('forgotEmailInput') || document.getElementById('forgotIdentifier');
+    const idVal = idInput ? idInput.value.trim() : "";
+
+    if (!idVal || !idVal.includes('@')) {
+        showAuthError("Please enter your registered email address.");
         return;
     }
 
@@ -218,7 +231,7 @@ async function requestForgotOTP() {
         const res = await fetch("/api/auth/send-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier: idVal, purpose: "forgot_password" })
+            body: JSON.stringify({ email: idVal, identifier: idVal, purpose: "forgot_password" })
         });
         const data = await res.json();
 
@@ -228,9 +241,6 @@ async function requestForgotOTP() {
         }
 
         activeForgotIdentifier = idVal;
-        if (data.dev_otp) {
-            alert(`[DEMO CODE]: Your reset OTP is ${data.dev_otp}`);
-        }
         switchAuthView('forgot_step2');
     } catch (e) {
         showAuthError("Connection error while requesting reset code.");
@@ -253,6 +263,7 @@ async function submitPasswordReset() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                email: activeForgotIdentifier,
                 identifier: activeForgotIdentifier,
                 otp: otp,
                 new_password: newPassword
@@ -281,7 +292,10 @@ function initGoogleAuth() {
             callback: handleGoogleResponse
         });
         google.accounts.id.renderButton(wrapper, {
-            theme: "filled_black", size: "large", shape: "rectangular", text: "signin_with"
+            theme: "filled_black",
+            size: "large",
+            shape: "rectangular",
+            text: "signin_with"
         });
     }
 }
@@ -326,12 +340,19 @@ async function demoLogin() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ identifier: demoEmail, password: demoPass })
         });
-        
+
         if (!res.ok) {
             await fetch("/api/auth/signup-verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifier: demoEmail, otp: "000000", username: "alexdemo", password: demoPass, full_name: "Alex Demo" })
+                body: JSON.stringify({
+                    email: demoEmail,
+                    identifier: demoEmail,
+                    otp: "000000",
+                    username: "alexdemo",
+                    password: demoPass,
+                    full_name: "Alex Demo"
+                })
             });
             res = await fetch("/api/auth/login", {
                 method: "POST",
@@ -668,7 +689,7 @@ function renderDashboard() {
     const total = jobs.length;
     const pipe = jobs.filter(j => j.status === 'Applied' || j.status === 'Interviewing').length;
     const offers = jobs.filter(j => j.status === 'Offered').length;
-    
+
     const today = new Date();
     const nudges = jobs.filter(j => {
         if (j.status !== 'Applied') return false;
@@ -800,6 +821,9 @@ async function runATSExecution() {
     resultBox.innerHTML = "<p class='text-indigo'>Evaluating candidate alignment with Gemini AI...</p>";
     document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
 
+    const fillLine = document.getElementById('activeProgressLine');
+    if (fillLine) fillLine.style.height = '100%';
+
     const isGuest = (!currentUser || !currentUser.email || !authToken);
 
     try {
@@ -807,7 +831,10 @@ async function runATSExecution() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                role: role, company: company, jd: jd, resume: resume,
+                role: role,
+                company: company,
+                jd: jd,
+                resume: resume,
                 linkedin: (userProfile && userProfile.linkedin) || "",
                 github: (userProfile && userProfile.github) || "",
                 isGuest: isGuest
