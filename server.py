@@ -65,7 +65,6 @@ def init_db():
 
 init_db()
 
-# Request Schemas
 class AuthRequest(BaseModel):
     email: str
     password: str
@@ -102,18 +101,15 @@ class DecisionRequest(BaseModel):
     github: str | None = ""
     isGuest: bool = False
 
-# Google Sign-In Verification
 @app.post("/api/auth/google")
 async def google_auth(payload: GoogleAuthRequest):
     google_client_id = os.getenv("GOOGLE_CLIENT_ID")
     try:
-        # Verify token against Google Public Keys
         idinfo = id_token.verify_oauth2_token(
             payload.credential, 
             google_requests.Request(), 
             google_client_id if google_client_id else None
         )
-
         email = idinfo.get("email")
         name = idinfo.get("name", "")
 
@@ -141,16 +137,14 @@ async def google_auth(payload: GoogleAuthRequest):
                 "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]
             }
         conn.close()
-
         return {"status": "success", "email": email, "profile": user_profile}
     except Exception as e:
         print(f"[AUTH ERROR] Google Token Verification Failed: {str(e)}")
         raise HTTPException(
             status_code=400, 
-            detail=f"Google Login Failed: {str(e)}. Please ensure your Google Client ID is configured in Render environment variables."
+            detail=f"Google Login Error: {str(e)}. Check authorized origins and redirect URIs in Google Cloud Console."
         )
 
-# Standard Email/Password Auth
 @app.post("/api/auth/signup")
 async def signup(payload: AuthRequest):
     if not payload.email or not payload.password:
@@ -183,12 +177,10 @@ async def login(payload: AuthRequest):
         }
     }
 
-# Member PDF Resume Upload (Server-Side Gated)
 @app.post("/api/resume/upload-pdf")
 async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Header(None)):
-    if not user_email or user_email == "null" or user_email == "guest":
-        raise HTTPException(status_code=401, detail="PDF parsing is a Member-only feature. Please sign in.")
-
+    if not user_email or user_email in ("null", "guest", ""):
+        raise HTTPException(status_code=401, detail="PDF parsing is a member-only feature. Please sign in.")
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only standard PDF files are supported.")
     try:
@@ -202,18 +194,15 @@ async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Head
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF file.")
         
-        # Automatically update database record for user
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET resume=? WHERE email=?", (extracted_text.strip(), user_email))
         conn.commit()
         conn.close()
-
         return {"extracted_text": extracted_text.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
 
-# Profile Management
 @app.post("/api/profile/save")
 async def save_profile(payload: ProfileRequest):
     if not payload.email or payload.email == "guest":
@@ -239,9 +228,8 @@ async def delete_account(email: str):
     cursor.execute("DELETE FROM users WHERE email=?", (email,))
     conn.commit()
     conn.close()
-    return {"status": "success", "message": "Account and all associated records permanently purged."}
+    return {"status": "success", "message": "Account permanently deleted."}
 
-# Kanban Job Routes (Server-Side Gated)
 @app.get("/api/jobs")
 async def get_jobs(email: str):
     if not email or email == "guest":
@@ -277,7 +265,6 @@ async def update_job_status(data: dict):
     conn.close()
     return {"status": "success"}
 
-# Unified ATS Decision Engine
 @app.post("/api/gemini/smart-decision")
 async def execute_smart_decision(payload: DecisionRequest):
     api_key = os.getenv("GEMINI_API_KEY")
@@ -295,10 +282,10 @@ TARGET ROLE: {payload.role} at {payload.company}
 JOB DESCRIPTION: {payload.jd}
 CANDIDATE RESUME: {payload.resume}
 
-FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
+FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (DO NOT mention any internal benchmark numbers like 83% in the text):
 ### Overall ATS Match Score: [Calculate precise score between 0% and 100%]%
 
-**High-Level Verdict:** (1 concise sentence stating if the candidate qualifies or has major gaps).
+**High-Level Verdict:** (1 concise sentence stating whether the candidate is well positioned or has clear skill gaps).
 
 ---
 > 🔒 **Detailed Career Roadmap, Cold Recruiter Outreach Generator & Instant Matching Jobs are Member-Only Features.**
@@ -320,28 +307,29 @@ GitHub: {payload.github or 'Not Provided'}
 
 EVALUATION PROTOCOL:
 1. Calculate a strict Match Percentage (0% to 100%).
-2. Output format must follow this exact Markdown structure:
+2. NEVER mention the exact benchmark number (83%) in your written response. Use qualitative descriptions like "Strong Alignment" or "Actionable Gaps".
+3. Output format must follow this exact Markdown structure:
 
 ### Overall ATS Match Score: [Score]%
 
 ---
 
-### DECISION VERDICT: [HIGH FIT (>= 83%) OR ACTIONABLE GAP (< 83%)]
+### DECISION VERDICT: [STRONG ALIGNMENT OR ACTIONABLE GAP]
 
-IF Match Score >= 83%:
+IF Match Score >= 83:
 - **Candidate Fit Validation:** Highlight the top 3 matching core competencies.
 - **Immediate Strategic Step:** Application is strongly aligned for immediate recruiter submission.
 - **Ready-to-Send Cold Outreach Note:**
 (Generate a personalized, high-converting recruiter message under 120 words ready to copy and send on LinkedIn/Email).
 
-IF Match Score < 83%:
+IF Match Score < 83:
 - **Critical Skill & Experience Gaps:** Detail exact missing keywords, tools, or domain experience.
-- **Targeted Roadmap to Crack This Dream Job:**
+- **Targeted Roadmap to Close the Gap:**
   1. Priority technical project or system to build.
   2. Specific tools/frameworks to study.
-  3. Estimated timeline to reach >=83% qualification.
-- **High-Probability Alternative Roles You Can Crack Right Now:**
-  List 3 specific realistic job titles where the candidate's existing background immediately scores >88%.
+  3. Estimated timeline to qualify.
+- **Alternative High-Probability Roles You Can Target Right Now:**
+  List 3 specific realistic job titles where the candidate's existing background immediately shows high suitability.
 """
 
     try:
@@ -353,7 +341,6 @@ IF Match Score < 83%:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Admin Panel
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
@@ -385,29 +372,29 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     <head>
         <title>NexJob AI - Central Admin Panel</title>
         <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 2rem; }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b1329; color: #f8fafc; padding: 2rem; }}
             h1 {{ font-size: 1.5rem; margin-bottom: 1rem; color: #38bdf8; }}
-            table {{ width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }}
-            th, td {{ padding: 12px 16px; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; }}
-            th {{ background: #0b1329; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }}
-            tr:hover {{ background: #243248; }}
+            table {{ width: 100%; border-collapse: collapse; background: #151a26; border-radius: 8px; overflow: hidden; }}
+            th, td {{ padding: 12px 16px; text-align: left; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }}
+            th {{ background: #0e121b; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }}
+            tr:hover {{ background: #1e293b; }}
         </style>
     </head>
     <body>
-        <h1>NexJob AI — Central Admin User Dashboard</h1>
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">Registered User Accounts: <b>{len(users)}</b></p>
+        <h1>NexJob AI — Registered Accounts</h1>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">Total Accounts: <b>{len(users)}</b></p>
         <table>
             <thead>
                 <tr>
                     <th>Email</th>
-                    <th>Candidate Name</th>
+                    <th>Name</th>
                     <th>Target Role</th>
-                    <th>Date Joined</th>
-                    <th>Jobs In Pipeline</th>
+                    <th>Joined Date</th>
+                    <th>Tracked Jobs</th>
                 </tr>
             </thead>
             <tbody>
-                {table_rows if table_rows else '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No registered users found.</td></tr>'}
+                {table_rows if table_rows else '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No registered users yet.</td></tr>'}
             </tbody>
         </table>
     </body>
