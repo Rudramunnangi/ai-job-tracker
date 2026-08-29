@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexJob AI | Next-Gen Career Intelligence</title>
+    <title>NexJob AI | Autonomous Career Intelligence</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%236366F1'/><stop offset='100%' stop-color='%2314B8A6'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230B0F19'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='6' fill='%232DD4BF'/></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,10 +15,11 @@
 </head>
 <body>
 
-    <!-- Continuous Color-Shifting Ambient Background -->
-    <div class="color-shift-bg"></div>
-    <div class="ambient-glow glow-1"></div>
-    <div class="ambient-glow glow-2"></div>
+    <!-- Vibrant Animated Dynamic Background -->
+    <div class="vibrant-color-shift-bg"></div>
+    <div class="vibrant-orb orb-1"></div>
+    <div class="vibrant-orb orb-2"></div>
+    <div class="vibrant-orb orb-3"></div>
 
     <!-- Scrim Overlay for Drawer -->
     <div id="drawerScrim" class="drawer-scrim" onclick="toggleDrawer()"></div>
@@ -46,13 +47,11 @@
         </div>
 
         <div class="top-nav-right">
-            <!-- Guest Mode Display -->
             <div id="guestTopControls" class="auth-pill-group">
                 <span class="status-pill guest-pill">Guest Mode</span>
                 <button class="btn-primary" onclick="openAuthModal()">Log in</button>
             </div>
 
-            <!-- Member Display -->
             <div id="userTopControls" class="auth-pill-group" style="display: none;">
                 <div class="user-avatar-badge" onclick="toggleDrawer()">
                     <span id="userAvatarLetter" class="avatar-circle">U</span>
@@ -62,7 +61,7 @@
         </div>
     </header>
 
-    <!-- Clean Right-Side Sliding Profile Drawer -->
+    <!-- Right-Side Sliding Profile Drawer -->
     <aside id="profileDrawer" class="profile-drawer">
         <div class="drawer-header">
             <div class="drawer-user-meta">
@@ -76,18 +75,20 @@
         </div>
 
         <div class="drawer-body">
-            <nav class="drawer-nav">
-                <a href="javascript:void(0)" class="drawer-link" onclick="openProfileModal(); toggleDrawer();">
-                    <span class="nav-icon">👤</span> Profile & Links
-                </a>
-            </nav>
+            <div style="color: var(--text-muted); font-size: 0.85rem; padding: 10px 0;">
+                Manage account settings, credentials, and resume documents below.
+            </div>
         </div>
 
+        <!-- Positioned Just Above Logout -->
         <div class="drawer-footer">
             <div id="drawerGuestActions">
                 <button class="btn-primary full-width" onclick="openAuthModal(); toggleDrawer();">Sign In / Register</button>
             </div>
             <div id="drawerMemberActions" style="display: none;">
+                <button class="btn-secondary full-width" style="margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="openProfileModal(); toggleDrawer();">
+                    👤 Edit Profile & Career Links
+                </button>
                 <button class="btn-secondary full-width" style="margin-bottom: 10px;" onclick="logoutUser()">Log out</button>
                 <button class="btn-danger-outline full-width" onclick="deleteAccount()">Delete Account</button>
             </div>
@@ -103,7 +104,7 @@
                 Streamline Career Workflows with <span class="gradient-text">Autonomous AI Intelligence</span>
             </h1>
             <p class="hero-subtext">
-                Continuous application pipeline tracking with time-decay follow-up triggers and deep semantic candidate evaluation.
+                Continuous application tracking, verified multi-portal job recommendations, and deep semantic candidate evaluation.
             </p>
         </section>
 
@@ -116,9 +117,18 @@
             <!-- STEP 01 -->
             <section id="step-1" class="journey-card reveal-card active">
                 <div class="card-step-badge">01</div>
-                <div class="card-header-group">
-                    <h2 class="card-title">Target Job Details</h2>
-                    <p class="card-subtitle">Set your target role and requirements to initiate the semantic match engine.</p>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 18px;">
+                    <div class="card-header-group" style="margin-bottom: 0;">
+                        <h2 class="card-title">Target Job Details</h2>
+                        <p class="card-subtitle" style="margin-bottom: 0;">Configure the specific job parameters for your ATS evaluation.</p>
+                    </div>
+
+                    <!-- Target Job Switcher -->
+                    <div id="jobSelectionControl" style="display: none; background: rgba(99, 102, 241, 0.1); border: 1px solid var(--accent-indigo); padding: 8px 12px; border-radius: 10px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: #C7D2FE; display: block; margin-bottom: 4px;">SWITCH TRACKED JOB:</label>
+                        <select id="roleSelector" class="form-select" onchange="onTrackedJobChange()" style="min-width: 240px;"></select>
+                    </div>
                 </div>
 
                 <div class="input-grid">
@@ -134,7 +144,7 @@
 
                 <div style="margin-top: 14px;">
                     <label class="form-label">TARGET JOB DESCRIPTION</label>
-                    <textarea id="jobDesc" class="form-textarea" rows="4" placeholder="Paste technical requirements, qualifications, and core responsibilities..."></textarea>
+                    <textarea id="jobDesc" class="form-textarea" rows="4" placeholder="Paste requirements, qualifications, and core responsibilities..."></textarea>
                 </div>
 
                 <div id="memberPipelineContainer" class="member-exclusive-block" style="display: none; margin-top: 24px;">
@@ -171,7 +181,7 @@
                     <textarea id="userResume" class="form-textarea" rows="6" placeholder="Paste candidate resume background, tech stack, and key metrics..."></textarea>
                 </div>
 
-                <!-- Custom Impressive File Upload Box -->
+                <!-- Custom File Upload Dropzone -->
                 <div id="resumeVaultBox" class="custom-file-upload-card" style="display: none; margin-top: 18px;">
                     <div class="file-drop-zone">
                         <div class="file-icon-wrap">📄</div>
@@ -199,10 +209,10 @@
                 <div class="card-step-badge">03</div>
                 <div class="card-header-group">
                     <h2 class="card-title">Career Roadmap</h2>
-                    <p class="card-subtitle">Tailored action plans, gap diagnostics, and immediate high-probability roles.</p>
+                    <p class="card-subtitle">Tailored action plans, gap diagnostics, and verified high-probability live roles.</p>
                 </div>
 
-                <div id="atsResultWindow" class="ats-result-window mono-data">
+                <div id="atsResultWindow" class="ats-result-window">
                     <div class="empty-result-state">
                         Enter target role details in Step 01 and execute evaluation in Step 02 to generate your strategic career roadmap.
                     </div>
@@ -211,9 +221,43 @@
         </div>
     </main>
 
-    <!-- Footer -->
+    <!-- Modern Contact Us Footer Block -->
     <footer class="app-footer">
-        © 2026 NexJob AI. All rights reserved.
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="brand-logo" style="margin-bottom: 12px;">
+                        <span class="brand-title">NexJob <span class="gradient-text">AI</span></span>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6; max-width: 320px;">
+                        Autonomous AI-driven career cockpit simplifying technical application pipelines and semantic gap matching.
+                    </p>
+                </div>
+
+                <div class="footer-col" id="contact-section">
+                    <h4 class="footer-heading">Contact & Support</h4>
+                    <ul class="footer-links">
+                        <li>📧 <b>Support:</b> <a href="mailto:support@nexjob.ai" class="footer-link-text">support@nexjob.ai</a></li>
+                        <li>💬 <b>Technical Queries:</b> <a href="mailto:rudra@nexjob.ai" class="footer-link-text">rudra@nexjob.ai</a></li>
+                        <li>📍 <b>Location:</b> Hyderabad, Telangana, India</li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-heading">Verified Job Gateways</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://www.linkedin.com/jobs" target="_blank" class="footer-link-text">LinkedIn Jobs Portal ↗</a></li>
+                        <li><a href="https://www.indeed.com" target="_blank" class="footer-link-text">Indeed Employment Engine ↗</a></li>
+                        <li><a href="https://www.google.com/search?q=tech+jobs+near+me&ibp=htl;jobs" target="_blank" class="footer-link-text">Google Careers Gateway ↗</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom-bar">
+                <span>© 2026 NexJob AI. Built for next-generation engineers.</span>
+                <span>All rights reserved.</span>
+            </div>
+        </div>
     </footer>
 
     <!-- Candidate Profile Modal -->
