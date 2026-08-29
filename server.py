@@ -6,7 +6,7 @@ import urllib.parse
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from google import genai
@@ -424,7 +424,6 @@ Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%2
         detail=f"AI model generation temporarily rate-limited. Please wait 15 seconds and retry. ({str(last_error)})"
     )
 
-# Admin User Removal Endpoint
 @app.post("/admin/delete-user")
 async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
@@ -444,7 +443,6 @@ async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depe
     conn.close()
     return {"status": "success", "message": f"User {email} successfully deleted."}
 
-# Complete Admin Analytics & User Management Dashboard
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
@@ -456,7 +454,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # 1. User & Job Data
     cursor.execute("""
         SELECT u.email, u.full_name, u.target_role, u.created_at, COUNT(j.id) as job_count
         FROM users u
@@ -466,11 +463,9 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     """)
     users = cursor.fetchall()
     
-    # 2. Total Application Count
     cursor.execute("SELECT COUNT(*) FROM jobs")
     total_jobs_count = cursor.fetchone()[0] or 0
 
-    # 3. Pipeline Breakdown by Status
     cursor.execute("SELECT status, COUNT(*) FROM jobs GROUP BY status")
     status_counts = dict(cursor.fetchall())
     status_applied = status_counts.get("Applied", 0)
@@ -478,7 +473,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     status_offered = status_counts.get("Offered", 0)
     status_rejected = status_counts.get("Rejected", 0)
 
-    # 4. Signups Per Day (Last 30 Days) for Graphs
     cursor.execute("""
         SELECT strftime('%Y-%m-%d', created_at) as day, COUNT(*)
         FROM users
@@ -488,7 +482,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     """)
     daily_signups = cursor.fetchall()
     
-    # 5. Signups Per Month
     cursor.execute("""
         SELECT strftime('%Y-%m', created_at) as month, COUNT(*)
         FROM users
@@ -500,8 +493,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     conn.close()
 
     total_users_count = len(users)
-    
-    # Calculations for Averages
     avg_per_week = round(total_users_count / 4.3, 1) if total_users_count > 0 else 0
     avg_per_month = round(total_users_count / max(len(monthly_signups), 1), 1) if total_users_count > 0 else 0
 
@@ -553,18 +544,15 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             .title {{ font-size: 1.6rem; font-weight: 800; }}
             .gradient-txt {{ background: linear-gradient(135deg, var(--indigo), var(--teal)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
             
-            /* Metric Stat Cards */
             .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }}
             .stat-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }}
             .stat-label {{ font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: 0.05em; }}
             .stat-val {{ font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 800; margin-top: 6px; }}
             
-            /* Chart Layout */
             .charts-grid {{ display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem; margin-bottom: 2.5rem; }}
             .chart-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }}
             .chart-title {{ font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; color: #FFF; }}
 
-            /* User Table & Controls */
             .table-container {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; overflow-x: auto; }}
             .table-top {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px; }}
             .search-box {{ background: var(--elevated); border: 1px solid var(--border); color: #FFF; padding: 8px 14px; border-radius: 8px; font-size: 0.88rem; min-width: 260px; outline: none; }}
@@ -594,7 +582,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             <a href="/" class="btn-home">← Open App</a>
         </div>
 
-        <!-- 4 Metric Cards -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">Total Accounts</div>
@@ -614,7 +601,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             </div>
         </div>
 
-        <!-- Interactive Visual Analytics -->
         <div class="charts-grid">
             <div class="chart-card">
                 <div class="chart-title">📈 User Registration Growth (Daily / Trend)</div>
@@ -626,7 +612,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             </div>
         </div>
 
-        <!-- User Directory & Actions -->
         <div class="table-container">
             <div class="table-top">
                 <h3 style="font-size: 1.1rem; font-weight: 700;">Registered Candidate Directory ({total_users_count})</h3>
@@ -650,7 +635,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         </div>
 
         <script>
-            // Chart 1: User Growth Line Chart
             const ctxGrowth = document.getElementById('growthChart').getContext('2d');
             new Chart(ctxGrowth, {{
                 type: 'line',
@@ -677,7 +661,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 }}
             }});
 
-            // Chart 2: Pipeline Donut Chart
             const ctxPipe = document.getElementById('pipelineChart').getContext('2d');
             new Chart(ctxPipe, {{
                 type: 'doughnut',
@@ -695,7 +678,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 }}
             }});
 
-            // Quick Client-side Table Filter
             function filterUserTable() {{
                 const input = document.getElementById('userSearch').value.toLowerCase();
                 const rows = document.querySelectorAll('#userTableBody tr');
@@ -705,7 +687,6 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 }});
             }}
 
-            // 1-Click User Removal with Instant UI Sync
             async function deleteUserRow(email, rowId) {{
                 if (!confirm(`Are you sure you want to permanently delete user ${{email}} and all their tracked applications?`)) return;
                 try {{
@@ -730,6 +711,25 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     </body>
     </html>
     """
+
+# Search Engine Indexing & Crawler Endpoints
+@app.get("/sitemap.xml")
+async def get_sitemap():
+    sitemap_content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://ai-job-tracker-9a3m.onrender.com/</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>"""
+    return Response(content=sitemap_content, media_type="application/xml")
+
+@app.get("/robots.txt")
+async def get_robots():
+    robots_content = "User-agent: *\nAllow: /\nSitemap: https://ai-job-tracker-9a3m.onrender.com/sitemap.xml"
+    return Response(content=robots_content, media_type="text/plain")
 
 @app.get("/")
 async def serve_home():
