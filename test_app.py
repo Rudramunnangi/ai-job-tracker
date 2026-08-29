@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from server import app
 
@@ -9,8 +10,16 @@ def test_root_route():
     response = client.get("/")
     assert response.status_code == 200
 
-# 2. Test Guest ATS Evaluation
-def test_guest_ats_execution():
+# 2. Test Guest ATS Evaluation with mocked AI response
+@patch("server.genai.Client")
+def test_guest_ats_execution(mock_genai_client):
+    # Mock the Gemini client response
+    mock_instance = MagicMock()
+    mock_model_response = MagicMock()
+    mock_model_response.text = "### Overall ATS Match Score: 88%\n\n**High-Level Verdict:** Strong fit."
+    mock_instance.models.generate_content.return_value = mock_model_response
+    mock_genai_client.return_value = mock_instance
+
     payload = {
         "role": "AI Engineer",
         "company": "Test Corp",
