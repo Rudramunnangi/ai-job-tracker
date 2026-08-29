@@ -174,7 +174,7 @@ function initGoogleAuthBtn() {
     const googleWrapper = document.getElementById('googleBtnWrapper');
     if (window.google && googleWrapper && googleWrapper.children.length === 0) {
         google.accounts.id.initialize({
-            client_id: "367560024253-20ebmeiedvdammukrcplc5uh2orqedpl.apps.googleuse", // Will log diagnostic on failure
+            client_id: "367560024253-20ebmeiedvdammukrcplc5uh2orqedpl.apps.googleusercontent.com",
             callback: handleGoogleResponse
         });
         google.accounts.id.renderButton(googleWrapper, {
