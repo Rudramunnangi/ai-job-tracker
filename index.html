@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="mUf7B29D3G3oR9YxQ-k_MockVerificationCode" />
     <title>NexJob AI | Autonomous Career Intelligence</title>
     <meta name="description" content="Track technical job applications, optimize resumes with AI, and access real-time job portals on NexJob AI.">
-    <meta property="og:title" content="NexJob AI | Autonomous Career Intelligence" />
-    <meta property="og:description" content="AI-driven career cockpit simplifying technical application pipelines and ATS gap matching." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://ai-job-tracker-9a3m.onrender.com/" />
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%236366F1'/><stop offset='100%' stop-color='%2314B8A6'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230B0F19'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='6' fill='%232DD4BF'/></svg>">
     
+    <!-- Product Sans / Open Sans Font Import -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="style.css">
@@ -35,7 +32,7 @@
                 <span></span><span></span><span></span>
             </button>
             <div class="brand-logo">
-                <svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 100 100" aria-hidden="true">
                     <defs>
                         <linearGradient id="brandG" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#6366F1"/>
@@ -52,8 +49,8 @@
 
         <div class="top-nav-right">
             <div id="guestTopControls" class="auth-pill-group">
-                <span class="status-pill guest-pill">Guest Mode</span>
-                <button class="btn-primary" onclick="openAuthModal('login')">Log in</button>
+                <button class="btn-secondary compact-nav" onclick="openAuthModal('login')">Log In</button>
+                <button class="btn-primary compact-nav" onclick="openAuthModal('signup_step1')">Sign Up</button>
             </div>
 
             <div id="userTopControls" class="auth-pill-group" style="display: none;">
@@ -69,17 +66,17 @@
     <aside id="profileDrawer" class="profile-drawer">
         <div class="drawer-header">
             <div class="drawer-user-meta">
-                <span id="drawerAvatar" class="avatar-circle large">G</span>
+                <span id="drawerAvatar" class="avatar-circle large">U</span>
                 <div>
-                    <h3 id="drawerUserName" class="drawer-name">Guest User</h3>
-                    <p id="drawerUserEmail" class="drawer-email">Not signed in</p>
+                    <h3 id="drawerUserName" class="drawer-name">User Account</h3>
+                    <p id="drawerUserEmail" class="drawer-email">Signed In</p>
                 </div>
             </div>
             <button class="drawer-close-btn" onclick="toggleDrawer()" aria-label="Close drawer">✕</button>
         </div>
 
         <div class="drawer-body">
-            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
+            <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">
                 Manage account credentials, tracked applications, and verified resume profiles.
             </p>
         </div>
@@ -90,9 +87,9 @@
             </div>
             <div id="drawerMemberActions" style="display: none;">
                 <button class="btn-secondary full-width" style="margin-bottom: 10px;" onclick="openProfileModal(); toggleDrawer();">
-                    👤 Edit Profile & Portfolio Links
+                    Edit Profile & Portfolio Links
                 </button>
-                <button class="btn-secondary full-width" style="margin-bottom: 10px;" onclick="logoutUser()">Log out</button>
+                <button class="btn-secondary full-width" style="margin-bottom: 10px;" onclick="logoutUser()">Log Out</button>
                 <button class="btn-danger-outline full-width" onclick="deleteAccount()">Delete Account</button>
             </div>
         </div>
@@ -102,7 +99,7 @@
     <main class="main-content">
         <section class="hero-section">
             <h1 class="hero-heading">
-                Streamline Career Workflows with <span class="gradient-text">Autonomous AI Intelligence</span>
+                Streamline Career Workflows with <span class="dynamic-vibrant-gradient">Autonomous AI Intelligence</span>
             </h1>
             <p class="hero-subtext">
                 Continuous application tracking, verified multi-portal job recommendations, and deep semantic candidate evaluation.
@@ -177,14 +174,15 @@
                 <div class="resume-source-box">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <label class="form-label">CANDIDATE RESUME SOURCE</label>
-                        <span id="resumeStatusNote" class="resume-meta-note">Guest Mode: Paste text below</span>
                     </div>
                     <textarea id="userResume" class="form-textarea" rows="6" placeholder="Paste candidate resume background, tech stack, and key metrics..."></textarea>
                 </div>
 
                 <div id="resumeVaultBox" class="custom-file-upload-card" style="display: none; margin-top: 18px;">
                     <div class="file-drop-zone">
-                        <div class="file-icon-wrap">📄</div>
+                        <div class="file-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        </div>
                         <div class="file-text-wrap">
                             <span class="file-main-prompt">Upload Resume Document (PDF)</span>
                             <span class="file-sub-prompt" id="selectedFileName">Supports PDF files for instant AI parsing</span>
@@ -197,17 +195,17 @@
 
                 <div style="margin-top: 22px;">
                     <button class="btn-primary full-width large-action" onclick="runATSExecution()">
-                        ⚡ Execute ATS Evaluation & Career Roadmap
+                        Execute ATS Evaluation & Career Roadmap
                     </button>
                 </div>
             </section>
 
             <!-- STEP 03 -->
-            <section id="step-3" class="journey-card reveal-card">
+            <section id="step-3" class="journey-card reveal-card roadmap-stage-card">
                 <div class="card-step-badge">03</div>
                 <div class="card-header-group">
-                    <h2 class="card-title">Career Roadmap</h2>
-                    <p class="card-subtitle">Tailored action plans, gap diagnostics, and verified live roles.</p>
+                    <h2 class="card-title roadmap-title-lg">Career Roadmap & Strategic Opportunities</h2>
+                    <p class="card-subtitle roadmap-subtitle-lg">Tailored action plans, gap diagnostics, and verified high-probability roles.</p>
                 </div>
 
                 <div id="atsResultWindow" class="ats-result-window">
@@ -227,7 +225,7 @@
                     <div class="brand-logo" style="margin-bottom: 12px;">
                         <span class="brand-title">NexJob <span class="gradient-text">AI</span></span>
                     </div>
-                    <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6; max-width: 320px;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; max-width: 320px;">
                         Autonomous AI-driven career cockpit simplifying technical application pipelines and semantic gap matching.
                     </p>
                 </div>
@@ -235,18 +233,18 @@
                 <div class="footer-col" id="contact-section">
                     <h4 class="footer-heading">Contact & Support</h4>
                     <ul class="footer-links">
-                        <li>📧 <b>Support:</b> <a href="mailto:nexjobai.official@gmail.com?subject=NexJob%20Support" class="footer-link-text">nexjobai.official@gmail.com</a></li>
-                        <li>💬 <b>Technical Queries:</b> <a href="mailto:nexjobai.official@gmail.com?subject=NexJob%20Technical" class="footer-link-text">Direct Dev Inbox ↗</a></li>
-                        <li>📍 <b>Location:</b> Hyderabad, Telangana, India</li>
+                        <li><b>Support:</b> <a href="mailto:nexjobai.official@gmail.com?subject=NexJob%20Support" class="footer-link-text">nexjobai.official@gmail.com</a></li>
+                        <li><b>Technical Inquiries:</b> <a href="mailto:nexjobai.official@gmail.com?subject=NexJob%20Technical" class="footer-link-text">Direct Engineering Inbox</a></li>
+                        <li><b>Headquarters:</b> Hyderabad, Telangana, India</li>
                     </ul>
                 </div>
 
                 <div class="footer-col">
                     <h4 class="footer-heading">1-Click Verified Portals</h4>
                     <ul class="footer-links">
-                        <li><a id="footerLinkedInLink" href="https://www.linkedin.com/jobs/search/?keywords=AI%20Software%20Engineer&f_TPR=r86400" target="_blank" class="footer-link-text">LinkedIn Jobs (Live Openings) ↗</a></li>
-                        <li><a id="footerIndeedLink" href="https://www.indeed.com/jobs?q=AI+Developer&sort=date" target="_blank" class="footer-link-text">Indeed (Latest Matches) ↗</a></li>
-                        <li><a id="footerGoogleLink" href="https://www.google.com/search?q=AI+Engineer+jobs&ibp=htl;jobs" target="_blank" class="footer-link-text">Google Careers Portal ↗</a></li>
+                        <li><a id="footerLinkedInLink" href="https://www.linkedin.com/jobs/search/?keywords=AI%20Software%20Engineer&f_TPR=r86400" target="_blank" class="footer-link-text">LinkedIn Jobs (Live Openings)</a></li>
+                        <li><a id="footerIndeedLink" href="https://www.indeed.com/jobs?q=AI+Developer&sort=date" target="_blank" class="footer-link-text">Indeed (Latest Matches)</a></li>
+                        <li><a id="footerGoogleLink" href="https://www.google.com/search?q=AI+Engineer+jobs&ibp=htl;jobs" target="_blank" class="footer-link-text">Google Careers Portal</a></li>
                     </ul>
                 </div>
             </div>
@@ -258,7 +256,7 @@
         </div>
     </footer>
 
-    <!-- Comprehensive Authentication Modal -->
+    <!-- Authentication Modal -->
     <div id="authModal" class="modal-backdrop">
         <div class="modal-window compact">
             <div class="modal-header">
@@ -268,10 +266,19 @@
 
             <div id="authDiagnosticBox" class="diagnostic-alert" style="display: none;"></div>
 
-            <!-- VIEW 1: Multi-Identifier Login -->
+            <!-- VIEW 1: Login -->
             <div id="authViewLogin">
-                <div id="googleAuthWrapper" class="google-auth-box"></div>
-                <button onclick="demoLogin()" class="btn-demo-auth">⚡ Instant Demo Login</button>
+                <button type="button" class="btn-google-custom" onclick="triggerGoogleSignIn()">
+                    <svg width="18" height="18" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Login with Google</span>
+                </button>
+                <div id="googleHiddenRenderWrapper" style="display: none;"></div>
+
                 <div class="divider-text"><span>OR CREDENTIALS</span></div>
 
                 <label class="form-label">EMAIL / USERNAME</label>
@@ -293,7 +300,7 @@
 
             <!-- VIEW 2: Signup Step 1 -->
             <div id="authViewSignupStep1" style="display: none;">
-                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
                     Enter your email address to receive a 6-digit verification code.
                 </p>
                 <label class="form-label">EMAIL ADDRESS</label>
@@ -301,18 +308,23 @@
 
                 <div class="modal-actions">
                     <button class="btn-secondary" onclick="switchAuthView('login')">Back to Login</button>
-                    <button class="btn-primary" onclick="requestSignupOTP()">Send Verification Code</button>
+                    <button class="btn-primary" id="btnSendSignupCode" onclick="requestSignupOTP()">Send Verification Code</button>
                 </div>
             </div>
 
-            <!-- VIEW 3: Signup Step 2 -->
+            <!-- VIEW 3: Signup Step 2 (With Resend 60s Timer) -->
             <div id="authViewSignupStep2" style="display: none;">
-                <p style="font-size: 0.82rem; color: var(--accent-teal); margin-bottom: 12px;" id="signupOtpPrompt">
+                <p style="font-size: 0.85rem; color: var(--accent-teal); margin-bottom: 12px;" id="signupOtpPrompt">
                     Code sent. Enter the 6-digit verification code:
                 </p>
                 
                 <div class="otp-inputs-grid">
-                    <input type="text" maxlength="6" id="signupOtpCode" class="form-input mono-data center-text" placeholder="123456" style="letter-spacing: 6px; font-size: 1.2rem; margin-bottom: 12px;">
+                    <input type="text" maxlength="6" id="signupOtpCode" class="form-input mono-data center-text" placeholder="123456" style="letter-spacing: 6px; font-size: 1.3rem; margin-bottom: 12px;">
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <span id="signupTimerNotice" style="font-size: 0.8rem; color: var(--text-muted);">Resend available in <b id="signupTimerCount">60</b>s</span>
+                    <button id="btnResendSignupCode" class="text-link-btn" style="display: none;" onclick="resendSignupCode()">Resend Code</button>
                 </div>
 
                 <label class="form-label">DESIRED USERNAME</label>
@@ -332,7 +344,7 @@
 
             <!-- VIEW 4: Forgot Password Step 1 -->
             <div id="authViewForgotStep1" style="display: none;">
-                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
                     Enter your registered email address to receive a password reset code.
                 </p>
                 <label class="form-label">REGISTERED EMAIL</label>
@@ -344,10 +356,15 @@
                 </div>
             </div>
 
-            <!-- VIEW 5: Forgot Password Step 2 -->
+            <!-- VIEW 5: Forgot Password Step 2 (With Resend 60s Timer) -->
             <div id="authViewForgotStep2" style="display: none;">
                 <label class="form-label">6-DIGIT RESET CODE</label>
-                <input type="text" maxlength="6" id="forgotOtpCode" class="form-input mono-data center-text" placeholder="123456" style="letter-spacing: 6px; font-size: 1.2rem; margin-bottom: 12px;">
+                <input type="text" maxlength="6" id="forgotOtpCode" class="form-input mono-data center-text" placeholder="123456" style="letter-spacing: 6px; font-size: 1.3rem; margin-bottom: 12px;">
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <span id="forgotTimerNotice" style="font-size: 0.8rem; color: var(--text-muted);">Resend available in <b id="forgotTimerCount">60</b>s</span>
+                    <button id="btnResendForgotCode" class="text-link-btn" style="display: none;" onclick="resendForgotCode()">Resend Code</button>
+                </div>
 
                 <label class="form-label">NEW SECURE PASSWORD</label>
                 <input type="password" id="forgotNewPassword" class="form-input" placeholder="••••••••" style="margin-bottom: 18px;">
@@ -357,7 +374,6 @@
                     <button class="btn-primary" onclick="submitPasswordReset()">Update Password</button>
                 </div>
             </div>
-
         </div>
     </div>
 
