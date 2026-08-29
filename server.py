@@ -2,6 +2,7 @@ import os
 import sqlite3
 import json
 import io
+import urllib.parse
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -139,10 +140,9 @@ async def google_auth(payload: GoogleAuthRequest):
         conn.close()
         return {"status": "success", "email": email, "profile": user_profile}
     except Exception as e:
-        print(f"[AUTH ERROR] Google Token Verification Failed: {str(e)}")
         raise HTTPException(
             status_code=400, 
-            detail=f"Google Login Error: {str(e)}. Check authorized origins and redirect URIs in Google Cloud Console."
+            detail=f"Google Login Error: {str(e)}. Check authorized origins in Google Cloud Console."
         )
 
 @app.post("/api/auth/signup")
@@ -192,7 +192,7 @@ async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Head
             if text:
                 extracted_text += text + "\n"
         if not extracted_text.strip():
-            raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF file.")
+            raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF.")
         
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -245,7 +245,7 @@ async def get_jobs(email: str):
 @app.post("/api/jobs/save")
 async def save_job(payload: JobPayload):
     if not payload.user_email or payload.user_email == "guest":
-        raise HTTPException(status_code=401, detail="Please log in to save applications to your cloud pipeline.")
+        raise HTTPException(status_code=401, detail="Please log in to save applications.")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
@@ -276,25 +276,26 @@ async def execute_smart_decision(payload: DecisionRequest):
     if payload.isGuest:
         prompt = f"""
 You are the ATS Evaluator for Guest Mode on NexJob AI.
-Compare the Candidate Resume against the Target Job Description.
+Analyze candidate alignment against the target role.
 
 TARGET ROLE: {payload.role} at {payload.company}
 JOB DESCRIPTION: {payload.jd}
 CANDIDATE RESUME: {payload.resume}
 
-FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (DO NOT mention any internal benchmark numbers like 83% in the text):
-### Overall ATS Match Score: [Calculate precise score between 0% and 100%]%
-
-**High-Level Verdict:** (1 concise sentence stating whether the candidate is well positioned or has clear skill gaps).
+FORMAT EXACTLY AS FOLLOWS (Never mention 83% or internal threshold numbers):
+<div class="result-score-card">
+  <div class="score-badge">ATS Match Score: [Score between 0% and 100%]%</div>
+  <p><strong>Overview:</strong> 1-sentence verdict on qualification level.</p>
+</div>
 
 ---
-> 🔒 **Detailed Career Roadmap, Cold Recruiter Outreach Generator & Instant Matching Jobs are Member-Only Features.**
-> Sign in or create a free account to unlock your complete step-by-step skill-bridging action plan!
+> 🔒 **Detailed Career Roadmap, Cold Outreach Generators & Direct Job Search Links are Member-Only Features.**
+> Sign in or create an account to view your step-by-step roadmap and matching live opportunities!
 """
     else:
         prompt = f"""
 You are the Chief AI Career Strategist on NexJob AI.
-Analyze the alignment between the Candidate Background and the Target Role.
+Analyze the candidate's alignment against the target role.
 
 TARGET APPLICATION:
 Role: {payload.role} at {payload.company}
@@ -307,29 +308,59 @@ GitHub: {payload.github or 'Not Provided'}
 
 EVALUATION PROTOCOL:
 1. Calculate a strict Match Percentage (0% to 100%).
-2. NEVER mention the exact benchmark number (83%) in your written response. Use qualitative descriptions like "Strong Alignment" or "Actionable Gaps".
-3. Output format must follow this exact Markdown structure:
+2. Output your response formatted in clean distinct sections:
 
-### Overall ATS Match Score: [Score]%
+<div class="result-score-card">
+  <div class="score-badge">ATS Match Score: [Score]%</div>
+  <p><strong>Alignment Status:</strong> [Strong Alignment OR Actionable Gaps Detected]</p>
+</div>
 
 ---
 
-### DECISION VERDICT: [STRONG ALIGNMENT OR ACTIONABLE GAP]
+<div class="highlight-section roadmap-section">
+  <h3>🗺️ Targeted Roadmap to Close the Gap</h3>
+  <ul>
+    <li><strong>Missing Competencies & Tools:</strong> Specific missing technical skills/keywords.</li>
+    <li><strong>Priority Project to Build:</strong> Architecture/system project to demonstrate competency.</li>
+    <li><strong>Estimated Timeline:</strong> Timeline and concepts to study.</li>
+  </ul>
+</div>
 
-IF Match Score >= 83:
-- **Candidate Fit Validation:** Highlight the top 3 matching core competencies.
-- **Immediate Strategic Step:** Application is strongly aligned for immediate recruiter submission.
-- **Ready-to-Send Cold Outreach Note:**
-(Generate a personalized, high-converting recruiter message under 120 words ready to copy and send on LinkedIn/Email).
+<div class="highlight-section jobs-section">
+  <h3>🎯 Alternative High-Probability Roles You Can Target Right Now</h3>
+  <p>Based on your current resume profile, these positions match your immediate strengths:</p>
+  <ul>
+    <li>
+      <strong>[Role 1 Title]</strong> — Match Probability: High
+      <br>
+      🔗 Direct Verified Search: 
+      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_1]" target="_blank" class="verified-job-link">LinkedIn Jobs</a> | 
+      <a href="https://in.indeed.com/jobs?q=[URL_ENCODED_ROLE_1]" target="_blank" class="verified-job-link">Indeed</a>
+    </li>
+    <li>
+      <strong>[Role 2 Title]</strong> — Match Probability: High
+      <br>
+      🔗 Direct Verified Search: 
+      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_2]" target="_blank" class="verified-job-link">LinkedIn Jobs</a> | 
+      <a href="https://in.indeed.com/jobs?q=[URL_ENCODED_ROLE_2]" target="_blank" class="verified-job-link">Indeed</a>
+    </li>
+    <li>
+      <strong>[Role 3 Title]</strong> — Match Probability: High
+      <br>
+      🔗 Direct Verified Search: 
+      <a href="https://www.linkedin.com/jobs/search/?keywords=[URL_ENCODED_ROLE_3]" target="_blank" class="verified-job-link">LinkedIn Jobs</a> | 
+      <a href="https://in.indeed.com/jobs?q=[URL_ENCODED_ROLE_3]" target="_blank" class="verified-job-link">Indeed</a>
+    </li>
+  </ul>
+</div>
 
-IF Match Score < 83:
-- **Critical Skill & Experience Gaps:** Detail exact missing keywords, tools, or domain experience.
-- **Targeted Roadmap to Close the Gap:**
-  1. Priority technical project or system to build.
-  2. Specific tools/frameworks to study.
-  3. Estimated timeline to qualify.
-- **Alternative High-Probability Roles You Can Target Right Now:**
-  List 3 specific realistic job titles where the candidate's existing background immediately shows high suitability.
+<div class="highlight-section outreach-section">
+  <h3>✉️ Ready-to-Send Cold Outreach Note</h3>
+  <p>Send this to hiring managers or recruiters for {payload.role} at {payload.company}:</p>
+  <blockquote>[High converting message under 120 words tailored to candidate's strengths]</blockquote>
+</div>
+
+Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%20Engineer).
 """
 
     try:
@@ -370,13 +401,13 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     <!DOCTYPE html>
     <html>
     <head>
-        <title>NexJob AI - Central Admin Panel</title>
+        <title>NexJob AI - Central Admin</title>
         <style>
             body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b1329; color: #f8fafc; padding: 2rem; }}
             h1 {{ font-size: 1.5rem; margin-bottom: 1rem; color: #38bdf8; }}
             table {{ width: 100%; border-collapse: collapse; background: #151a26; border-radius: 8px; overflow: hidden; }}
             th, td {{ padding: 12px 16px; text-align: left; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }}
-            th {{ background: #0e121b; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }}
+            th {{ background: #0e121b; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem; }}
             tr:hover {{ background: #1e293b; }}
         </style>
     </head>
