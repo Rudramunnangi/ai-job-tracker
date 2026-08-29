@@ -1,3 +1,4 @@
+[![NexJob AI CI](https://github.com/Rudramunnangi/ai-job-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/Rudramunnangi/ai-job-tracker/actions/workflows/ci.yml)
 # NexJob AI — Autonomous Career Engine
 
 NexJob AI is an intelligent job application management platform and candidate career cockpit built with Python, FastAPI, vanilla JavaScript, and Google Cloud's Gemini 3.6 Flash engine.
