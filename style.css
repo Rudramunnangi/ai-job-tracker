@@ -24,7 +24,7 @@ body {
     flex-direction: column;
 }
 
-/* Custom Webkit Dark Theme Scrollbar */
+/* Webkit Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -40,24 +40,84 @@ body {
     background: var(--accent-indigo);
 }
 
-/* Dynamic Animated Background */
+/* Dynamic Animated Background & Color Shift */
 .vibrant-color-shift-bg {
     position: fixed;
     inset: 0;
-    background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 90% 80%, rgba(20, 184, 166, 0.08) 0%, transparent 50%);
+    background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(20, 184, 166, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(244, 63, 94, 0.08) 0%, transparent 50%);
+    background-size: 200% 200%;
+    animation: bgGradientFlow 12s ease-in-out infinite alternate;
     z-index: -2;
     pointer-events: none;
 }
+
+@keyframes bgGradientFlow {
+    0% {
+        background-position: 0% 0%;
+        filter: hue-rotate(0deg);
+    }
+    50% {
+        background-position: 100% 100%;
+        filter: hue-rotate(25deg);
+    }
+    100% {
+        background-position: 0% 100%;
+        filter: hue-rotate(0deg);
+    }
+}
+
 .vibrant-orb {
     position: fixed;
     border-radius: 50%;
-    filter: blur(80px);
+    filter: blur(90px);
     z-index: -1;
     pointer-events: none;
+    opacity: 0.8;
 }
-.orb-1 { width: 350px; height: 350px; background: rgba(99, 102, 241, 0.12); top: 10%; left: -100px; }
-.orb-2 { width: 300px; height: 300px; background: rgba(20, 184, 166, 0.1); bottom: 15%; right: -100px; }
+
+.orb-1 {
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, rgba(244, 63, 94, 0.15) 70%, transparent 100%);
+    top: 5%;
+    left: -80px;
+    animation: floatOrb1 16s ease-in-out infinite alternate;
+}
+
+.orb-2 {
+    width: 340px;
+    height: 340px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.28) 0%, rgba(99, 102, 241, 0.15) 70%, transparent 100%);
+    bottom: 10%;
+    right: -80px;
+    animation: floatOrb2 14s ease-in-out infinite alternate;
+}
+
+@keyframes floatOrb1 {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    50% {
+        transform: translate(120px, 80px) scale(1.15);
+    }
+    100% {
+        transform: translate(40px, 160px) scale(0.95);
+    }
+}
+
+@keyframes floatOrb2 {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    50% {
+        transform: translate(-100px, -60px) scale(1.1);
+    }
+    100% {
+        transform: translate(-40px, -120px) scale(0.9);
+    }
+}
 
 /* Top Navigation */
 .top-nav {
@@ -140,7 +200,6 @@ body {
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent-indigo); }
 
-/* STRICT TEXTAREA VERTICAL RESIZE & OVERFLOW FIX */
 .form-textarea {
     resize: vertical;
     min-height: 90px;
@@ -221,7 +280,7 @@ body {
 .divider-text span { background: var(--bg-surface); padding: 0 10px; color: var(--text-muted); font-size: 0.72rem; font-weight: 700; }
 .diagnostic-alert { background: rgba(244, 63, 94, 0.15); border: 1px solid var(--accent-coral); color: #FECDD3; padding: 10px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 14px; }
 
-/* CLEAN FOOTER ARRANGEMENT */
+/* Footer Block */
 .app-footer { background: #05070B; border-top: 1px solid var(--border-subtle); padding: 3rem 2rem 1.5rem; margin-top: auto; }
 .footer-container { max-width: 960px; margin: 0 auto; }
 .footer-grid { display: grid; grid-template-columns: 2fr 1.2fr 1.2fr; gap: 2rem; margin-bottom: 2.5rem; }
