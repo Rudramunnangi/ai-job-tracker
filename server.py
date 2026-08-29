@@ -282,7 +282,7 @@ TARGET ROLE: {payload.role} at {payload.company}
 JOB DESCRIPTION: {payload.jd}
 CANDIDATE RESUME: {payload.resume}
 
-FORMAT EXACTLY AS FOLLOWS (Never mention 83% or internal threshold numbers):
+FORMAT EXACTLY AS FOLLOWS (Never mention internal threshold numbers):
 <div class="result-score-card">
   <div class="score-badge">ATS Match Score: [Score between 0% and 100%]%</div>
   <p><strong>Overview:</strong> 1-sentence verdict on qualification level.</p>
@@ -363,14 +363,25 @@ EVALUATION PROTOCOL:
 Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%20Engineer).
 """
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt,
-        )
-        return {"result": response.text}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Multi-model fallback sequence to mitigate free-tier 429 quota exhaustion
+    MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash"]
+    response = None
+    last_error = None
+
+    for model_name in MODELS_TO_TRY:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            if response and response.text:
+                return {"result": response.text}
+        except Exception as e:
+            last_error = e
+            print(f"[MODEL RETRY] {model_name} quota/call failed: {str(e)}")
+            continue
+
+    raise HTTPException(status_code=429, detail=f"AI model quotas currently unavailable. Please retry shortly: {str(last_error)}")
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
