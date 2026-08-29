@@ -6,9 +6,8 @@ import time
 import random
 import hashlib
 import secrets
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import urllib.request
+import urllib.error
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -47,13 +46,10 @@ def hash_otp(otp: str) -> str:
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
-    # 1. Users Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
             username TEXT UNIQUE,
-            phone TEXT UNIQUE,
             password TEXT NOT NULL,
             token TEXT DEFAULT '',
             full_name TEXT DEFAULT '',
@@ -67,19 +63,15 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    
-    # 2. OTP Store
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS otps (
-            identifier TEXT PRIMARY KEY,
+            email TEXT PRIMARY KEY,
             otp_hash TEXT NOT NULL,
             purpose TEXT NOT NULL,
             expires_at REAL NOT NULL,
             attempts INTEGER DEFAULT 0
         )
     """)
-
-    # 3. Application Pipeline Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id TEXT PRIMARY KEY,
@@ -101,17 +93,17 @@ try:
 except Exception as e:
     print(f"[DB INIT ERROR]: {e}")
 
-# --- SMTP Real-Time Dispatcher ---
+# --- HTTPS Email Dispatcher (Bypasses Render SMTP Port Blocks) ---
 
 def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
-    smtp_sender = os.getenv("SMTP_EMAIL")
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    sender_email = os.getenv("SENDER_EMAIL", "NexJob AI <onboarding@resend.dev>")
 
-    if not smtp_sender or not smtp_password:
-        print(f"\n[DEV MODE - SMTP NOT CONFIGURED] OTP for {recipient_email}: {otp_code}\n")
+    if not resend_api_key:
+        print(f"\n[DEV FALLBACK - NO RESEND API KEY] OTP for {recipient_email}: {otp_code}\n")
         return
 
-    action_label = "Complete Registration" if purpose == "signup" else "Reset Password"
+    action_text = "complete your registration" if purpose == "signup" else "reset your password"
     subject = "Your NexJob AI Verification Code" if purpose == "signup" else "NexJob AI Password Reset Code"
     
     html_content = f"""
@@ -120,45 +112,59 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
     <head>
       <meta charset="utf-8">
       <style>
-        body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #07090F; color: #F8FAFC; padding: 20px; }}
-        .container {{ max-width: 480px; margin: 0 auto; background: #0E1424; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); padding: 32px; }}
-        .badge {{ display: inline-block; background: #151D33; border: 1px solid #6366F1; color: #818CF8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 16px; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #07090F; color: #F8FAFC; padding: 24px; }}
+        .card {{ max-width: 460px; margin: 0 auto; background: #0E1424; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); padding: 32px; }}
+        .tag {{ display: inline-block; background: #151D33; border: 1px solid #6366F1; color: #818CF8; padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; margin-bottom: 16px; }}
         .otp-box {{ background: #151D33; border: 2px dashed #6366F1; border-radius: 8px; text-align: center; padding: 16px; margin: 24px 0; }}
-        .otp-text {{ font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #2DD4BF; }}
+        .otp-code {{ font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #2DD4BF; }}
         .footer {{ font-size: 12px; color: #94A3B8; margin-top: 24px; text-align: center; }}
       </style>
     </head>
     <body>
-      <div class="container">
-        <span class="badge">NexJob AI Intelligence</span>
-        <h2 style="margin: 0 0 8px 0; color: #FFFFFF;">Email Verification</h2>
+      <div class="card">
+        <span class="tag">NexJob AI Intelligence</span>
+        <h2 style="margin: 0 0 10px 0; color: #FFFFFF;">Email Verification</h2>
         <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">
-          Use the 6-digit code below to {action_label.lower()}. This verification code will expire in 10 minutes.
+          Use the 6-digit verification code below to {action_text}. This code expires in 10 minutes.
         </p>
         <div class="otp-box">
-          <div class="otp-text">{otp_code}</div>
+          <div class="otp-code">{otp_code}</div>
         </div>
-        <p style="font-size: 13px; color: #94A3B8;">If you did not request this verification, you can safely ignore this message.</p>
-        <div class="footer">© 2026 NexJob AI. Built for next-generation engineers.</div>
+        <p style="font-size: 13px; color: #94A3B8;">If you did not request this verification code, please ignore this email.</p>
+        <div class="footer">© 2026 NexJob AI. Autonomous Career Strategy.</div>
       </div>
     </body>
     </html>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"NexJob AI <{smtp_sender}>"
-    msg["To"] = recipient_email
-    msg.attach(MIMEText(html_content, "html"))
+    payload = json.dumps({
+        "from": sender_email,
+        "to": [recipient_email],
+        "subject": subject,
+        "html": html_content
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {resend_api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "NexJobAI/1.0"
+        },
+        method="POST"
+    )
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(smtp_sender, smtp_password)
-            server.sendmail(smtp_sender, recipient_email, msg.as_string())
-        print(f"[SMTP DISPATCH SUCCESS]: Sent code to {recipient_email}")
+        with urllib.request.urlopen(req) as response:
+            print(f"[RESEND SUCCESS]: OTP dispatched to {recipient_email} (HTTP {response.status})")
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8")
+        print(f"[RESEND HTTP ERROR]: {e.code} - {err_msg}")
+        raise HTTPException(status_code=500, detail="Failed to dispatch verification email. Please retry.")
     except Exception as e:
-        print(f"[SMTP DISPATCH ERROR]: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to dispatch verification email. Verify server SMTP configuration.")
+        print(f"[RESEND DISPATCH ERROR]: {str(e)}")
+        raise HTTPException(status_code=500, detail="Network error during email dispatch.")
 
 def get_current_user_email(authorization: str = Header(None)) -> str:
     if not authorization or not authorization.startswith("Bearer "):
@@ -180,21 +186,21 @@ def get_current_user_email(authorization: str = Header(None)) -> str:
 # --- Pydantic Data Models ---
 
 class SendOTPRequest(BaseModel):
-    identifier: str | None = None
     email: str | None = None
+    identifier: str | None = None
     purpose: str
 
 class SignupVerifyRequest(BaseModel):
-    identifier: str | None = None
     email: str | None = None
+    identifier: str | None = None
     otp: str
     username: str
     password: str
     full_name: str = ""
 
 class ResetPasswordRequest(BaseModel):
-    identifier: str | None = None
     email: str | None = None
+    identifier: str | None = None
     otp: str
     new_password: str
 
@@ -232,24 +238,24 @@ class DecisionRequest(BaseModel):
     github: str | None = ""
     isGuest: bool = False
 
-# --- Authentication & OTP Endpoints ---
+# --- Authentication Endpoints ---
 
 @app.post("/api/auth/send-otp")
 async def send_otp(payload: SendOTPRequest):
-    raw_id = payload.email or payload.identifier or ""
-    identifier = raw_id.strip().lower()
+    raw_email = payload.email or payload.identifier or ""
+    email_clean = raw_email.strip().lower()
     
-    if not identifier or "@" not in identifier:
-        raise HTTPException(status_code=400, detail="Please provide a valid email address.")
+    if not email_clean or "@" not in email_clean:
+        raise HTTPException(status_code=400, detail="Please enter a valid email address.")
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT email FROM users WHERE email=? OR phone=? OR username=?", (identifier, identifier, identifier))
+    cursor.execute("SELECT email FROM users WHERE email=?", (email_clean,))
     user_exists = cursor.fetchone()
 
     if payload.purpose == "signup" and user_exists:
         conn.close()
-        raise HTTPException(status_code=400, detail="An account with this email already exists. Please log in.")
+        raise HTTPException(status_code=400, detail="An account with this email already exists. Please sign in.")
     
     if payload.purpose == "forgot_password" and not user_exists:
         conn.close()
@@ -257,27 +263,27 @@ async def send_otp(payload: SendOTPRequest):
 
     otp_code = f"{random.randint(100000, 999999)}"
     otp_hash = hash_otp(otp_code)
-    expires_at = time.time() + 600  # 10 minutes
+    expires_at = time.time() + 600
 
     cursor.execute("""
-        INSERT OR REPLACE INTO otps (identifier, otp_hash, purpose, expires_at, attempts)
+        INSERT OR REPLACE INTO otps (email, otp_hash, purpose, expires_at, attempts)
         VALUES (?, ?, ?, ?, 0)
-    """, (identifier, otp_hash, payload.purpose, expires_at))
+    """, (email_clean, otp_hash, payload.purpose, expires_at))
     conn.commit()
     conn.close()
 
-    send_otp_email(identifier, otp_code, payload.purpose)
+    send_otp_email(email_clean, otp_code, payload.purpose)
 
     return {
         "status": "success",
-        "message": f"Verification code sent to {identifier}."
+        "message": f"Verification code sent to {email_clean}."
     }
 
 @app.post("/api/auth/signup-verify")
 async def signup_verify(payload: SignupVerifyRequest):
-    raw_id = payload.email or payload.identifier or ""
-    identifier = raw_id.strip().lower()
-    username = payload.username.strip().lower()
+    raw_email = payload.email or payload.identifier or ""
+    email_clean = raw_email.strip().lower()
+    username_clean = payload.username.strip().lower()
     otp = payload.otp.strip()
     
     if len(payload.password) < 6:
@@ -286,32 +292,32 @@ async def signup_verify(payload: SignupVerifyRequest):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE identifier=?", (identifier,))
+    cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE email=?", (email_clean,))
     otp_record = cursor.fetchone()
 
     if not otp_record:
         conn.close()
-        raise HTTPException(status_code=400, detail="OTP expired or request not found. Please request a new code.")
+        raise HTTPException(status_code=400, detail="OTP expired or request not found. Request a new code.")
 
     otp_hash, expires_at, attempts, purpose = otp_record
 
     if time.time() > expires_at:
-        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
         conn.commit()
         conn.close()
-        raise HTTPException(status_code=400, detail="OTP expired. Please request a new code.")
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
 
     if attempts >= 5:
-        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
         conn.commit()
         conn.close()
         raise HTTPException(status_code=429, detail="Too many invalid attempts. Request a new OTP.")
 
     if hash_otp(otp) != otp_hash or purpose != "signup":
-        cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE identifier=?", (identifier,))
+        cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE email=?", (email_clean,))
         conn.commit()
         conn.close()
-        raise HTTPException(status_code=400, detail="Invalid OTP verification code.")
+        raise HTTPException(status_code=400, detail="Invalid OTP code.")
 
     hashed_pwd = hash_password(payload.password)
     new_token = secrets.token_hex(24)
@@ -320,25 +326,25 @@ async def signup_verify(payload: SignupVerifyRequest):
         cursor.execute("""
             INSERT INTO users (email, username, password, token, full_name, auth_provider)
             VALUES (?, ?, ?, ?, ?, 'local')
-        """, (identifier, username, hashed_pwd, new_token, payload.full_name or username))
-        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        """, (email_clean, username_clean, hashed_pwd, new_token, payload.full_name or username_clean))
+        cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
-        raise HTTPException(status_code=400, detail="Username or Email already registered.")
+        raise HTTPException(status_code=400, detail="Username or email is already registered.")
     
     conn.close()
     return {
         "status": "success",
         "token": new_token,
-        "email": identifier,
-        "profile": {"fullName": payload.full_name or username, "targetRole": "", "skills": "", "resume": "", "linkedin": "", "github": ""}
+        "email": email_clean,
+        "profile": {"fullName": payload.full_name or username_clean, "targetRole": "", "skills": "", "resume": "", "linkedin": "", "github": ""}
     }
 
 @app.post("/api/auth/reset-password")
 async def reset_password(payload: ResetPasswordRequest):
-    raw_id = payload.email or payload.identifier or ""
-    identifier = raw_id.strip().lower()
+    raw_email = payload.email or payload.identifier or ""
+    email_clean = raw_email.strip().lower()
     otp = payload.otp.strip()
 
     if len(payload.new_password) < 6:
@@ -347,36 +353,32 @@ async def reset_password(payload: ResetPasswordRequest):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE identifier=?", (identifier,))
+    cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE email=?", (email_clean,))
     otp_record = cursor.fetchone()
 
     if not otp_record:
         conn.close()
-        raise HTTPException(status_code=400, detail="No active password reset request found. Request a new OTP.")
+        raise HTTPException(status_code=400, detail="No active password reset request found. Request a new code.")
 
     otp_hash, expires_at, attempts, purpose = otp_record
 
     if time.time() > expires_at or attempts >= 5:
-        cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+        cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
         conn.commit()
         conn.close()
         raise HTTPException(status_code=400, detail="OTP expired or too many failed attempts.")
 
     if hash_otp(otp) != otp_hash or purpose != "forgot_password":
-        cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE identifier=?", (identifier,))
+        cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE email=?", (email_clean,))
         conn.commit()
         conn.close()
-        raise HTTPException(status_code=400, detail="Invalid OTP verification code.")
+        raise HTTPException(status_code=400, detail="Invalid OTP code.")
 
     new_hashed_pwd = hash_password(payload.new_password)
     new_token = secrets.token_hex(24)
 
-    cursor.execute("""
-        UPDATE users 
-        SET password=?, token=?
-        WHERE email=? OR phone=? OR username=?
-    """, (new_hashed_pwd, new_token, identifier, identifier, identifier))
-    cursor.execute("DELETE FROM otps WHERE identifier=?", (identifier,))
+    cursor.execute("UPDATE users SET password=?, token=? WHERE email=?", (new_hashed_pwd, new_token, email_clean))
+    cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
     conn.commit()
     conn.close()
 
@@ -393,8 +395,8 @@ async def login(payload: LoginRequest):
     cursor.execute("""
         SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url 
         FROM users 
-        WHERE (email=? OR username=? OR phone=?) AND password=?
-    """, (identifier, identifier, identifier, hashed_pwd))
+        WHERE (email=? OR username=?) AND password=?
+    """, (identifier, identifier, hashed_pwd))
     user = cursor.fetchone()
 
     if not user:
@@ -858,7 +860,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     </html>
     """
 
-# --- Sitemap & Robots Endpoints ---
+# --- SEO Sitemap & Robots ---
 
 @app.get("/sitemap.xml")
 async def get_sitemap():
