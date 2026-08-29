@@ -2,7 +2,7 @@ let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null
 let userProfile = JSON.parse(localStorage.getItem('nexjob_active_profile')) || null;
 let jobs = [];
 
-// Drawer Controller
+// Drawer Controller (Open / Close on Click)
 function toggleDrawer() {
     const drawer = document.getElementById('profileDrawer');
     const scrim = document.getElementById('drawerScrim');
@@ -12,14 +12,14 @@ function toggleDrawer() {
     }
 }
 
-function scrollToPipeline() {
-    const el = document.getElementById('memberPipelineContainer');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
-
-function scrollToVault() {
-    const el = document.getElementById('resumeVaultBox');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+// Interactive File Selection Handler for Impressive Dropzone
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    const nameEl = document.getElementById('selectedFileName');
+    if (file && nameEl) {
+        nameEl.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        nameEl.style.color = "var(--accent-teal)";
+    }
 }
 
 // Data Synchronization
@@ -380,7 +380,7 @@ function updateAuthUI() {
     }
 }
 
-// Kanban Management
+// Kanban Board Management
 function openJobModal() {
     if (!currentUser) {
         alert("Please log in first to track job applications.");
@@ -555,19 +555,23 @@ async function runATSExecution() {
     const resultBox = document.getElementById('atsResultWindow');
 
     if (!jd || jd.length < 10) {
-        alert("Please paste the target Job Description in Step 1.");
+        alert("Please paste the target Job Description in Step 01.");
         document.getElementById('step-1').scrollIntoView({ behavior: 'smooth' });
         return;
     }
 
     if (!resume || resume.length < 10) {
-        alert("Please paste or upload your resume in Step 2.");
+        alert("Please paste or upload your resume in Step 02.");
         document.getElementById('step-2').scrollIntoView({ behavior: 'smooth' });
         return;
     }
 
     resultBox.innerHTML = "<p class='text-indigo'>Evaluating candidate alignment with Gemini 3.6 Flash...</p>";
     document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
+
+    // Progress route fill animation to 100% on execution
+    const fillLine = document.getElementById('activeProgressLine');
+    if (fillLine) fillLine.style.height = '100%';
 
     const isGuest = (!currentUser || !currentUser.email);
 
@@ -596,15 +600,23 @@ async function runATSExecution() {
     }
 }
 
-// Sequence Reveal Scroll Observer
+// Step 01 -> 02 -> 03 Scroll & Reveal Transitions
 function initScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('active');
+                
+                // Adjust route line progress height based on active step
+                const fillLine = document.getElementById('activeProgressLine');
+                if (fillLine) {
+                    if (entry.target.id === 'step-1') fillLine.style.height = '33%';
+                    else if (entry.target.id === 'step-2') fillLine.style.height = '66%';
+                    else if (entry.target.id === 'step-3') fillLine.style.height = '100%';
+                }
             }
         });
-    }, { threshold: 0.15 });
+    }, { threshold: 0.2 });
 
     document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
 }
