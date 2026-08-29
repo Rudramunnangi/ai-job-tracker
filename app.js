@@ -1,8 +1,18 @@
 let currentUser = JSON.parse(localStorage.getItem('nexjob_active_user')) || null;
 let userProfile = JSON.parse(localStorage.getItem('nexjob_active_profile')) || null;
+let authToken = localStorage.getItem('nexjob_auth_token') || null;
 let jobs = [];
 
-// Drawer Controller
+let activeSignupIdentifier = "";
+let activeForgotIdentifier = "";
+
+function getAuthHeaders() {
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${authToken || ''}`
+    };
+}
+
 function toggleDrawer() {
     const drawer = document.getElementById('profileDrawer');
     const scrim = document.getElementById('drawerScrim');
@@ -12,21 +22,361 @@ function toggleDrawer() {
     }
 }
 
-// File Selection Handler
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    const nameEl = document.getElementById('selectedFileName');
-    if (file && nameEl) {
-        nameEl.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-        nameEl.style.color = "var(--accent-teal)";
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.type = field.type === 'password' ? 'text' : 'password';
     }
 }
 
-// Data Synchronization
+// Authentication Modal View Switcher
+function switchAuthView(viewName) {
+    clearAuthError();
+    const views = ['Login', 'SignupStep1', 'SignupStep2', 'ForgotStep1', 'ForgotStep2'];
+    views.forEach(v => {
+        const el = document.getElementById(`authView${v}`);
+        if (el) el.style.display = 'none';
+    });
+
+    const titleEl = document.getElementById('authModalTitle');
+    if (viewName === 'login') {
+        document.getElementById('authViewLogin').style.display = 'block';
+        if (titleEl) titleEl.innerText = "Sign In";
+        initGoogleAuth();
+    } else if (viewName === 'signup_step1') {
+        document.getElementById('authViewSignupStep1').style.display = 'block';
+        if (titleEl) titleEl.innerText = "Create Account (Step 1)";
+    } else if (viewName === 'signup_step2') {
+        document.getElementById('authViewSignupStep2').style.display = 'block';
+        if (titleEl) titleEl.innerText = "Verify OTP (Step 2)";
+    } else if (viewName === 'forgot') {
+        document.getElementById('authViewForgotStep1').style.display = 'block';
+        if (titleEl) titleEl.innerText = "Reset Password";
+    } else if (viewName === 'forgot_step2') {
+        document.getElementById('authViewForgotStep2').style.display = 'block';
+        if (titleEl) titleEl.innerText = "Enter Reset OTP";
+    }
+}
+
+function openAuthModal(defaultView = 'login') {
+    switchAuthView(defaultView);
+    document.getElementById('authModal').style.display = 'flex';
+}
+
+function closeAuthModal() {
+    document.getElementById('authModal').style.display = 'none';
+}
+
+function showAuthError(msg) {
+    const box = document.getElementById('authDiagnosticBox');
+    if (box) {
+        box.innerText = msg;
+        box.style.display = 'block';
+    }
+}
+
+function clearAuthError() {
+    const box = document.getElementById('authDiagnosticBox');
+    if (box) {
+        box.innerText = '';
+        box.style.display = 'none';
+    }
+}
+
+// 1. Submit Multi-Identifier Login (Email / Phone / Username)
+async function submitLogin() {
+    clearAuthError();
+    const identifier = document.getElementById('loginIdentifier').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    if (!identifier || !password) {
+        showAuthError("Please enter your identifier and password.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.detail || "Invalid login credentials.");
+            return;
+        }
+
+        currentUser = { email: data.email };
+        authToken = data.token;
+        userProfile = data.profile;
+
+        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+        localStorage.setItem('nexjob_auth_token', authToken);
+        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
+
+        closeAuthModal();
+        await loadUserData();
+        updateAuthUI();
+        renderDashboard();
+    } catch (err) {
+        showAuthError(`Server connection error: ${err.message}`);
+    }
+}
+
+// 2. Signup Flow: Request OTP
+async function requestSignupOTP() {
+    clearAuthError();
+    const idVal = document.getElementById('signupIdentifier').value.trim();
+    if (!idVal) {
+        showAuthError("Please provide an email address or mobile phone number.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/auth/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: idVal, purpose: "signup" })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.detail || "Unable to send verification OTP.");
+            return;
+        }
+
+        activeSignupIdentifier = idVal;
+        if (data.dev_otp) {
+            alert(`[DEMO CODE]: Your verification OTP is ${data.dev_otp}`);
+        }
+        switchAuthView('signup_step2');
+    } catch (e) {
+        showAuthError("Connection error while requesting OTP.");
+    }
+}
+
+// 3. Signup Flow: Verify OTP & Create Account
+async function submitSignupVerification() {
+    clearAuthError();
+    const otp = document.getElementById('signupOtpCode').value.trim();
+    const username = document.getElementById('signupUsername').value.trim();
+    const fullName = document.getElementById('signupFullName').value.trim();
+    const password = document.getElementById('signupPassword').value.trim();
+
+    if (!otp || !username || !password) {
+        showAuthError("Please fill in the OTP code, username, and password.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/auth/signup-verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                identifier: activeSignupIdentifier,
+                otp: otp,
+                username: username,
+                password: password,
+                full_name: fullName
+            })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.detail || "OTP verification failed.");
+            return;
+        }
+
+        currentUser = { email: data.email };
+        authToken = data.token;
+        userProfile = data.profile;
+
+        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+        localStorage.setItem('nexjob_auth_token', authToken);
+        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
+
+        closeAuthModal();
+        await loadUserData();
+        updateAuthUI();
+        renderDashboard();
+    } catch (e) {
+        showAuthError("Error completing registration.");
+    }
+}
+
+// 4. Forgot Password Flow: Request OTP
+async function requestForgotOTP() {
+    clearAuthError();
+    const idVal = document.getElementById('forgotIdentifier').value.trim();
+    if (!idVal) {
+        showAuthError("Please enter your registered email or phone.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/auth/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: idVal, purpose: "forgot_password" })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.detail || "Failed to dispatch reset code.");
+            return;
+        }
+
+        activeForgotIdentifier = idVal;
+        if (data.dev_otp) {
+            alert(`[DEMO CODE]: Your reset OTP is ${data.dev_otp}`);
+        }
+        switchAuthView('forgot_step2');
+    } catch (e) {
+        showAuthError("Connection error while requesting reset code.");
+    }
+}
+
+// 5. Forgot Password Flow: Verify OTP & Reset Password
+async function submitPasswordReset() {
+    clearAuthError();
+    const otp = document.getElementById('forgotOtpCode').value.trim();
+    const newPassword = document.getElementById('forgotNewPassword').value.trim();
+
+    if (!otp || !newPassword) {
+        showAuthError("Please provide the OTP code and your new password.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/auth/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                identifier: activeForgotIdentifier,
+                otp: otp,
+                new_password: newPassword
+            })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.detail || "Password reset failed.");
+            return;
+        }
+
+        alert("Password updated successfully! Please log in with your new credentials.");
+        switchAuthView('login');
+    } catch (e) {
+        showAuthError("Error updating password.");
+    }
+}
+
+// Google OAuth Handler
+function initGoogleAuth() {
+    const wrapper = document.getElementById('googleAuthWrapper');
+    if (window.google && wrapper && wrapper.children.length === 0) {
+        google.accounts.id.initialize({
+            client_id: "367560024253-20ebmeiedvdammukrcplc5uh2orqedpl.apps.googleusercontent.com",
+            callback: handleGoogleResponse
+        });
+        google.accounts.id.renderButton(wrapper, {
+            theme: "filled_black", size: "large", shape: "rectangular", text: "signin_with"
+        });
+    }
+}
+
+async function handleGoogleResponse(response) {
+    try {
+        const res = await fetch("/api/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAuthError(data.detail || "Google Login failed.");
+            return;
+        }
+
+        currentUser = { email: data.email };
+        authToken = data.token;
+        userProfile = data.profile;
+        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+        localStorage.setItem('nexjob_auth_token', authToken);
+        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
+
+        closeAuthModal();
+        await loadUserData();
+        updateAuthUI();
+        renderDashboard();
+    } catch (err) {
+        showAuthError(`Network error during Google sign-in: ${err.message}`);
+    }
+}
+
+async function demoLogin() {
+    const demoEmail = "demo.candidate@nexjob.ai";
+    const demoPass = "demo1234";
+
+    try {
+        let res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: demoEmail, password: demoPass })
+        });
+        
+        if (!res.ok) {
+            await fetch("/api/auth/signup-verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ identifier: demoEmail, otp: "000000", username: "alexdemo", password: demoPass, full_name: "Alex Demo" })
+            });
+            res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ identifier: demoEmail, password: demoPass })
+            });
+        }
+
+        const data = await res.json();
+        currentUser = { email: data.email };
+        authToken = data.token;
+        userProfile = data.profile || { fullName: "Alex Demo", targetRole: "Full Stack AI Engineer" };
+        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
+        localStorage.setItem('nexjob_auth_token', authToken);
+        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
+
+        closeAuthModal();
+        await loadUserData();
+        updateAuthUI();
+        renderDashboard();
+    } catch (e) {
+        showAuthError("Demo login error.");
+    }
+}
+
+function logoutUser() {
+    localStorage.removeItem('nexjob_active_user');
+    localStorage.removeItem('nexjob_active_profile');
+    localStorage.removeItem('nexjob_auth_token');
+    currentUser = null;
+    userProfile = null;
+    authToken = null;
+    jobs = [];
+    updateAuthUI();
+    renderDashboard();
+}
+
 async function loadUserData() {
-    if (currentUser && currentUser.email) {
+    if (currentUser && authToken) {
         try {
-            const res = await fetch(`/api/jobs?email=${encodeURIComponent(currentUser.email)}`);
+            const res = await fetch("/api/jobs", { headers: getAuthHeaders() });
+            if (res.status === 401) {
+                logoutUser();
+                return;
+            }
             const data = await res.json();
             jobs = data.jobs || [];
         } catch (e) {
@@ -48,11 +398,10 @@ async function loadUserData() {
     }
 }
 
-// PDF Resume Parsing
 async function uploadResumePDF() {
-    if (!currentUser) {
+    if (!currentUser || !authToken) {
         alert("PDF Parsing is a member-only feature. Please sign in.");
-        openAuthModal();
+        openAuthModal('login');
         return;
     }
 
@@ -62,17 +411,16 @@ async function uploadResumePDF() {
         return;
     }
 
-    const file = fileInput.files[0];
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileInput.files[0]);
 
     const resultBox = document.getElementById('atsResultWindow');
-    resultBox.innerHTML = "<p class='text-indigo'>Parsing PDF resume content in memory...</p>";
+    resultBox.innerHTML = "<p class='text-indigo'>Parsing PDF resume securely...</p>";
 
     try {
         const res = await fetch("/api/resume/upload-pdf", {
             method: "POST",
-            headers: { "user-email": currentUser.email },
+            headers: { "Authorization": `Bearer ${authToken}` },
             body: formData
         });
         const data = await res.json();
@@ -84,7 +432,7 @@ async function uploadResumePDF() {
 
             document.getElementById('userResume').value = userProfile.resume;
             document.getElementById('profResume').value = userProfile.resume;
-            resultBox.innerHTML = "<p class='text-teal'>Resume PDF successfully parsed and synced to your profile.</p>";
+            resultBox.innerHTML = "<p class='text-teal'>Resume parsed and synced successfully.</p>";
             alert("Resume PDF successfully parsed and synced!");
         } else {
             resultBox.innerHTML = `<p class='text-coral'>Upload Error: ${data.detail}</p>`;
@@ -95,10 +443,19 @@ async function uploadResumePDF() {
     }
 }
 
-// Profile Modal Controllers
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    const nameEl = document.getElementById('selectedFileName');
+    if (file && nameEl) {
+        nameEl.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        nameEl.style.color = "var(--accent-teal)";
+    }
+}
+
+// Profile Modal Handlers
 function openProfileModal() {
-    if (!currentUser) {
-        openAuthModal();
+    if (!currentUser || !authToken) {
+        openAuthModal('login');
         return;
     }
     document.getElementById('profFullName').value = (userProfile && userProfile.fullName) || "";
@@ -115,7 +472,7 @@ function closeProfileModal() {
 }
 
 async function saveUserProfile() {
-    if (!currentUser) return;
+    if (!currentUser || !authToken) return;
 
     userProfile = {
         fullName: document.getElementById('profFullName').value.trim(),
@@ -128,11 +485,10 @@ async function saveUserProfile() {
     };
 
     try {
-        await fetch("/api/profile/save", {
+        const res = await fetch("/api/profile/save", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
-                email: currentUser.email,
                 full_name: userProfile.fullName,
                 target_role: userProfile.targetRole,
                 skills: userProfile.skills,
@@ -142,194 +498,30 @@ async function saveUserProfile() {
                 portfolio_url: ""
             })
         });
-        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
-
-        const resumeBox = document.getElementById('userResume');
-        if (resumeBox) resumeBox.value = userProfile.resume;
-
-        closeProfileModal();
-        updateAuthUI();
-        alert("Career profile saved successfully!");
-    } catch (e) {
-        alert("Error saving profile to server.");
-    }
-}
-
-// Auth Handlers
-function showAuthError(msg) {
-    const box = document.getElementById('authDiagnosticBox');
-    if (box) {
-        box.innerText = msg;
-        box.style.display = 'block';
-    }
-}
-
-function clearAuthError() {
-    const box = document.getElementById('authDiagnosticBox');
-    if (box) {
-        box.innerText = '';
-        box.style.display = 'none';
-    }
-}
-
-function openAuthModal() {
-    clearAuthError();
-    document.getElementById('authModal').style.display = 'flex';
-    initGoogleAuth();
-}
-
-function closeAuthModal() {
-    document.getElementById('authModal').style.display = 'none';
-}
-
-function initGoogleAuth() {
-    const wrapper = document.getElementById('googleAuthWrapper');
-    if (window.google && wrapper && wrapper.children.length === 0) {
-        google.accounts.id.initialize({
-            client_id: "367560024253-20ebmeiedvdammukrcplc5uh2orqedpl.apps.googleusercontent.com",
-            callback: handleGoogleResponse
-        });
-        google.accounts.id.renderButton(wrapper, {
-            theme: "filled_black",
-            size: "large",
-            shape: "rectangular",
-            text: "signin_with"
-        });
-    }
-}
-
-async function handleGoogleResponse(response) {
-    clearAuthError();
-    try {
-        const res = await fetch("/api/auth/google", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ credential: response.credential })
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-            showAuthError(data.detail || "Google Login failed.");
-            return;
-        }
-
-        currentUser = { email: data.email };
-        userProfile = data.profile;
-        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
-        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
-
-        closeAuthModal();
-        await loadUserData();
-        updateAuthUI();
-        renderDashboard();
-    } catch (err) {
-        showAuthError(`Network error during Google sign-in: ${err.message}`);
-    }
-}
-
-async function handleAuth(type) {
-    clearAuthError();
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value.trim();
-
-    if (!email || !password) {
-        showAuthError("Please provide both email and password.");
-        return;
-    }
-
-    try {
-        const endpoint = type === 'signup' ? '/api/auth/signup' : '/api/auth/login';
-        const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-            showAuthError(data.detail || "Authentication error.");
-            return;
-        }
-
-        currentUser = { email: data.email || email };
-        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
-
-        if (data.profile) {
-            userProfile = data.profile;
+        if (res.ok) {
             localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
+            const resumeBox = document.getElementById('userResume');
+            if (resumeBox) resumeBox.value = userProfile.resume;
+            closeProfileModal();
+            updateAuthUI();
+            alert("Career profile saved successfully!");
         }
-
-        closeAuthModal();
-        await loadUserData();
-        updateAuthUI();
-        renderDashboard();
     } catch (e) {
-        showAuthError(`Server connection error: ${e.message}`);
-    }
-}
-
-async function demoLogin() {
-    clearAuthError();
-    const demoEmail = "demo.candidate@nexjob.ai";
-    const demoPass = "demo1234";
-
-    try {
-        let res = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: demoEmail, password: demoPass })
-        });
-        
-        if (!res.ok) {
-            await fetch("/api/auth/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: demoEmail, password: demoPass })
-            });
-            res = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: demoEmail, password: demoPass })
-            });
-        }
-
-        const data = await res.json();
-        currentUser = { email: data.email };
-        userProfile = data.profile || { fullName: "Alex Demo", targetRole: "Full Stack AI Engineer" };
-        localStorage.setItem('nexjob_active_user', JSON.stringify(currentUser));
-        localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
-
-        closeAuthModal();
-        await loadUserData();
-        updateAuthUI();
-        renderDashboard();
-    } catch (e) {
-        showAuthError("Demo login error.");
+        alert("Error saving profile.");
     }
 }
 
 async function deleteAccount() {
-    if (!currentUser) return;
-    const confirmDelete = confirm("Are you sure you want to permanently delete your account, applications, and saved profile?");
-    if (!confirmDelete) return;
+    if (!currentUser || !authToken) return;
+    if (!confirm("Are you sure you want to permanently delete your account and all tracked records?")) return;
 
     try {
-        await fetch(`/api/account/delete?email=${encodeURIComponent(currentUser.email)}`, { method: "DELETE" });
+        await fetch("/api/account/delete", { method: "DELETE", headers: getAuthHeaders() });
         logoutUser();
-        alert("Your account has been purged.");
+        alert("Your account has been deleted.");
     } catch (e) {
         alert("Error deleting account.");
     }
-}
-
-function logoutUser() {
-    localStorage.removeItem('nexjob_active_user');
-    localStorage.removeItem('nexjob_active_profile');
-    currentUser = null;
-    userProfile = null;
-    jobs = [];
-    updateAuthUI();
-    renderDashboard();
 }
 
 function updateAuthUI() {
@@ -347,7 +539,7 @@ function updateAuthUI() {
     const resumeStatusNote = document.getElementById('resumeStatusNote');
     const jobSelectionControl = document.getElementById('jobSelectionControl');
 
-    if (currentUser && currentUser.email) {
+    if (currentUser && currentUser.email && authToken) {
         const name = (userProfile && userProfile.fullName) || currentUser.email.split('@')[0];
         const initial = name.charAt(0).toUpperCase();
 
@@ -381,25 +573,29 @@ function updateAuthUI() {
         if (jobSelectionControl) jobSelectionControl.style.display = 'none';
         if (resumeStatusNote) resumeStatusNote.innerText = "Guest Mode: Paste text below";
     }
+
+    updateDynamicJobLinks();
 }
 
-// Tracked Job Switcher for Step 01
-function onTrackedJobChange() {
-    const selector = document.getElementById('roleSelector');
-    if (!selector || !selector.value) return;
-    const selectedJob = jobs.find(j => j.id === selector.value);
-    if (selectedJob) {
-        document.getElementById('targetJobRole').value = selectedJob.role;
-        document.getElementById('targetJobCompany').value = selectedJob.company;
-        document.getElementById('jobDesc').value = selectedJob.jd;
-    }
+function updateDynamicJobLinks() {
+    const role = (userProfile && userProfile.targetRole) || (document.getElementById('targetJobRole') && document.getElementById('targetJobRole').value) || "AI Engineer";
+    const encodedRole = encodeURIComponent(role.trim());
+
+    const lnk = document.getElementById('footerLinkedInLink');
+    if (lnk) lnk.href = `https://www.linkedin.com/jobs/search/?keywords=${encodedRole}&f_TPR=r86400`;
+
+    const ind = document.getElementById('footerIndeedLink');
+    if (ind) ind.href = `https://www.indeed.com/jobs?q=${encodedRole}&sort=date`;
+
+    const ggl = document.getElementById('footerGoogleLink');
+    if (ggl) ggl.href = `https://www.google.com/search?q=${encodedRole}+jobs&ibp=htl;jobs`;
 }
 
-// Kanban Board Management
+// Application Board Handlers
 function openJobModal() {
-    if (!currentUser) {
-        alert("Please log in first to track job applications.");
-        openAuthModal();
+    if (!currentUser || !authToken) {
+        alert("Please log in to track applications on your board.");
+        openAuthModal('login');
         return;
     }
     document.getElementById('jobModal').style.display = 'flex';
@@ -426,7 +622,6 @@ async function submitNewJob() {
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : ["General"];
     const newJob = {
         id: "job_" + Date.now(),
-        user_email: currentUser.email,
         company: company,
         role: role,
         date: date,
@@ -436,22 +631,23 @@ async function submitNewJob() {
     };
 
     try {
-        await fetch("/api/jobs/save", {
+        const res = await fetch("/api/jobs/save", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(newJob)
         });
 
-        jobs.unshift(newJob);
-        renderDashboard();
-        closeJobModal();
-
-        document.getElementById('modalCompany').value = '';
-        document.getElementById('modalRole').value = '';
-        document.getElementById('modalTags').value = '';
-        document.getElementById('modalJD').value = '';
+        if (res.ok) {
+            jobs.unshift(newJob);
+            renderDashboard();
+            closeJobModal();
+            document.getElementById('modalCompany').value = '';
+            document.getElementById('modalRole').value = '';
+            document.getElementById('modalTags').value = '';
+            document.getElementById('modalJD').value = '';
+        }
     } catch (e) {
-        alert("Failed to save application to server.");
+        alert("Failed to save application.");
     }
 }
 
@@ -461,7 +657,7 @@ async function changeJobStage(id, newStatus) {
         target.status = newStatus;
         await fetch("/api/jobs/update_status", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ id: id, status: newStatus })
         });
         renderDashboard();
@@ -489,7 +685,6 @@ function renderDashboard() {
     const statNudgesEl = document.getElementById('statNudges');
     if (statNudgesEl) statNudgesEl.innerText = nudges.length;
 
-    // Populate Job Selector
     const selector = document.getElementById('roleSelector');
     if (selector) {
         if (jobs.length > 0) {
@@ -523,14 +718,14 @@ function renderDashboard() {
         { name: "Archived", key: "Rejected", color: "var(--text-muted)" }
     ];
 
-    const kanbanGrid = document.getElementById('kanbanGrid');
-    if (kanbanGrid) {
-        kanbanGrid.innerHTML = stages.map(stage => {
+    const pipelineGrid = document.getElementById('pipelineGrid');
+    if (pipelineGrid) {
+        pipelineGrid.innerHTML = stages.map(stage => {
             const stageJobs = jobs.filter(j => j.status === stage.key);
             const cards = stageJobs.map(j => `
-                <div class="kanban-card">
-                    <div class="kanban-role">${j.role}</div>
-                    <div class="kanban-comp">${j.company}</div>
+                <div class="pipeline-card">
+                    <div class="pipeline-role">${j.role}</div>
+                    <div class="pipeline-comp">${j.company}</div>
                     <div style="margin-bottom: 8px;">
                         ${j.tags.map(t => `<span class="tag-chip">${t}</span>`).join('')}
                     </div>
@@ -547,8 +742,8 @@ function renderDashboard() {
             `).join('');
 
             return `
-                <div class="kanban-col">
-                    <div class="kanban-header" style="color: ${stage.color};">
+                <div class="pipeline-col">
+                    <div class="pipeline-header" style="color: ${stage.color};">
                         <span>${stage.name}</span>
                         <span class="mono-data">${stageJobs.length}</span>
                     </div>
@@ -567,13 +762,22 @@ function selectJobAndNudge(id) {
         document.getElementById('jobDesc').value = target.jd;
         const selector = document.getElementById('roleSelector');
         if (selector) selector.value = id;
-        const step2 = document.getElementById('step-2');
-        if (step2) step2.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('step-2').scrollIntoView({ behavior: 'smooth' });
         runATSExecution();
     }
 }
 
-// 1-Click ATS Execution
+function onTrackedJobChange() {
+    const selector = document.getElementById('roleSelector');
+    if (!selector || !selector.value) return;
+    const selectedJob = jobs.find(j => j.id === selector.value);
+    if (selectedJob) {
+        document.getElementById('targetJobRole').value = selectedJob.role;
+        document.getElementById('targetJobCompany').value = selectedJob.company;
+        document.getElementById('jobDesc').value = selectedJob.jd;
+    }
+}
+
 async function runATSExecution() {
     const role = document.getElementById('targetJobRole').value.trim() || "Target Role";
     const company = document.getElementById('targetJobCompany').value.trim() || "Target Company";
@@ -593,23 +797,17 @@ async function runATSExecution() {
         return;
     }
 
-    resultBox.innerHTML = "<p class='text-indigo'>Evaluating candidate alignment with Gemini 3.6 Flash...</p>";
+    resultBox.innerHTML = "<p class='text-indigo'>Evaluating candidate alignment with Gemini AI...</p>";
     document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
 
-    const fillLine = document.getElementById('activeProgressLine');
-    if (fillLine) fillLine.style.height = '100%';
-
-    const isGuest = (!currentUser || !currentUser.email);
+    const isGuest = (!currentUser || !currentUser.email || !authToken);
 
     try {
         const res = await fetch("/api/gemini/smart-decision", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                role: role,
-                company: company,
-                jd: jd,
-                resume: resume,
+                role: role, company: company, jd: jd, resume: resume,
                 linkedin: (userProfile && userProfile.linkedin) || "",
                 github: (userProfile && userProfile.github) || "",
                 isGuest: isGuest
@@ -626,7 +824,6 @@ async function runATSExecution() {
     }
 }
 
-// Step 01 -> 02 -> 03 Scroll & Reveal Transitions
 function initScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
