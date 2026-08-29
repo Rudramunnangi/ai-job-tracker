@@ -235,8 +235,8 @@
                 <div class="footer-col" id="contact-section">
                     <h4 class="footer-heading">Contact & Support</h4>
                     <ul class="footer-links">
-                        <li>📧 <b>Support:</b> <a href="mailto:rudramunnangi@gmail.com?subject=NexJob%20Support" class="footer-link-text">rudramunnangi@gmail.com</a></li>
-                        <li>💬 <b>Technical Queries:</b> <a href="mailto:rudramunnangi@gmail.com?subject=NexJob%20Technical" class="footer-link-text">Direct Dev Inbox ↗</a></li>
+                        <li>📧 <b>Support:</b> <a href="mailto:nexjobai.official@gmail.com?subject=NexJob%20Support" class="footer-link-text">nexjobai.official@gmail.com</a></li>
+                        <li>💬 <b>Technical Queries:</b> <a href="mailto:nexjobai.official@gmail.com?subject=NexJob%20Technical" class="footer-link-text">Direct Dev Inbox ↗</a></li>
                         <li>📍 <b>Location:</b> Hyderabad, Telangana, India</li>
                     </ul>
                 </div>
@@ -251,7 +251,6 @@
                 </div>
             </div>
 
-            <!-- Neatly Arranged Responsive Footer -->
             <div class="footer-bottom-bar">
                 <p class="footer-copy">© 2026 NexJob AI. Built for next-generation engineers.</p>
                 <p class="footer-rights">All rights reserved.</p>
@@ -259,7 +258,7 @@
         </div>
     </footer>
 
-    <!-- Comprehensive Authentication Modal (Login / Signup OTP / Forgot Password OTP) -->
+    <!-- Comprehensive Authentication Modal -->
     <div id="authModal" class="modal-backdrop">
         <div class="modal-window compact">
             <div class="modal-header">
@@ -275,8 +274,8 @@
                 <button onclick="demoLogin()" class="btn-demo-auth">⚡ Instant Demo Login</button>
                 <div class="divider-text"><span>OR CREDENTIALS</span></div>
 
-                <label class="form-label">EMAIL / PHONE / USERNAME</label>
-                <input type="text" id="loginIdentifier" class="form-input" placeholder="e.g. alex@example.com, +919876543210, or alex99" style="margin-bottom: 12px;">
+                <label class="form-label">EMAIL / USERNAME</label>
+                <input type="text" id="loginIdentifier" class="form-input" placeholder="e.g. alex@example.com or alex99" style="margin-bottom: 12px;">
 
                 <label class="form-label">PASSWORD</label>
                 <div class="password-input-wrapper">
@@ -292,13 +291,13 @@
                 <button class="btn-primary full-width" onclick="submitLogin()">Log In</button>
             </div>
 
-            <!-- VIEW 2: Signup Step 1 (Request OTP via Email or Phone) -->
+            <!-- VIEW 2: Signup Step 1 -->
             <div id="authViewSignupStep1" style="display: none;">
                 <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
-                    Enter your email address or mobile phone number to receive a 6-digit verification OTP.
+                    Enter your email address to receive a 6-digit verification code.
                 </p>
-                <label class="form-label">EMAIL OR PHONE NUMBER</label>
-                <input type="text" id="signupIdentifier" class="form-input" placeholder="e.g. alex@example.com or +919876543210" style="margin-bottom: 16px;">
+                <label class="form-label">EMAIL ADDRESS</label>
+                <input type="email" id="signupIdentifier" class="form-input" placeholder="e.g. alex@example.com" style="margin-bottom: 16px;">
 
                 <div class="modal-actions">
                     <button class="btn-secondary" onclick="switchAuthView('login')">Back to Login</button>
@@ -306,10 +305,10 @@
                 </div>
             </div>
 
-            <!-- VIEW 3: Signup Step 2 (Verify OTP & Set Password/Username) -->
+            <!-- VIEW 3: Signup Step 2 -->
             <div id="authViewSignupStep2" style="display: none;">
                 <p style="font-size: 0.82rem; color: var(--accent-teal); margin-bottom: 12px;" id="signupOtpPrompt">
-                    Code sent. Enter the 6-digit verification OTP:
+                    Code sent. Enter the 6-digit verification code:
                 </p>
                 
                 <div class="otp-inputs-grid">
@@ -331,13 +330,13 @@
                 </div>
             </div>
 
-            <!-- VIEW 4: Forgot Password (Request OTP) -->
+            <!-- VIEW 4: Forgot Password Step 1 -->
             <div id="authViewForgotStep1" style="display: none;">
                 <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
-                    Enter your registered email address or phone number to reset your password.
+                    Enter your registered email address to receive a password reset code.
                 </p>
-                <label class="form-label">REGISTERED EMAIL OR PHONE</label>
-                <input type="text" id="forgotIdentifier" class="form-input" placeholder="e.g. alex@example.com" style="margin-bottom: 16px;">
+                <label class="form-label">REGISTERED EMAIL</label>
+                <input type="email" id="forgotIdentifier" class="form-input" placeholder="e.g. alex@example.com" style="margin-bottom: 16px;">
 
                 <div class="modal-actions">
                     <button class="btn-secondary" onclick="switchAuthView('login')">Cancel</button>
@@ -345,7 +344,7 @@
                 </div>
             </div>
 
-            <!-- VIEW 5: Forgot Password (Verify OTP & Reset) -->
+            <!-- VIEW 5: Forgot Password Step 2 -->
             <div id="authViewForgotStep2" style="display: none;">
                 <label class="form-label">6-DIGIT RESET CODE</label>
                 <input type="text" maxlength="6" id="forgotOtpCode" class="form-input mono-data center-text" placeholder="123456" style="letter-spacing: 6px; font-size: 1.2rem; margin-bottom: 12px;">
