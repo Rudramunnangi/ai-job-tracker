@@ -369,7 +369,7 @@ EVALUATION PROTOCOL:
 Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%20Engineer).
 """
 
-    MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+    MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"]
     last_error = None
 
     for model_name in MODELS_TO_TRY:
