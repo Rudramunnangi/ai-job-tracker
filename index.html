@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="ixj6k7_B3Fj9XrQOmyDfWXhSn1dpjSZEzTj7_5bh8MA" />
+    <meta name="google-site-verification" content="mUf7B29D3G3oR9YxQ-k_MockVerificationCode" />
     <title>NexJob AI | Autonomous Career Intelligence</title>
+    <meta name="description" content="Track technical job applications, optimize resumes with AI, and access real-time job portals on NexJob AI.">
+    <meta property="og:title" content="NexJob AI | Autonomous Career Intelligence" />
+    <meta property="og:description" content="AI-driven career cockpit simplifying technical application pipelines and ATS gap matching." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ai-job-tracker-9a3m.onrender.com/" />
+    
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%236366F1'/><stop offset='100%' stop-color='%2314B8A6'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230B0F19'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='6' fill='%232DD4BF'/></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- Vibrant Animated Dynamic Background -->
     <div class="vibrant-color-shift-bg"></div>
     <div class="vibrant-orb orb-1"></div>
     <div class="vibrant-orb orb-2"></div>
-    <div class="vibrant-orb orb-3"></div>
 
-    <!-- Scrim Overlay for Drawer -->
     <div id="drawerScrim" class="drawer-scrim" onclick="toggleDrawer()"></div>
 
     <!-- Top Navigation Bar -->
@@ -50,7 +53,7 @@
         <div class="top-nav-right">
             <div id="guestTopControls" class="auth-pill-group">
                 <span class="status-pill guest-pill">Guest Mode</span>
-                <button class="btn-primary" onclick="openAuthModal()">Log in</button>
+                <button class="btn-primary" onclick="openAuthModal('login')">Log in</button>
             </div>
 
             <div id="userTopControls" class="auth-pill-group" style="display: none;">
@@ -62,7 +65,7 @@
         </div>
     </header>
 
-    <!-- Right-Side Sliding Profile Drawer -->
+    <!-- Sliding Profile Drawer -->
     <aside id="profileDrawer" class="profile-drawer">
         <div class="drawer-header">
             <div class="drawer-user-meta">
@@ -76,19 +79,18 @@
         </div>
 
         <div class="drawer-body">
-            <div style="color: var(--text-muted); font-size: 0.85rem; padding: 10px 0;">
-                Manage account settings, credentials, and resume documents below.
-            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
+                Manage account credentials, tracked applications, and verified resume profiles.
+            </p>
         </div>
 
-        <!-- Positioned Just Above Logout -->
         <div class="drawer-footer">
             <div id="drawerGuestActions">
-                <button class="btn-primary full-width" onclick="openAuthModal(); toggleDrawer();">Sign In / Register</button>
+                <button class="btn-primary full-width" onclick="openAuthModal('login'); toggleDrawer();">Sign In / Register</button>
             </div>
             <div id="drawerMemberActions" style="display: none;">
-                <button class="btn-secondary full-width" style="margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="openProfileModal(); toggleDrawer();">
-                    👤 Edit Profile & Career Links
+                <button class="btn-secondary full-width" style="margin-bottom: 10px;" onclick="openProfileModal(); toggleDrawer();">
+                    👤 Edit Profile & Portfolio Links
                 </button>
                 <button class="btn-secondary full-width" style="margin-bottom: 10px;" onclick="logoutUser()">Log out</button>
                 <button class="btn-danger-outline full-width" onclick="deleteAccount()">Delete Account</button>
@@ -98,8 +100,6 @@
 
     <!-- Main Content Container -->
     <main class="main-content">
-
-        <!-- Hero Section -->
         <section class="hero-section">
             <h1 class="hero-heading">
                 Streamline Career Workflows with <span class="gradient-text">Autonomous AI Intelligence</span>
@@ -109,7 +109,7 @@
             </p>
         </section>
 
-        <!-- Animated 3-Step Journey Pipeline -->
+        <!-- 3-Step Journey Pipeline -->
         <div class="journey-container">
             <div class="journey-route-line">
                 <div id="activeProgressLine" class="journey-route-fill"></div>
@@ -122,10 +122,9 @@
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 18px;">
                     <div class="card-header-group" style="margin-bottom: 0;">
                         <h2 class="card-title">Target Job Details</h2>
-                        <p class="card-subtitle" style="margin-bottom: 0;">Configure the specific job parameters for your ATS evaluation.</p>
+                        <p class="card-subtitle" style="margin-bottom: 0;">Configure target parameters for your ATS evaluation.</p>
                     </div>
 
-                    <!-- Target Job Switcher -->
                     <div id="jobSelectionControl" style="display: none; background: rgba(99, 102, 241, 0.1); border: 1px solid var(--accent-indigo); padding: 8px 12px; border-radius: 10px;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: #C7D2FE; display: block; margin-bottom: 4px;">SWITCH TRACKED JOB:</label>
                         <select id="roleSelector" class="form-select" onchange="onTrackedJobChange()" style="min-width: 240px;"></select>
@@ -148,9 +147,10 @@
                     <textarea id="jobDesc" class="form-textarea" rows="4" placeholder="Paste requirements, qualifications, and core responsibilities..."></textarea>
                 </div>
 
+                <!-- Apex Board / Application Pipeline -->
                 <div id="memberPipelineContainer" class="member-exclusive-block" style="display: none; margin-top: 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                        <h3 class="section-micro-title">Active Kanban Pipeline</h3>
+                        <h3 class="section-micro-title">Apex Application Board</h3>
                         <button class="btn-primary compact" onclick="openJobModal()">+ Add To Board</button>
                     </div>
                     
@@ -162,7 +162,7 @@
                     </div>
 
                     <div id="nudgeAlertContainer"></div>
-                    <div id="kanbanGrid" class="kanban-grid"></div>
+                    <div id="pipelineGrid" class="pipeline-grid"></div>
                 </div>
             </section>
 
@@ -171,7 +171,7 @@
                 <div class="card-step-badge">02</div>
                 <div class="card-header-group">
                     <h2 class="card-title">ATS Execution</h2>
-                    <p class="card-subtitle">Run autonomous deep semantic evaluation against your candidate resume.</p>
+                    <p class="card-subtitle">Run autonomous semantic evaluation against your candidate resume.</p>
                 </div>
 
                 <div class="resume-source-box">
@@ -182,17 +182,14 @@
                     <textarea id="userResume" class="form-textarea" rows="6" placeholder="Paste candidate resume background, tech stack, and key metrics..."></textarea>
                 </div>
 
-                <!-- Custom File Upload Dropzone -->
                 <div id="resumeVaultBox" class="custom-file-upload-card" style="display: none; margin-top: 18px;">
                     <div class="file-drop-zone">
                         <div class="file-icon-wrap">📄</div>
                         <div class="file-text-wrap">
                             <span class="file-main-prompt">Upload Resume Document (PDF)</span>
-                            <span class="file-sub-prompt" id="selectedFileName">Supports official PDF files for instant AI parsing</span>
+                            <span class="file-sub-prompt" id="selectedFileName">Supports PDF files for instant AI parsing</span>
                         </div>
-                        <label class="file-custom-btn" for="pdfFileInput">
-                            Choose File
-                        </label>
+                        <label class="file-custom-btn" for="pdfFileInput">Choose File</label>
                         <input type="file" id="pdfFileInput" accept=".pdf" onchange="handleFileSelect(event)" style="display: none;">
                         <button class="btn-primary compact" style="margin-left: 8px;" onclick="uploadResumePDF()">Sync PDF</button>
                     </div>
@@ -210,7 +207,7 @@
                 <div class="card-step-badge">03</div>
                 <div class="card-header-group">
                     <h2 class="card-title">Career Roadmap</h2>
-                    <p class="card-subtitle">Tailored action plans, gap diagnostics, and verified high-probability live roles.</p>
+                    <p class="card-subtitle">Tailored action plans, gap diagnostics, and verified live roles.</p>
                 </div>
 
                 <div id="atsResultWindow" class="ats-result-window">
@@ -222,7 +219,7 @@
         </div>
     </main>
 
-    <!-- Modern Contact Us Footer Block -->
+    <!-- Footer Bar Block -->
     <footer class="app-footer">
         <div class="footer-container">
             <div class="footer-grid">
@@ -238,28 +235,132 @@
                 <div class="footer-col" id="contact-section">
                     <h4 class="footer-heading">Contact & Support</h4>
                     <ul class="footer-links">
-                        <li>📧 <b>Support:</b> <a href="mailto:support@nexjob.ai" class="footer-link-text">support@nexjob.ai</a></li>
-                        <li>💬 <b>Technical Queries:</b> <a href="mailto:rudra@nexjob.ai" class="footer-link-text">rudra@nexjob.ai</a></li>
+                        <li>📧 <b>Support:</b> <a href="mailto:rudramunnangi@gmail.com?subject=NexJob%20Support" class="footer-link-text">rudramunnangi@gmail.com</a></li>
+                        <li>💬 <b>Technical Queries:</b> <a href="mailto:rudramunnangi@gmail.com?subject=NexJob%20Technical" class="footer-link-text">Direct Dev Inbox ↗</a></li>
                         <li>📍 <b>Location:</b> Hyderabad, Telangana, India</li>
                     </ul>
                 </div>
 
                 <div class="footer-col">
-                    <h4 class="footer-heading">Verified Job Gateways</h4>
+                    <h4 class="footer-heading">1-Click Verified Portals</h4>
                     <ul class="footer-links">
-                        <li><a href="https://www.linkedin.com/jobs" target="_blank" class="footer-link-text">LinkedIn Jobs Portal ↗</a></li>
-                        <li><a href="https://www.indeed.com" target="_blank" class="footer-link-text">Indeed Employment Engine ↗</a></li>
-                        <li><a href="https://www.google.com/search?q=tech+jobs+near+me&ibp=htl;jobs" target="_blank" class="footer-link-text">Google Careers Gateway ↗</a></li>
+                        <li><a id="footerLinkedInLink" href="https://www.linkedin.com/jobs/search/?keywords=AI%20Software%20Engineer&f_TPR=r86400" target="_blank" class="footer-link-text">LinkedIn Jobs (Live Openings) ↗</a></li>
+                        <li><a id="footerIndeedLink" href="https://www.indeed.com/jobs?q=AI+Developer&sort=date" target="_blank" class="footer-link-text">Indeed (Latest Matches) ↗</a></li>
+                        <li><a id="footerGoogleLink" href="https://www.google.com/search?q=AI+Engineer+jobs&ibp=htl;jobs" target="_blank" class="footer-link-text">Google Careers Portal ↗</a></li>
                     </ul>
                 </div>
             </div>
 
+            <!-- Neatly Arranged Responsive Footer -->
             <div class="footer-bottom-bar">
-                <span>© 2026 NexJob AI. Built for next-generation engineers.</span>
-                <span>All rights reserved.</span>
+                <p class="footer-copy">© 2026 NexJob AI. Built for next-generation engineers.</p>
+                <p class="footer-rights">All rights reserved.</p>
             </div>
         </div>
     </footer>
+
+    <!-- Comprehensive Authentication Modal (Login / Signup OTP / Forgot Password OTP) -->
+    <div id="authModal" class="modal-backdrop">
+        <div class="modal-window compact">
+            <div class="modal-header">
+                <h3 id="authModalTitle" class="modal-title">Sign In</h3>
+                <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
+            </div>
+
+            <div id="authDiagnosticBox" class="diagnostic-alert" style="display: none;"></div>
+
+            <!-- VIEW 1: Multi-Identifier Login -->
+            <div id="authViewLogin">
+                <div id="googleAuthWrapper" class="google-auth-box"></div>
+                <button onclick="demoLogin()" class="btn-demo-auth">⚡ Instant Demo Login</button>
+                <div class="divider-text"><span>OR CREDENTIALS</span></div>
+
+                <label class="form-label">EMAIL / PHONE / USERNAME</label>
+                <input type="text" id="loginIdentifier" class="form-input" placeholder="e.g. alex@example.com, +919876543210, or alex99" style="margin-bottom: 12px;">
+
+                <label class="form-label">PASSWORD</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="loginPassword" class="form-input" placeholder="••••••••">
+                    <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('loginPassword')">👁</button>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 18px 0;">
+                    <button class="text-link-btn" onclick="switchAuthView('forgot')">Forgot Password?</button>
+                    <button class="text-link-btn" onclick="switchAuthView('signup_step1')">Create Account</button>
+                </div>
+
+                <button class="btn-primary full-width" onclick="submitLogin()">Log In</button>
+            </div>
+
+            <!-- VIEW 2: Signup Step 1 (Request OTP via Email or Phone) -->
+            <div id="authViewSignupStep1" style="display: none;">
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                    Enter your email address or mobile phone number to receive a 6-digit verification OTP.
+                </p>
+                <label class="form-label">EMAIL OR PHONE NUMBER</label>
+                <input type="text" id="signupIdentifier" class="form-input" placeholder="e.g. alex@example.com or +919876543210" style="margin-bottom: 16px;">
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="switchAuthView('login')">Back to Login</button>
+                    <button class="btn-primary" onclick="requestSignupOTP()">Send Verification Code</button>
+                </div>
+            </div>
+
+            <!-- VIEW 3: Signup Step 2 (Verify OTP & Set Password/Username) -->
+            <div id="authViewSignupStep2" style="display: none;">
+                <p style="font-size: 0.82rem; color: var(--accent-teal); margin-bottom: 12px;" id="signupOtpPrompt">
+                    Code sent. Enter the 6-digit verification OTP:
+                </p>
+                
+                <div class="otp-inputs-grid">
+                    <input type="text" maxlength="6" id="signupOtpCode" class="form-input mono-data center-text" placeholder="123456" style="letter-spacing: 6px; font-size: 1.2rem; margin-bottom: 12px;">
+                </div>
+
+                <label class="form-label">DESIRED USERNAME</label>
+                <input type="text" id="signupUsername" class="form-input" placeholder="e.g. alex_ai" style="margin-bottom: 12px;">
+
+                <label class="form-label">FULL NAME</label>
+                <input type="text" id="signupFullName" class="form-input" placeholder="e.g. Alex Johnson" style="margin-bottom: 12px;">
+
+                <label class="form-label">PASSWORD (Min. 6 Characters)</label>
+                <input type="password" id="signupPassword" class="form-input" placeholder="••••••••" style="margin-bottom: 18px;">
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="switchAuthView('signup_step1')">Change Target</button>
+                    <button class="btn-primary" onclick="submitSignupVerification()">Complete Registration</button>
+                </div>
+            </div>
+
+            <!-- VIEW 4: Forgot Password (Request OTP) -->
+            <div id="authViewForgotStep1" style="display: none;">
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                    Enter your registered email address or phone number to reset your password.
+                </p>
+                <label class="form-label">REGISTERED EMAIL OR PHONE</label>
+                <input type="text" id="forgotIdentifier" class="form-input" placeholder="e.g. alex@example.com" style="margin-bottom: 16px;">
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="switchAuthView('login')">Cancel</button>
+                    <button class="btn-primary" onclick="requestForgotOTP()">Send Reset Code</button>
+                </div>
+            </div>
+
+            <!-- VIEW 5: Forgot Password (Verify OTP & Reset) -->
+            <div id="authViewForgotStep2" style="display: none;">
+                <label class="form-label">6-DIGIT RESET CODE</label>
+                <input type="text" maxlength="6" id="forgotOtpCode" class="form-input mono-data center-text" placeholder="123456" style="letter-spacing: 6px; font-size: 1.2rem; margin-bottom: 12px;">
+
+                <label class="form-label">NEW SECURE PASSWORD</label>
+                <input type="password" id="forgotNewPassword" class="form-input" placeholder="••••••••" style="margin-bottom: 18px;">
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="switchAuthView('forgot')">Back</button>
+                    <button class="btn-primary" onclick="submitPasswordReset()">Update Password</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
 
     <!-- Candidate Profile Modal -->
     <div id="profileModal" class="modal-backdrop">
@@ -293,12 +394,12 @@
 
             <div style="margin-top: 12px;">
                 <label class="form-label">PRIMARY SKILLS & TECH STACK</label>
-                <input type="text" id="profSkills" class="form-input" placeholder="Python, FastAPI, C++, Docker, GCP, PyTorch">
+                <input type="text" id="profSkills" class="form-input" placeholder="Python, FastAPI, C++, Docker, GCP">
             </div>
 
             <div style="margin-top: 12px;">
                 <label class="form-label">RAW RESUME CONTENT</label>
-                <textarea id="profResume" class="form-textarea" rows="5" placeholder="Paste or review parsed resume text..."></textarea>
+                <textarea id="profResume" class="form-textarea" rows="5" placeholder="Parsed resume text..."></textarea>
             </div>
 
             <div class="modal-actions" style="margin-top: 20px;">
@@ -355,38 +456,7 @@
 
             <div class="modal-actions" style="margin-top: 20px;">
                 <button class="btn-secondary" onclick="closeJobModal()">Cancel</button>
-                <button class="btn-primary" onclick="submitNewJob()">Add to Pipeline</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Auth Modal -->
-    <div id="authModal" class="modal-backdrop">
-        <div class="modal-window compact">
-            <div class="modal-header">
-                <h3 class="modal-title">Authentication</h3>
-                <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
-            </div>
-
-            <div id="authDiagnosticBox" class="diagnostic-alert" style="display: none;"></div>
-            <div id="googleAuthWrapper" class="google-auth-box"></div>
-
-            <button onclick="demoLogin()" class="btn-demo-auth">
-                ⚡ Instant Demo Login
-            </button>
-
-            <div class="divider-text"><span>OR EMAIL</span></div>
-
-            <label class="form-label">EMAIL ADDRESS</label>
-            <input type="email" id="authEmail" class="form-input" placeholder="you@example.com" style="margin-bottom: 12px;">
-
-            <label class="form-label">PASSWORD</label>
-            <input type="password" id="authPassword" class="form-input" placeholder="••••••••" style="margin-bottom: 18px;">
-
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
-                <button class="btn-secondary" onclick="handleAuth('login')">Log In</button>
-                <button class="btn-primary" onclick="handleAuth('signup')">Sign Up</button>
+                <button class="btn-primary" onclick="submitNewJob()">Add to Board</button>
             </div>
         </div>
     </div>
