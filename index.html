@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NexJob AI | Next-Gen Career Intelligence</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%234F46E5'/><stop offset='100%' stop-color='%230D9488'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230B0F19'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='6' fill='%232DD4BF'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%236366F1'/><stop offset='100%' stop-color='%2314B8A6'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230B0F19'/><path d='M30 70V30L70 70V30' stroke='url(%23g)' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='70' cy='30' r='6' fill='%232DD4BF'/></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,12 +15,12 @@
 </head>
 <body>
 
-    <!-- Soft Animated Background Mesh -->
-    <div class="bg-mesh mesh-1"></div>
-    <div class="bg-mesh mesh-2"></div>
-    <div class="bg-mesh mesh-3"></div>
+    <!-- Continuous Color-Shifting Ambient Background -->
+    <div class="color-shift-bg"></div>
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
 
-    <!-- Scrim Overlay for Closing Drawer -->
+    <!-- Scrim Overlay for Drawer -->
     <div id="drawerScrim" class="drawer-scrim" onclick="toggleDrawer()"></div>
 
     <!-- Top Navigation Bar -->
@@ -46,13 +46,13 @@
         </div>
 
         <div class="top-nav-right">
-            <!-- Guest State -->
+            <!-- Guest Mode Display -->
             <div id="guestTopControls" class="auth-pill-group">
                 <span class="status-pill guest-pill">Guest Mode</span>
                 <button class="btn-primary" onclick="openAuthModal()">Log in</button>
             </div>
 
-            <!-- Logged-in State -->
+            <!-- Member Display -->
             <div id="userTopControls" class="auth-pill-group" style="display: none;">
                 <div class="user-avatar-badge" onclick="toggleDrawer()">
                     <span id="userAvatarLetter" class="avatar-circle">U</span>
@@ -62,7 +62,7 @@
         </div>
     </header>
 
-    <!-- Right-Side Sliding Profile Drawer -->
+    <!-- Clean Right-Side Sliding Profile Drawer -->
     <aside id="profileDrawer" class="profile-drawer">
         <div class="drawer-header">
             <div class="drawer-user-meta">
@@ -77,26 +77,8 @@
 
         <div class="drawer-body">
             <nav class="drawer-nav">
-                <a href="#step-1" class="drawer-link" onclick="toggleDrawer()">
-                    <span class="nav-icon">📝</span> Step 1: Add Application
-                </a>
-                <a href="#step-2" class="drawer-link" onclick="toggleDrawer()">
-                    <span class="nav-icon">⚡</span> Step 2: ATS Execution
-                </a>
-                <a href="#step-3" class="drawer-link" onclick="toggleDrawer()">
-                    <span class="nav-icon">🗺️</span> Step 3: Career Roadmap
-                </a>
-                
-                <hr class="drawer-divider">
-
-                <a href="javascript:void(0)" class="drawer-link member-only-link" onclick="openProfileModal(); toggleDrawer();">
+                <a href="javascript:void(0)" class="drawer-link" onclick="openProfileModal(); toggleDrawer();">
                     <span class="nav-icon">👤</span> Profile & Links
-                </a>
-                <a href="#resume-vault" class="drawer-link member-only-link" onclick="scrollToVault(); toggleDrawer();">
-                    <span class="nav-icon">📄</span> Resume Vault
-                </a>
-                <a href="#pipeline-section" class="drawer-link member-only-link" onclick="scrollToPipeline(); toggleDrawer();">
-                    <span class="nav-icon">📊</span> Tracked Applications
                 </a>
             </nav>
         </div>
@@ -106,13 +88,13 @@
                 <button class="btn-primary full-width" onclick="openAuthModal(); toggleDrawer();">Sign In / Register</button>
             </div>
             <div id="drawerMemberActions" style="display: none;">
-                <button class="btn-secondary full-width" style="margin-bottom: 8px;" onclick="logoutUser()">Log out</button>
+                <button class="btn-secondary full-width" style="margin-bottom: 10px;" onclick="logoutUser()">Log out</button>
                 <button class="btn-danger-outline full-width" onclick="deleteAccount()">Delete Account</button>
             </div>
         </div>
     </aside>
 
-    <!-- Main Container Shell -->
+    <!-- Main Content Container -->
     <main class="main-content">
 
         <!-- Hero Section -->
@@ -125,28 +107,28 @@
             </p>
         </section>
 
-        <!-- Sequence Journey: 3 Connecting Steps -->
+        <!-- Animated 3-Step Journey Pipeline -->
         <div class="journey-container">
             <div class="journey-route-line">
-                <div class="route-marker"></div>
+                <div id="activeProgressLine" class="journey-route-fill"></div>
             </div>
 
-            <!-- STEP 1: Add Application -->
-            <section id="step-1" class="journey-card reveal-card">
+            <!-- STEP 01 -->
+            <section id="step-1" class="journey-card reveal-card active">
                 <div class="card-step-badge">01</div>
                 <div class="card-header-group">
-                    <h2 class="card-title">Add Application</h2>
-                    <p class="card-subtitle">Track new roles in your pipeline or benchmark them on demand.</p>
+                    <h2 class="card-title">Target Job Details</h2>
+                    <p class="card-subtitle">Set your target role and requirements to initiate the semantic match engine.</p>
                 </div>
 
                 <div class="input-grid">
                     <div>
                         <label class="form-label">TARGET ROLE TITLE</label>
-                        <input type="text" id="targetJobRole" class="form-input" placeholder="e.g. Full Stack AI Engineer">
+                        <input type="text" id="targetJobRole" class="form-input" placeholder="e.g. AI Platform Engineer">
                     </div>
                     <div>
                         <label class="form-label">COMPANY NAME</label>
-                        <input type="text" id="targetJobCompany" class="form-input" placeholder="e.g. Stripe, Google Cloud">
+                        <input type="text" id="targetJobCompany" class="form-input" placeholder="e.g. Google Cloud, Stripe">
                     </div>
                 </div>
 
@@ -155,7 +137,6 @@
                     <textarea id="jobDesc" class="form-textarea" rows="4" placeholder="Paste technical requirements, qualifications, and core responsibilities..."></textarea>
                 </div>
 
-                <!-- Logged-in Application Pipeline View -->
                 <div id="memberPipelineContainer" class="member-exclusive-block" style="display: none; margin-top: 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                         <h3 class="section-micro-title">Active Kanban Pipeline</h3>
@@ -174,12 +155,12 @@
                 </div>
             </section>
 
-            <!-- STEP 2: ATS Execution -->
+            <!-- STEP 02 -->
             <section id="step-2" class="journey-card reveal-card">
                 <div class="card-step-badge">02</div>
                 <div class="card-header-group">
                     <h2 class="card-title">ATS Execution</h2>
-                    <p class="card-subtitle">Run autonomous deep semantic evaluation against your active resume.</p>
+                    <p class="card-subtitle">Run autonomous deep semantic evaluation against your candidate resume.</p>
                 </div>
 
                 <div class="resume-source-box">
@@ -190,23 +171,30 @@
                     <textarea id="userResume" class="form-textarea" rows="6" placeholder="Paste candidate resume background, tech stack, and key metrics..."></textarea>
                 </div>
 
-                <!-- PDF Parser (Member Only) -->
-                <div id="resumeVaultBox" class="pdf-vault-box" style="display: none; margin-top: 16px;">
-                    <label class="form-label">DIRECT RESUME PDF PARSER</label>
-                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
-                        <input type="file" id="pdfFileInput" accept=".pdf" class="form-input compact" style="max-width: 320px;">
-                        <button class="btn-secondary" onclick="uploadResumePDF()">Upload & Sync PDF</button>
+                <!-- Custom Impressive File Upload Box -->
+                <div id="resumeVaultBox" class="custom-file-upload-card" style="display: none; margin-top: 18px;">
+                    <div class="file-drop-zone">
+                        <div class="file-icon-wrap">📄</div>
+                        <div class="file-text-wrap">
+                            <span class="file-main-prompt">Upload Resume Document (PDF)</span>
+                            <span class="file-sub-prompt" id="selectedFileName">Supports official PDF files for instant AI parsing</span>
+                        </div>
+                        <label class="file-custom-btn" for="pdfFileInput">
+                            Choose File
+                        </label>
+                        <input type="file" id="pdfFileInput" accept=".pdf" onchange="handleFileSelect(event)" style="display: none;">
+                        <button class="btn-primary compact" style="margin-left: 8px;" onclick="uploadResumePDF()">Sync PDF</button>
                     </div>
                 </div>
 
-                <div style="margin-top: 20px;">
+                <div style="margin-top: 22px;">
                     <button class="btn-primary full-width large-action" onclick="runATSExecution()">
                         ⚡ Execute ATS Evaluation & Career Roadmap
                     </button>
                 </div>
             </section>
 
-            <!-- STEP 3: Career Roadmap -->
+            <!-- STEP 03 -->
             <section id="step-3" class="journey-card reveal-card">
                 <div class="card-step-badge">03</div>
                 <div class="card-header-group">
@@ -216,7 +204,7 @@
 
                 <div id="atsResultWindow" class="ats-result-window mono-data">
                     <div class="empty-result-state">
-                        Enter target role details in Step 1 and execute ATS evaluation in Step 2 to generate your strategic career roadmap.
+                        Enter target role details in Step 01 and execute evaluation in Step 02 to generate your strategic career roadmap.
                     </div>
                 </div>
             </section>
@@ -335,10 +323,7 @@
                 <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
             </div>
 
-            <!-- Visible Diagnostic Alert -->
             <div id="authDiagnosticBox" class="diagnostic-alert" style="display: none;"></div>
-
-            <!-- Google OAuth Button Wrapper -->
             <div id="googleAuthWrapper" class="google-auth-box"></div>
 
             <button onclick="demoLogin()" class="btn-demo-auth">
