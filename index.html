@@ -677,14 +677,18 @@
           <div class="step-indicator">Step 02 // Candidate Profile</div>
           <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Candidate Resume & Experience</h2>
 
-          <div id="resumeVaultBox" class="form-group" style="display: none; background: var(--surface-card); padding: 1rem; border-radius: var(--radius-sm); border: 1px dashed var(--border); margin-bottom: 1.25rem;">
-            <label class="form-label" for="pdfFileInput">Upload PDF Resume</label>
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-              <input type="file" id="pdfFileInput" accept=".pdf" onchange="handleFileSelect(event)" style="font-size: 0.82rem; color: var(--text-muted);">
-              <button class="btn-ghost" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="uploadResumePDF()">Sync Profile Resume</button>
-            </div>
-            <p id="selectedFileName" style="font-size: 0.75rem; margin-top: 6px;"></p>
-          </div>
+          
+          <div id="resumeVaultBox" class="form-group" style="display: none; margin-bottom: 1.25rem;">
+  <label class="form-label">Upload PDF Resume</label>
+  <div class="custom-file-wrapper">
+    <input type="file" id="pdfFileInput" class="custom-file-input" accept=".pdf" onchange="handleFileSelect(event)">
+    <label for="pdfFileInput" class="custom-file-label">
+       Select PDF
+    </label>
+    <span id="selectedFileName" class="file-status-text">No file chosen</span>
+    <button class="btn-primary compact" onclick="uploadResumePDF()">Sync Profile Resume</button>
+  </div>
+</div>
 
           <div class="form-group">
             <label class="form-label" for="userResume">Resume Content (Plain Text)</label>
