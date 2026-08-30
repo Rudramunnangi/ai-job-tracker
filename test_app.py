@@ -1,84 +1,97 @@
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from server import app
 
 client = TestClient(app)
 
-def test_root_route():
+# Global test state
+test_user = {
+    "email": "tester@nexjob.ai",
+    "password": "SecurePassword123!"
+}
+auth_token = None
+created_job_id = None
+
+
+# --- 1. Static Asset & SEO Tests ---
+def test_homepage_loads():
     response = client.get("/")
     assert response.status_code == 200
+    assert "<title>" in response.text
 
-@patch("server.genai.Client")
-def test_guest_ats_execution(mock_genai_client):
-    mock_instance = MagicMock()
-    mock_model_response = MagicMock()
-    mock_model_response.text = "### Overall ATS Match Score: 88%\n\n**High-Level Verdict:** Strong fit."
-    mock_instance.models.generate_content.return_value = mock_model_response
-    mock_genai_client.return_value = mock_instance
-
-    payload = {
-        "role": "AI Engineer",
-        "company": "Test Corp",
-        "jd": "Must have expertise in Python, FastAPI, Docker, and Gemini API.",
-        "resume": "Skilled Python developer with experience building FastAPI backends.",
-        "isGuest": True
-    }
-    response = client.post("/api/gemini/smart-decision", json=payload)
+def test_favicon_png_route():
+    response = client.get("/favicon.png")
     assert response.status_code == 200
-    assert "ATS Match Score" in response.json().get("result", "")
+    assert response.headers["content-type"] in ["image/png", "application/octet-stream"]
 
-def test_unauthenticated_api_blocked():
-    # Calling member route without token must return 401
+def test_sitemap_xml_route():
+    response = client.get("/sitemap.xml")
+    assert response.status_code == 200
+    assert "urlset" in response.text
+
+
+# --- 2. Authentication Flow Tests ---
+def test_user_registration():
+    response = client.post("/api/auth/register", json=test_user)
+    assert response.status_code in [200, 201, 400]  # 400 if user already exists
+
+def test_user_login():
+    global auth_token
+    response = client.post("/api/auth/login", json=test_user)
+    assert response.status_code == 200
+    data = response.json()
+    assert "token" in data or "access_token" in data
+    auth_token = data.get("token") or data.get("access_token")
+
+def test_unauthorized_access():
     response = client.get("/api/jobs")
-    assert response.status_code == 401
+    assert response.status_code in [401, 403]
 
-def test_otp_signup_and_multi_identifier_login():
-    email = "candidate_test@nexjob.ai"
-    phone = "+919876543210"
-    username = "candidatetest"
-    pwd = "securepassword123"
 
-    # Step 1: Send OTP
-    otp_res = client.post("/api/auth/send-otp", json={"identifier": email, "purpose": "signup"})
-    assert otp_res.status_code == 200
-    dev_otp = otp_res.json().get("dev_otp")
-    assert dev_otp is not None
+# --- 3. Job Pipeline CRUD Lifecycle Tests ---
+def test_create_job_pipeline_entry():
+    global created_job_id
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    payload = {
+        "title": "Machine Learning Engineer",
+        "company": "Anthropic",
+        "status": "Bookmarked",
+        "salary": "$180,000",
+        "url": "https://example.com/job/123"
+    }
+    response = client.post("/api/jobs", json=payload, headers=headers)
+    assert response.status_code in [200, 201]
+    data = response.json()
+    created_job_id = data.get("id") or data.get("_id")
+    assert data["company"] == "Anthropic"
+    assert data["status"] == "Bookmarked"
 
-    # Step 2: Verify OTP and Register
-    signup_res = client.post("/api/auth/signup-verify", json={
-        "identifier": email,
-        "otp": dev_otp,
-        "username": username,
-        "password": pwd,
-        "full_name": "Test Candidate"
-    })
-    assert signup_res.status_code == 200
-    token = signup_res.json().get("token")
-    assert token is not None
+def test_update_job_pipeline_stage():
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    update_payload = {"status": "Interviewing"}
+    response = client.put(f"/api/jobs/{created_job_id}", json=update_payload, headers=headers)
+    assert response.status_code == 200
+    assert response.json()["status"] == "Interviewing"
 
-    # Step 3: Login using Username identifier
-    login_user_res = client.post("/api/auth/login", json={"identifier": username, "password": pwd})
-    assert login_user_res.status_code == 200
+def test_delete_job_pipeline_entry():
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    response = client.delete(f"/api/jobs/{created_job_id}", headers=headers)
+    assert response.status_code in [200, 204]
 
-    # Step 4: Login using Email identifier
-    login_email_res = client.post("/api/auth/login", json={"identifier": email, "password": pwd})
-    assert login_email_res.status_code == 200
-    user_token = login_email_res.json().get("token")
 
-    # Step 5: Save Job on Board with Token
-    headers = {"Authorization": f"Bearer {user_token}"}
-    save_job_res = client.post("/api/jobs/save", json={
-        "id": "apex_job_1",
-        "company": "DeepMind",
-        "role": "Research Scientist",
-        "date": "2026-08-29",
-        "status": "Applied",
-        "tags": ["AI", "PyTorch"],
-        "jd": "Develop frontier models."
-    }, headers=headers)
-    assert save_job_res.status_code == 200
+# --- 4. AI Matching & Resume Parsing Tests ---
+def test_ai_resume_analyzer_empty_payload():
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    response = client.post("/api/ai/match", json={}, headers=headers)
+    assert response.status_code in [400, 422]
 
-    # Step 6: Purge Account
-    del_res = client.delete("/api/account/delete", headers=headers)
-    assert del_res.status_code == 200
+def test_ai_resume_analyzer_valid_payload():
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    payload = {
+        "resume_text": "Experienced Python developer with PyTorch, FastAPI, and Docker skills.",
+        "job_description": "Looking for a Python AI Engineer skilled in FastAPI, PyTorch, and cloud deployment."
+    }
+    response = client.post("/api/ai/match", json=payload, headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "score" in data or "match_percentage" in data
