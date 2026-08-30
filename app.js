@@ -104,7 +104,7 @@ function updateDynamicJobLinks(customRole = null) {
     if (ggl) ggl.href = role ? `https://www.google.com/search?q=${encoded}+jobs&ibp=htl;jobs` : "https://www.google.com/search?q=jobs&ibp=htl;jobs";
 }
 
-// Authentication Modal Switcher
+// Authentication Modal View Switcher
 function switchAuthView(viewName) {
     clearAuthError();
     const views = ['Login', 'SignupStep1', 'SignupStep2', 'ForgotStep1', 'ForgotStep2'];
@@ -167,7 +167,7 @@ function clearAuthError() {
     }
 }
 
-// 1. Submit Login (Email or Username)
+// 1. Submit Login
 async function submitLogin() {
     clearAuthError();
     const identifier = document.getElementById('loginIdentifier').value.trim().toLowerCase();
@@ -263,7 +263,7 @@ async function resendSignupCode() {
     }
 }
 
-// 3. Signup Flow: Verify OTP & Create Account with Terms Acceptance
+// 3. Signup Flow: Verify OTP & Create Account with Terms of Service Safeguard
 async function submitSignupVerification() {
     clearAuthError();
     const otp = document.getElementById('signupOtpCode').value.trim();
@@ -891,6 +891,9 @@ async function runATSExecution() {
     resultBox.innerHTML = getBrandedBufferingHTML("Evaluating candidate alignment with AI...");
     document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
 
+    const fillLine = document.getElementById('activeProgressLine');
+    if (fillLine) fillLine.style.height = '100%';
+
     const isGuest = (!currentUser || !currentUser.email || !authToken);
 
     try {
@@ -919,10 +922,30 @@ async function runATSExecution() {
     }
 }
 
+// 5. Scroll Intersection Observer
+function initScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active');
+                const fillLine = document.getElementById('activeProgressLine');
+                if (fillLine) {
+                    if (entry.target.id === 'step-1') fillLine.style.height = '33%';
+                    else if (entry.target.id === 'step-2') fillLine.style.height = '66%';
+                    else if (entry.target.id === 'step-3') fillLine.style.height = '100%';
+                }
+            }
+        });
+    }, { threshold: 0.2 });
+
+    document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await loadUserData();
     updateAuthUI();
     renderDashboard();
+    initScrollAnimations();
 });
 
 // Interactive Dynamic Background Mouse Follower
