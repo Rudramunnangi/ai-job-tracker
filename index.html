@@ -326,7 +326,7 @@
     .form-textarea { resize: vertical; min-height: 120px; }
     .form-select.mini { padding: 2px 6px; font-size: 0.75rem; width: auto; }
 
-    /* 4. 3-Step Flow with Vertical Timeline Track & Scroll Reveals */
+    /* 4. 3-Step Flow with Fully Visible Cards */
     .flow-wrapper {
       position: relative;
       padding-left: 28px;
@@ -358,18 +358,19 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 2rem;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
+    
+    /* FIX: Ensure all cards are 100% visible with no dark overlay */
     .reveal-card {
-      opacity: 0.35;
-      transform: translateY(20px);
-      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
-    }
-    .reveal-card.active {
-      opacity: 1;
+      opacity: 1 !important;
       transform: translateY(0);
-      border-color: rgba(99, 102, 241, 0.5);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
     }
+    .reveal-card.active, .reveal-card:hover {
+      border-color: rgba(99, 102, 241, 0.6);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
     .step-indicator {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.75rem;
