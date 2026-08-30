@@ -167,7 +167,7 @@ function clearAuthError() {
     }
 }
 
-// 1. Submit Login
+// 1. Submit Login (Email or Username)
 async function submitLogin() {
     clearAuthError();
     const identifier = document.getElementById('loginIdentifier').value.trim().toLowerCase();
@@ -922,12 +922,14 @@ async function runATSExecution() {
     }
 }
 
-// 5. Scroll Intersection Observer
+// 5. Scroll Intersection Observer (Highlights active border without dimming others)
 function initScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
+                document.querySelectorAll('.reveal-card').forEach(c => c.classList.remove('active'));
                 entry.target.classList.add('active');
+
                 const fillLine = document.getElementById('activeProgressLine');
                 if (fillLine) {
                     if (entry.target.id === 'step-1') fillLine.style.height = '33%';
@@ -936,7 +938,7 @@ function initScrollAnimations() {
                 }
             }
         });
-    }, { threshold: 0.2 });
+    }, { threshold: 0.25 });
 
     document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
 }
