@@ -24,13 +24,6 @@ function toggleDrawer() {
     }
 }
 
-function togglePasswordVisibility(fieldId) {
-    const field = document.getElementById(fieldId);
-    if (field) {
-        field.type = field.type === 'password' ? 'text' : 'password';
-    }
-}
-
 // Branded Logo Loading Spinner Generator
 function getBrandedBufferingHTML(statusText = "Evaluating candidate alignment with AI...") {
     return `
@@ -96,7 +89,22 @@ function startForgotTimer() {
     }, 1000);
 }
 
-// Authentication Modal View Switcher
+// Default Official Job Portal Redirections
+function updateDynamicJobLinks(customRole = null) {
+    const role = customRole || (userProfile && userProfile.targetRole) || (document.getElementById('targetJobRole') && document.getElementById('targetJobRole').value) || "Software Engineer";
+    const encoded = encodeURIComponent(role.trim());
+
+    const lnk = document.getElementById('footerLinkedInLink');
+    if (lnk) lnk.href = role ? `https://www.linkedin.com/jobs/search/?keywords=${encoded}` : "https://www.linkedin.com/jobs/";
+
+    const ind = document.getElementById('footerIndeedLink');
+    if (ind) ind.href = role ? `https://www.indeed.com/jobs?q=${encoded}` : "https://www.indeed.com/";
+
+    const ggl = document.getElementById('footerGoogleLink');
+    if (ggl) ggl.href = role ? `https://www.google.com/search?q=${encoded}+jobs&ibp=htl;jobs` : "https://www.google.com/search?q=jobs&ibp=htl;jobs";
+}
+
+// Authentication Modal Switcher
 function switchAuthView(viewName) {
     clearAuthError();
     const views = ['Login', 'SignupStep1', 'SignupStep2', 'ForgotStep1', 'ForgotStep2'];
@@ -162,7 +170,7 @@ function clearAuthError() {
 // 1. Submit Login (Email or Username)
 async function submitLogin() {
     clearAuthError();
-    const identifier = document.getElementById('loginIdentifier').value.trim();
+    const identifier = document.getElementById('loginIdentifier').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value.trim();
 
     if (!identifier || !password) {
@@ -204,7 +212,7 @@ async function submitLogin() {
 async function requestSignupOTP() {
     clearAuthError();
     const idInput = document.getElementById('signupIdentifier');
-    const idVal = idInput ? idInput.value.trim() : "";
+    const idVal = idInput ? idInput.value.trim().toLowerCase() : "";
 
     if (!idVal || !idVal.includes('@')) {
         showAuthError("Please provide a valid email address.");
@@ -232,7 +240,7 @@ async function requestSignupOTP() {
         activeSignupIdentifier = idVal;
         const promptEl = document.getElementById('signupOtpPrompt');
         if (promptEl) {
-            promptEl.innerText = `Verification code sent to ${idVal}:`;
+            promptEl.innerText = `Verification code dispatched to ${idVal}:`;
         }
         switchAuthView('signup_step2');
     } catch (e) {
@@ -255,16 +263,22 @@ async function resendSignupCode() {
     }
 }
 
-// 3. Signup Flow: Verify OTP & Create Account
+// 3. Signup Flow: Verify OTP & Create Account with Terms Acceptance
 async function submitSignupVerification() {
     clearAuthError();
     const otp = document.getElementById('signupOtpCode').value.trim();
-    const username = document.getElementById('signupUsername').value.trim();
+    const username = document.getElementById('signupUsername').value.trim().toLowerCase();
     const fullName = document.getElementById('signupFullName').value.trim();
     const password = document.getElementById('signupPassword').value.trim();
+    const termsAccepted = document.getElementById('signupTermsAccept') ? document.getElementById('signupTermsAccept').checked : true;
+
+    if (!termsAccepted) {
+        showAuthError("You must agree to the Terms of Service & Privacy Policy.");
+        return;
+    }
 
     if (!otp || !username || !password) {
-        showAuthError("Please fill in the OTP code, username, and password.");
+        showAuthError("Please complete the OTP, username, and password fields.");
         return;
     }
 
@@ -278,13 +292,14 @@ async function submitSignupVerification() {
                 otp: otp,
                 username: username,
                 password: password,
-                full_name: fullName
+                full_name: fullName,
+                terms_accepted: termsAccepted
             })
         });
         const data = await res.json();
 
         if (!res.ok) {
-            showAuthError(data.detail || "OTP verification failed.");
+            showAuthError(data.detail || "Verification failed.");
             return;
         }
 
@@ -301,7 +316,7 @@ async function submitSignupVerification() {
         updateAuthUI();
         renderDashboard();
     } catch (e) {
-        showAuthError("Error completing registration.");
+        showAuthError("Registration error.");
     }
 }
 
@@ -309,7 +324,7 @@ async function submitSignupVerification() {
 async function requestForgotOTP() {
     clearAuthError();
     const idInput = document.getElementById('forgotIdentifier');
-    const idVal = idInput ? idInput.value.trim() : "";
+    const idVal = idInput ? idInput.value.trim().toLowerCase() : "";
 
     if (!idVal || !idVal.includes('@')) {
         showAuthError("Please enter your registered email address.");
@@ -350,7 +365,7 @@ async function resendForgotCode() {
     }
 }
 
-// 5. Verify Reset OTP & Reset Password
+// 5. Verify Reset OTP & Update Password
 async function submitPasswordReset() {
     clearAuthError();
     const otp = document.getElementById('forgotOtpCode').value.trim();
@@ -387,20 +402,6 @@ async function submitPasswordReset() {
 }
 
 // Google OAuth Trigger
-function triggerGoogleSignIn() {
-    const hiddenWrap = document.getElementById('googleHiddenRenderWrapper');
-    if (hiddenWrap && hiddenWrap.querySelector('div[role="button"]')) {
-        hiddenWrap.querySelector('div[role="button"]').click();
-    } else {
-        initGoogleAuth();
-        setTimeout(() => {
-            if (hiddenWrap && hiddenWrap.querySelector('div[role="button"]')) {
-                hiddenWrap.querySelector('div[role="button"]').click();
-            }
-        }, 500);
-    }
-}
-
 function initGoogleAuth() {
     const wrapper = document.getElementById('googleHiddenRenderWrapper');
     if (window.google && wrapper && wrapper.children.length === 0) {
@@ -444,7 +445,13 @@ async function handleGoogleResponse(response) {
     }
 }
 
-function logoutUser() {
+async function logoutUser() {
+    try {
+        if (authToken) {
+            await fetch("/api/auth/logout", { method: "POST", headers: getAuthHeaders() });
+        }
+    } catch (e) {}
+
     localStorage.removeItem('nexjob_active_user');
     localStorage.removeItem('nexjob_active_profile');
     localStorage.removeItem('nexjob_auth_token');
@@ -535,7 +542,7 @@ function handleFileSelect(event) {
     const nameEl = document.getElementById('selectedFileName');
     if (file && nameEl) {
         nameEl.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-        nameEl.style.color = "var(--accent-teal)";
+        nameEl.style.color = "var(--accent-teal-glow)";
     }
 }
 
@@ -665,20 +672,6 @@ function updateAuthUI() {
     updateDynamicJobLinks();
 }
 
-function updateDynamicJobLinks(customRole = null) {
-    const role = customRole || (userProfile && userProfile.targetRole) || (document.getElementById('targetJobRole') && document.getElementById('targetJobRole').value) || "AI Software Engineer";
-    const encodedRole = encodeURIComponent(role.trim());
-
-    const lnk = document.getElementById('footerLinkedInLink');
-    if (lnk) lnk.href = `https://www.linkedin.com/jobs/search/?keywords=${encodedRole}&f_TPR=r86400`;
-
-    const ind = document.getElementById('footerIndeedLink');
-    if (ind) ind.href = `https://www.indeed.com/jobs?q=${encodedRole}&sort=date`;
-
-    const ggl = document.getElementById('footerGoogleLink');
-    if (ggl) ggl.href = `https://www.google.com/search?q=${encodedRole}+jobs&ibp=htl;jobs`;
-}
-
 // Application Board Handlers
 function openJobModal() {
     if (!currentUser || !authToken) {
@@ -792,7 +785,7 @@ function renderDashboard() {
     if (nudgeContainer) {
         if (nudges.length > 0) {
             nudgeContainer.innerHTML = nudges.map(n => `
-                <div class="nudge-card">
+                <div class="pipeline-card" style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <span style="font-weight:700; color:var(--accent-coral);">Follow-Up Due:</span> 
                         Applied to <b>${n.company}</b> (${n.role}) 5+ days ago without response.
@@ -839,7 +832,7 @@ function renderDashboard() {
                 <div class="pipeline-col">
                     <div class="pipeline-header" style="color: ${stage.color};">
                         <span>${stage.name}</span>
-                        <span class="mono-data">${stageJobs.length}</span>
+                        <span style="font-family:'JetBrains Mono',monospace;">${stageJobs.length}</span>
                     </div>
                     ${cards || '<p class="empty-col-text">No entries</p>'}
                 </div>
@@ -898,9 +891,6 @@ async function runATSExecution() {
     resultBox.innerHTML = getBrandedBufferingHTML("Evaluating candidate alignment with AI...");
     document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
 
-    const fillLine = document.getElementById('activeProgressLine');
-    if (fillLine) fillLine.style.height = '100%';
-
     const isGuest = (!currentUser || !currentUser.email || !authToken);
 
     try {
@@ -929,29 +919,10 @@ async function runATSExecution() {
     }
 }
 
-function initScrollAnimations() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('active');
-                const fillLine = document.getElementById('activeProgressLine');
-                if (fillLine) {
-                    if (entry.target.id === 'step-1') fillLine.style.height = '33%';
-                    else if (entry.target.id === 'step-2') fillLine.style.height = '66%';
-                    else if (entry.target.id === 'step-3') fillLine.style.height = '100%';
-                }
-            }
-        });
-    }, { threshold: 0.2 });
-
-    document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     await loadUserData();
     updateAuthUI();
     renderDashboard();
-    initScrollAnimations();
 });
 
 // Interactive Dynamic Background Mouse Follower
