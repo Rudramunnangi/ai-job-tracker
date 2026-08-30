@@ -541,11 +541,10 @@ function handleFileSelect(event) {
     const file = event.target.files[0];
     const nameEl = document.getElementById('selectedFileName');
     if (file && nameEl) {
-        nameEl.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        nameEl.innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         nameEl.style.color = "var(--accent-teal-glow)";
     }
 }
-
 // Profile Modal Handlers
 function openProfileModal() {
     if (!currentUser || !authToken) {
