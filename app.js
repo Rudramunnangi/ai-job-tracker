@@ -589,6 +589,10 @@ async function saveUserProfile() {
             localStorage.setItem('nexjob_active_profile', JSON.stringify(userProfile));
             const resumeBox = document.getElementById('userResume');
             if (resumeBox) resumeBox.value = userProfile.resume;
+            
+            const roleBox = document.getElementById('targetJobRole');
+            if (roleBox && userProfile.targetRole) roleBox.value = userProfile.targetRole;
+
             closeProfileModal();
             updateAuthUI();
             alert("Career profile saved successfully!");
@@ -773,6 +777,12 @@ function renderDashboard() {
     if (selector) {
         if (jobs.length > 0) {
             selector.innerHTML = jobs.map(j => `<option value="${j.id}">${j.company} — ${j.role}</option>`).join('');
+            
+            // Auto-fill active job inputs on initial dashboard render if fields are blank
+            const jdBox = document.getElementById('jobDesc');
+            if (jdBox && !jdBox.value.trim()) {
+                onTrackedJobChange();
+            }
         } else {
             selector.innerHTML = `<option value="">No applications logged yet</option>`;
         }
@@ -787,7 +797,7 @@ function renderDashboard() {
                         <span style="font-weight:700; color:var(--accent-coral);">Follow-Up Due:</span> 
                         Applied to <b>${n.company}</b> (${n.role}) 5+ days ago without response.
                     </div>
-                    <button class="btn-primary compact" onclick="selectJobAndNudge('${n.id}')">Run ATS</button>
+                    <button class="btn-primary compact" onclick="selectJobAndNudge('${n.id}', true)">Run ATS</button>
                 </div>
             `).join('');
         } else {
@@ -807,7 +817,7 @@ function renderDashboard() {
         pipelineGrid.innerHTML = stages.map(stage => {
             const stageJobs = jobs.filter(j => j.status === stage.key);
             const cards = stageJobs.map(j => `
-                <div class="pipeline-card">
+                <div class="pipeline-card" onclick="selectJobAndNudge('${j.id}', false)" style="cursor: pointer;">
                     <div class="pipeline-role">${j.role}</div>
                     <div class="pipeline-comp">${j.company}</div>
                     <div style="margin-bottom: 8px;">
@@ -815,7 +825,7 @@ function renderDashboard() {
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted);">
                         <span>${j.date}</span>
-                        <select onchange="changeJobStage('${j.id}', this.value)" class="form-select mini">
+                        <select onclick="event.stopPropagation()" onchange="changeJobStage('${j.id}', this.value)" class="form-select mini">
                             <option ${j.status==='Applied'?'selected':''}>Applied</option>
                             <option ${j.status==='Interviewing'?'selected':''}>Interviewing</option>
                             <option ${j.status==='Offered'?'selected':''}>Offered</option>
@@ -838,7 +848,7 @@ function renderDashboard() {
     }
 }
 
-function selectJobAndNudge(id) {
+function selectJobAndNudge(id, autoRun = false) {
     const target = jobs.find(j => j.id === id);
     if (target) {
         document.getElementById('targetJobRole').value = target.role;
@@ -846,8 +856,12 @@ function selectJobAndNudge(id) {
         document.getElementById('jobDesc').value = target.jd;
         const selector = document.getElementById('roleSelector');
         if (selector) selector.value = id;
-        document.getElementById('step-2').scrollIntoView({ behavior: 'smooth' });
-        runATSExecution();
+        
+        document.getElementById('step-1').scrollIntoView({ behavior: 'smooth' });
+        
+        if (autoRun) {
+            runATSExecution();
+        }
     }
 }
 
