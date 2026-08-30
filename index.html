@@ -22,15 +22,12 @@
   }
   </script>
 
-  <!-- Typography & Icons -->
+  <!-- Typography & Libraries -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   
-  <!-- Markdown Parser for AI Responses -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  
-  <!-- Google Sign-In SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
@@ -55,9 +52,13 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    /* 1. Dynamic Animated Gradient Background */
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: var(--bg);
+      background: radial-gradient(circle at 50% 0%, #151A2E 0%, #07090F 60%, #05070B 100%);
+      background-size: 200% 200%;
+      animation: dynamicBgShift 18s ease infinite alternate;
       color: var(--text-main);
       overflow-x: hidden;
       min-height: 100vh;
@@ -65,7 +66,13 @@
       flex-direction: column;
     }
 
-    /* Dynamic Background Orbs */
+    @keyframes dynamicBgShift {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 100%; }
+    }
+
+    /* Ambient Dynamic Mouse Orbs */
     .orb {
       position: fixed;
       border-radius: 50%;
@@ -78,7 +85,7 @@
     .orb-1 { width: 450px; height: 450px; background: radial-gradient(circle, #6366F1, transparent 70%); top: -100px; left: -100px; }
     .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, #14B8A6, transparent 70%); bottom: -100px; right: -100px; }
 
-    /* Top Navigation Bar */
+    /* Navigation Bar */
     .navbar {
       display: flex;
       justify-content: space-between;
@@ -102,10 +109,9 @@
       letter-spacing: -0.5px;
     }
     .brand-logo svg { width: 32px; height: 32px; }
-
     .nav-actions { display: flex; align-items: center; gap: 12px; }
 
-    /* Buttons */
+    /* Interactive Buttons */
     .btn-primary {
       background: linear-gradient(135deg, var(--accent-indigo), #4F46E5);
       color: #FFF;
@@ -153,7 +159,7 @@
       cursor: pointer;
     }
 
-    /* Container & Layout */
+    /* Container */
     .main-container {
       max-width: 1180px;
       margin: 0 auto;
@@ -162,15 +168,15 @@
       width: 100%;
     }
 
-    .hero-section {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
+    /* Hero Section */
+    .hero-section { text-align: center; margin-bottom: 3rem; }
+    
+    /* 2. Glowing Interactive Tagline Chip */
     .hero-badge {
       display: inline-block;
-      padding: 4px 12px;
-      background: rgba(99, 102, 241, 0.12);
-      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 6px 16px;
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(20, 184, 166, 0.2));
+      border: 1px solid rgba(45, 212, 191, 0.4);
       border-radius: var(--radius-full);
       color: #A5B4FC;
       font-size: 0.75rem;
@@ -178,7 +184,16 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 1rem;
+      box-shadow: 0 0 16px rgba(45, 212, 191, 0.25);
+      animation: badgePulse 3s infinite ease-in-out alternate;
     }
+
+    @keyframes badgePulse {
+      0% { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 0 12px rgba(99, 102, 241, 0.2); }
+      100% { border-color: rgba(45, 212, 191, 0.6); box-shadow: 0 0 22px rgba(45, 212, 191, 0.4); }
+    }
+
+    /* 3. Shifting Neon Tagline Gradient */
     .hero-title {
       font-size: 2.8rem;
       font-weight: 800;
@@ -187,10 +202,19 @@
       margin-bottom: 0.75rem;
     }
     .hero-title span {
-      background: linear-gradient(135deg, #FFF, #94A3B8);
+      background: linear-gradient(135deg, #FFFFFF 0%, #818CF8 35%, #2DD4BF 70%, #F43F5E 100%);
+      background-size: 300% 300%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: textGradientFlow 8s ease infinite alternate;
     }
+
+    @keyframes textGradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     .hero-subtitle {
       font-size: 1.05rem;
       color: var(--text-muted);
@@ -199,7 +223,7 @@
       line-height: 1.5;
     }
 
-    /* Pipeline & KPI Board */
+    /* Pipeline Dashboard */
     .dashboard-panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -283,7 +307,7 @@
       margin-bottom: auto;
     }
 
-    /* Form Fields */
+    /* Form Inputs */
     .form-group { margin-bottom: 1.25rem; }
     .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
     .form-input, .form-textarea, .form-select {
@@ -302,21 +326,50 @@
     .form-textarea { resize: vertical; min-height: 120px; }
     .form-select.mini { padding: 2px 6px; font-size: 0.75rem; width: auto; }
 
-    /* 3-Step ATS Flow Container */
+    /* 4. 3-Step Flow with Vertical Timeline Track & Scroll Reveals */
+    .flow-wrapper {
+      position: relative;
+      padding-left: 28px;
+    }
+    .progress-line-track {
+      position: absolute;
+      left: 6px;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+    }
+    .progress-line-fill {
+      width: 100%;
+      height: 33%;
+      background: linear-gradient(to bottom, #6366F1, #2DD4BF);
+      border-radius: 999px;
+      transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 12px #2DD4BF;
+    }
     .flow-grid {
       display: grid;
       grid-template-columns: 1fr;
       gap: 2rem;
-      position: relative;
     }
     .flow-step-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 2rem;
-      transition: border-color 0.3s ease;
     }
-    .flow-step-card.active { border-color: var(--border-focus); }
+    .reveal-card {
+      opacity: 0.35;
+      transform: translateY(20px);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
+    }
+    .reveal-card.active {
+      opacity: 1;
+      transform: translateY(0);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    }
     .step-indicator {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.75rem;
@@ -327,7 +380,7 @@
       margin-bottom: 0.5rem;
     }
 
-    /* Loading Buffering Animation */
+    /* Branded Loading Spinner */
     .buffering-container {
       display: flex;
       flex-direction: column;
@@ -352,7 +405,7 @@
       letter-spacing: 0.2px;
     }
 
-    /* Result Markdown Stying */
+    /* Markdown Engine Styling */
     .result-score-card {
       background: var(--surface-elevated);
       border-left: 4px solid var(--accent-teal-glow);
@@ -379,7 +432,7 @@
     .verified-job-link { color: var(--accent-teal-glow); font-weight: 600; text-decoration: none; }
     .verified-job-link:hover { text-decoration: underline; }
 
-    /* Modals & Drawers */
+    /* Modals & Backdrop */
     .modal-backdrop {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -483,7 +536,7 @@
     </div>
   </nav>
 
-  <!-- Main Content View -->
+  <!-- Main Container -->
   <main class="main-container">
     
     <!-- Hero Banner -->
@@ -523,78 +576,84 @@
         </div>
       </div>
 
-      <!-- Nudge Container -->
+      <!-- Follow-up Nudges -->
       <div id="nudgeAlertContainer" style="margin-bottom: 1.5rem;"></div>
 
-      <!-- Pipeline Columns Grid -->
+      <!-- Pipeline Board Columns Grid -->
       <div class="pipeline-board" id="pipelineGrid"></div>
     </section>
 
-    <!-- 3-Step ATS Alignment Flow -->
-    <div class="flow-grid">
-      
-      <!-- Step 01: Job Details -->
-      <div class="flow-step-card reveal-card active" id="step-1">
-        <div class="step-indicator">Step 01 // Target Opening</div>
-        <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Job Description & Role Spec</h2>
+    <!-- 3-Step ATS Flow Container with Progress Tracker -->
+    <div class="flow-wrapper">
+      <div class="progress-line-track">
+        <div class="progress-line-fill" id="activeProgressLine"></div>
+      </div>
+
+      <div class="flow-grid">
         
-        <div id="jobSelectionControl" class="form-group" style="display: none;">
-          <label class="form-label" for="roleSelector">Load From Application Board</label>
-          <select id="roleSelector" class="form-select" onchange="onTrackedJobChange()"></select>
-        </div>
+        <!-- Step 01: Job Details -->
+        <div class="flow-step-card reveal-card active" id="step-1">
+          <div class="step-indicator">Step 01 // Target Opening</div>
+          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Job Description & Role Spec</h2>
+          
+          <div id="jobSelectionControl" class="form-group" style="display: none;">
+            <label class="form-label" for="roleSelector">Load From Application Board</label>
+            <select id="roleSelector" class="form-select" onchange="onTrackedJobChange()"></select>
+          </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="targetJobCompany">Company Name</label>
+              <input type="text" id="targetJobCompany" class="form-input" placeholder="e.g. Google">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="targetJobRole">Target Role Title</label>
+              <input type="text" id="targetJobRole" class="form-input" placeholder="e.g. Senior AI Engineer">
+            </div>
+          </div>
+
           <div class="form-group">
-            <label class="form-label" for="targetJobCompany">Company Name</label>
-            <input type="text" id="targetJobCompany" class="form-input" placeholder="e.g. Google">
+            <label class="form-label" for="jobDesc">Target Job Description (JD)</label>
+            <textarea id="jobDesc" class="form-textarea" placeholder="Paste the complete job description, tech stack requirements, and qualifications here..."></textarea>
           </div>
+        </div>
+
+        <!-- Step 02: Resume Vault & Input -->
+        <div class="flow-step-card reveal-card" id="step-2">
+          <div class="step-indicator">Step 02 // Candidate Profile</div>
+          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Candidate Resume & Experience</h2>
+
+          <div id="resumeVaultBox" class="form-group" style="display: none; background: var(--surface-card); padding: 1rem; border-radius: var(--radius-sm); border: 1px dashed var(--border); margin-bottom: 1.25rem;">
+            <label class="form-label" for="pdfFileInput">Upload PDF Resume</label>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <input type="file" id="pdfFileInput" accept=".pdf" onchange="handleFileSelect(event)" style="font-size: 0.82rem; color: var(--text-muted);">
+              <button class="btn-ghost" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="uploadResumePDF()">Sync Profile Resume</button>
+            </div>
+            <p id="selectedFileName" style="font-size: 0.75rem; margin-top: 6px;"></p>
+          </div>
+
           <div class="form-group">
-            <label class="form-label" for="targetJobRole">Target Role Title</label>
-            <input type="text" id="targetJobRole" class="form-input" placeholder="e.g. Senior AI Engineer">
+            <label class="form-label" for="userResume">Resume Content (Plain Text)</label>
+            <textarea id="userResume" class="form-textarea" placeholder="Paste your formatted resume text here (Projects, Work History, Core Tech Stack)..."></textarea>
+          </div>
+
+          <button class="btn-primary" style="width: 100%; padding: 0.85rem;" onclick="runATSExecution()">
+            Evaluate Alignment & Generate Strategy →
+          </button>
+        </div>
+
+        <!-- Step 03: Strategic Intelligence Output -->
+        <div class="flow-step-card reveal-card" id="step-3">
+          <div class="step-indicator">Step 03 // Strategic Intelligence</div>
+          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">ATS Alignment & Outreach Engine</h2>
+          <div id="atsResultWindow">
+            <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">
+              Complete Steps 01 and 02 above to generate an ATS breakdown, high-probability matching roles, and tailored outreach letters.
+            </p>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="jobDesc">Target Job Description (JD)</label>
-          <textarea id="jobDesc" class="form-textarea" placeholder="Paste the complete job description, tech stack requirements, and qualifications here..."></textarea>
-        </div>
       </div>
-
-      <!-- Step 02: Resume Vault & Input -->
-      <div class="flow-step-card reveal-card" id="step-2">
-        <div class="step-indicator">Step 02 // Candidate Profile</div>
-        <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Candidate Resume & Experience</h2>
-
-        <div id="resumeVaultBox" class="form-group" style="display: none; background: var(--surface-card); padding: 1rem; border-radius: var(--radius-sm); border: 1px dashed var(--border); margin-bottom: 1.25rem;">
-          <label class="form-label" for="pdfFileInput">Upload PDF Resume</label>
-          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <input type="file" id="pdfFileInput" accept=".pdf" onchange="handleFileSelect(event)" style="font-size: 0.82rem; color: var(--text-muted);">
-            <button class="btn-ghost" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="uploadResumePDF()">Sync Profile Resume</button>
-          </div>
-          <p id="selectedFileName" style="font-size: 0.75rem; margin-top: 6px;"></p>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="userResume">Resume Content (Plain Text)</label>
-          <textarea id="userResume" class="form-textarea" placeholder="Paste your formatted resume text here (Projects, Work History, Core Tech Stack)..."></textarea>
-        </div>
-
-        <button class="btn-primary" style="width: 100%; padding: 0.85rem;" onclick="runATSExecution()">
-          Evaluate Alignment & Generate Strategy →
-        </button>
-      </div>
-
-      <!-- Step 03: Decision Intelligence Output -->
-      <div class="flow-step-card reveal-card" id="step-3">
-        <div class="step-indicator">Step 03 // Strategic Intelligence</div>
-        <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">ATS Alignment & Outreach Engine</h2>
-        <div id="atsResultWindow">
-          <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">
-            Complete Steps 01 and 02 above to generate an ATS breakdown, high-probability matching roles, and tailored outreach letters.
-          </p>
-        </div>
-      </div>
-
     </div>
   </main>
 
