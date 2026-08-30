@@ -35,8 +35,6 @@ app.add_middleware(
 
 DB_PATH = "nexjob.db"
 
-# --- Database & Cryptography Helpers ---
-
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
@@ -60,6 +58,7 @@ def init_db():
             github_url TEXT DEFAULT '',
             portfolio_url TEXT DEFAULT '',
             auth_provider TEXT DEFAULT 'local',
+            last_active REAL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -88,19 +87,15 @@ def init_db():
     conn.commit()
     conn.close()
 
-try:
-    init_db()
-except Exception as e:
-    print(f"[DB INIT ERROR]: {e}")
+init_db()
 
-# --- HTTPS Email Dispatcher (Brevo API: Unrestricted to all users, Port 443) ---
-
+# --- Brevo HTTPS Email Dispatcher ---
 def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
     brevo_api_key = os.getenv("BREVO_API_KEY")
     sender_email = os.getenv("SENDER_EMAIL", "nexjobai.official@gmail.com")
 
     if not brevo_api_key:
-        print(f"\n[DEV FALLBACK - NO BREVO API KEY] OTP for {recipient_email}: {otp_code}\n")
+        print(f"\n[DEV FALLBACK - NO BREVO KEY] OTP for {recipient_email}: {otp_code}\n")
         return
 
     action_text = "complete your registration" if purpose == "signup" else "reset your password"
@@ -109,34 +104,24 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
     html_content = f"""
     <!DOCTYPE html>
     <html>
-    <head>
-      <meta charset="utf-8">
+    <head><meta charset="utf-8">
       <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #07090F; color: #F8FAFC; padding: 24px; }}
+        body {{ font-family: -apple-system, sans-serif; background-color: #07090F; color: #F8FAFC; padding: 24px; }}
         .card {{ max-width: 460px; margin: 0 auto; background: #0E1424; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); padding: 32px; }}
-        .tag {{ display: inline-block; background: #151D33; border: 1px solid #6366F1; color: #818CF8; padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; margin-bottom: 16px; }}
-        .otp-box {{ background: #151D33; border: 2px dashed #6366F1; border-radius: 8px; text-align: center; padding: 16px; margin: 24px 0; }}
+        .otp-box {{ background: #151D33; border: 2px dashed #6366F1; border-radius: 8px; text-align: center; padding: 16px; margin: 20px 0; }}
         .otp-code {{ font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #2DD4BF; }}
-        .footer {{ font-size: 12px; color: #94A3B8; margin-top: 24px; text-align: center; }}
       </style>
     </head>
     <body>
       <div class="card">
-        <span class="tag">NexJob AI Intelligence</span>
-        <h2 style="margin: 0 0 10px 0; color: #FFFFFF;">Email Verification</h2>
-        <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">
-          Use the 6-digit verification code below to {action_text}. This code expires in 10 minutes.
-        </p>
-        <div class="otp-box">
-          <div class="otp-code">{otp_code}</div>
-        </div>
-        <p style="font-size: 13px; color: #94A3B8;">If you did not request this verification code, please ignore this email.</p>
-        <div class="footer">© 2026 NexJob AI. Autonomous Career Strategy.</div>
+        <h2 style="color: #FFFFFF; margin-top:0;">NexJob AI Verification</h2>
+        <p style="color: #94A3B8;">Use this 6-digit verification code to {action_text}. Valid for 10 minutes.</p>
+        <div class="otp-box"><div class="otp-code">{otp_code}</div></div>
+        <p style="font-size: 12px; color: #64748B;">If you didn't request this code, ignore this email.</p>
       </div>
     </body>
     </html>
     """
-
     payload = json.dumps({
         "sender": {"name": "NexJob AI", "email": sender_email},
         "to": [{"email": recipient_email}],
@@ -147,44 +132,35 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
     req = urllib.request.Request(
         "https://api.brevo.com/v3/smtp/email",
         data=payload,
-        headers={
-            "api-key": brevo_api_key,
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
+        headers={"api-key": brevo_api_key, "Content-Type": "application/json", "Accept": "application/json"},
         method="POST"
     )
-
     try:
-        with urllib.request.urlopen(req) as response:
-            print(f"[BREVO SUCCESS]: OTP dispatched to {recipient_email} (HTTP {response.status})")
-    except urllib.error.HTTPError as e:
-        err_msg = e.read().decode("utf-8")
-        print(f"[BREVO HTTP ERROR]: {e.code} - {err_msg}")
-        raise HTTPException(status_code=500, detail="Failed to dispatch verification email. Please retry.")
+        urllib.request.urlopen(req)
     except Exception as e:
-        print(f"[BREVO DISPATCH ERROR]: {str(e)}")
-        raise HTTPException(status_code=500, detail="Network error during email dispatch.")
+        print(f"[BREVO DISPATCH ERROR]: {e}")
 
 def get_current_user_email(authorization: str = Header(None)) -> str:
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authentication required. Please log in.")
+        raise HTTPException(status_code=401, detail="Authentication required.")
     token = authorization.replace("Bearer ", "").strip()
     if not token:
-        raise HTTPException(status_code=401, detail="Invalid session token.")
+        raise HTTPException(status_code=401, detail="Invalid token.")
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT email FROM users WHERE token=?", (token,))
     row = cursor.fetchone()
+    if row:
+        cursor.execute("UPDATE users SET last_active=? WHERE email=?", (time.time(), row[0]))
+        conn.commit()
     conn.close()
     
     if not row:
-        raise HTTPException(status_code=401, detail="Session expired or invalid. Please log in again.")
+        raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
     return row[0]
 
 # --- Pydantic Data Models ---
-
 class SendOTPRequest(BaseModel):
     email: str | None = None
     identifier: str | None = None
@@ -197,6 +173,7 @@ class SignupVerifyRequest(BaseModel):
     username: str
     password: str
     full_name: str = ""
+    terms_accepted: bool = True
 
 class ResetPasswordRequest(BaseModel):
     email: str | None = None
@@ -238,8 +215,7 @@ class DecisionRequest(BaseModel):
     github: str | None = ""
     isGuest: bool = False
 
-# --- Authentication Endpoints ---
-
+# --- Auth Endpoints ---
 @app.post("/api/auth/send-otp")
 async def send_otp(payload: SendOTPRequest):
     raw_email = payload.email or payload.identifier or ""
@@ -250,12 +226,12 @@ async def send_otp(payload: SendOTPRequest):
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT email FROM users WHERE email=?", (email_clean,))
+    cursor.execute("SELECT email FROM users WHERE LOWER(email)=?", (email_clean,))
     user_exists = cursor.fetchone()
 
     if payload.purpose == "signup" and user_exists:
         conn.close()
-        raise HTTPException(status_code=400, detail="An account with this email already exists. Please sign in.")
+        raise HTTPException(status_code=400, detail="An account with this email already exists.")
     
     if payload.purpose == "forgot_password" and not user_exists:
         conn.close()
@@ -273,60 +249,47 @@ async def send_otp(payload: SendOTPRequest):
     conn.close()
 
     send_otp_email(email_clean, otp_code, payload.purpose)
-
-    return {
-        "status": "success",
-        "message": f"Verification code sent to {email_clean}."
-    }
+    return {"status": "success", "message": f"Verification code sent to {email_clean}."}
 
 @app.post("/api/auth/signup-verify")
 async def signup_verify(payload: SignupVerifyRequest):
+    if not payload.terms_accepted:
+        raise HTTPException(status_code=400, detail="You must agree to the Terms of Service and Privacy Policy.")
+        
     raw_email = payload.email or payload.identifier or ""
     email_clean = raw_email.strip().lower()
     username_clean = payload.username.strip().lower()
     otp = payload.otp.strip()
     
     if len(payload.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-
     cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE email=?", (email_clean,))
     otp_record = cursor.fetchone()
 
     if not otp_record:
         conn.close()
-        raise HTTPException(status_code=400, detail="OTP expired or request not found. Request a new code.")
+        raise HTTPException(status_code=400, detail="OTP expired or request not found.")
 
     otp_hash, expires_at, attempts, purpose = otp_record
 
-    if time.time() > expires_at:
-        cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
-        conn.commit()
-        conn.close()
-        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
-
-    if attempts >= 5:
-        cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
-        conn.commit()
-        conn.close()
-        raise HTTPException(status_code=429, detail="Too many invalid attempts. Request a new OTP.")
-
-    if hash_otp(otp) != otp_hash or purpose != "signup":
+    if time.time() > expires_at or attempts >= 5 or hash_otp(otp) != otp_hash or purpose != "signup":
         cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE email=?", (email_clean,))
         conn.commit()
         conn.close()
-        raise HTTPException(status_code=400, detail="Invalid OTP code.")
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP code.")
 
     hashed_pwd = hash_password(payload.password)
     new_token = secrets.token_hex(24)
+    now = time.time()
 
     try:
         cursor.execute("""
-            INSERT INTO users (email, username, password, token, full_name, auth_provider)
-            VALUES (?, ?, ?, ?, ?, 'local')
-        """, (email_clean, username_clean, hashed_pwd, new_token, payload.full_name or username_clean))
+            INSERT INTO users (email, username, password, token, full_name, auth_provider, last_active)
+            VALUES (?, ?, ?, ?, ?, 'local', ?)
+        """, (email_clean, username_clean, hashed_pwd, new_token, payload.full_name or username_clean, now))
         cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
         conn.commit()
     except sqlite3.IntegrityError:
@@ -352,50 +315,35 @@ async def reset_password(payload: ResetPasswordRequest):
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-
     cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE email=?", (email_clean,))
     otp_record = cursor.fetchone()
 
-    if not otp_record:
+    if not otp_record or time.time() > otp_record[1] or otp_record[2] >= 5 or hash_otp(otp) != otp_record[0] or otp_record[3] != "forgot_password":
         conn.close()
-        raise HTTPException(status_code=400, detail="No active password reset request found. Request a new code.")
-
-    otp_hash, expires_at, attempts, purpose = otp_record
-
-    if time.time() > expires_at or attempts >= 5:
-        cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
-        conn.commit()
-        conn.close()
-        raise HTTPException(status_code=400, detail="OTP expired or too many failed attempts.")
-
-    if hash_otp(otp) != otp_hash or purpose != "forgot_password":
-        cursor.execute("UPDATE otps SET attempts = attempts + 1 WHERE email=?", (email_clean,))
-        conn.commit()
-        conn.close()
-        raise HTTPException(status_code=400, detail="Invalid OTP code.")
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP code.")
 
     new_hashed_pwd = hash_password(payload.new_password)
     new_token = secrets.token_hex(24)
 
-    cursor.execute("UPDATE users SET password=?, token=? WHERE email=?", (new_hashed_pwd, new_token, email_clean))
+    cursor.execute("UPDATE users SET password=?, token=?, last_active=? WHERE LOWER(email)=?", (new_hashed_pwd, new_token, time.time(), email_clean))
     cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
     conn.commit()
     conn.close()
-
-    return {"status": "success", "message": "Password updated successfully. Please log in with your new credentials."}
+    return {"status": "success", "message": "Password updated successfully."}
 
 @app.post("/api/auth/login")
 async def login(payload: LoginRequest):
     identifier = payload.identifier.strip().lower()
     hashed_pwd = hash_password(payload.password)
     new_token = secrets.token_hex(24)
+    now = time.time()
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
         SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url 
         FROM users 
-        WHERE (email=? OR username=?) AND password=?
+        WHERE (LOWER(email)=? OR LOWER(username)=?) AND password=?
     """, (identifier, identifier, hashed_pwd))
     user = cursor.fetchone()
 
@@ -404,7 +352,7 @@ async def login(payload: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials. Check your email/username and password.")
 
     user_email = user[0]
-    cursor.execute("UPDATE users SET token=? WHERE email=?", (new_token, user_email))
+    cursor.execute("UPDATE users SET token=?, last_active=? WHERE email=?", (new_token, now, user_email))
     conn.commit()
     conn.close()
 
@@ -430,10 +378,11 @@ async def google_auth(payload: GoogleAuthRequest):
         name = idinfo.get("name", "")
 
         if not email:
-            raise HTTPException(status_code=400, detail="Google authentication succeeded, but no email was provided.")
+            raise HTTPException(status_code=400, detail="No email provided by Google.")
 
         email_clean = email.strip().lower()
         new_token = secrets.token_hex(24)
+        now = time.time()
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -442,15 +391,15 @@ async def google_auth(payload: GoogleAuthRequest):
 
         if not user:
             cursor.execute("""
-                INSERT INTO users (email, username, password, token, full_name, auth_provider) 
-                VALUES (?, ?, 'google_oauth_verified', ?, ?, 'google')
-            """, (email_clean, email_clean.split('@')[0], new_token, name))
+                INSERT INTO users (email, username, password, token, full_name, auth_provider, last_active) 
+                VALUES (?, ?, 'google_oauth_verified', ?, ?, 'google', ?)
+            """, (email_clean, email_clean.split('@')[0], new_token, name, now))
             user_profile = {
                 "fullName": name, "targetRole": "", "skills": "", "resume": "", 
                 "linkedin": "", "github": "", "portfolio": ""
             }
         else:
-            cursor.execute("UPDATE users SET token=? WHERE email=?", (new_token, email_clean))
+            cursor.execute("UPDATE users SET token=?, last_active=? WHERE email=?", (new_token, now, email_clean))
             user_profile = {
                 "fullName": user[1] or name, "targetRole": user[2], "skills": user[3], 
                 "resume": user[4], "linkedin": user[5], "github": user[6], "portfolio": user[7]
@@ -461,8 +410,16 @@ async def google_auth(payload: GoogleAuthRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Google Login Error: {str(e)}")
 
-# --- Core Member Features ---
+@app.post("/api/auth/logout")
+async def logout(user_email: str = Depends(get_current_user_email)):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET token='' WHERE email=?", (user_email,))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
 
+# --- Member Features ---
 @app.post("/api/resume/upload-pdf")
 async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Depends(get_current_user_email)):
     if not file.filename.lower().endswith(".pdf"):
@@ -480,35 +437,12 @@ async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Depe
         
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET resume=? WHERE email=?", (extracted_text.strip(), user_email))
+        cursor.execute("UPDATE users SET resume=?, last_active=? WHERE email=?", (extracted_text.strip(), time.time(), user_email))
         conn.commit()
         conn.close()
         return {"extracted_text": extracted_text.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
-
-@app.post("/api/profile/save")
-async def save_profile(payload: ProfileRequest, user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE users 
-        SET full_name=?, target_role=?, skills=?, resume=?, linkedin_url=?, github_url=?, portfolio_url=?
-        WHERE email=?
-    """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.linkedin_url, payload.github_url, payload.portfolio_url, user_email))
-    conn.commit()
-    conn.close()
-    return {"status": "success"}
-
-@app.delete("/api/account/delete")
-async def delete_account(user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM jobs WHERE user_email=?", (user_email,))
-    cursor.execute("DELETE FROM users WHERE email=?", (user_email,))
-    conn.commit()
-    conn.close()
-    return {"status": "success", "message": "Account permanently deleted."}
 
 @app.get("/api/jobs")
 async def get_jobs(user_email: str = Depends(get_current_user_email)):
@@ -541,8 +475,30 @@ async def update_job_status(data: dict, user_email: str = Depends(get_current_us
     conn.close()
     return {"status": "success"}
 
-# --- AI Decision Engine ---
+@app.post("/api/profile/save")
+async def save_profile(payload: ProfileRequest, user_email: str = Depends(get_current_user_email)):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE users 
+        SET full_name=?, target_role=?, skills=?, resume=?, linkedin_url=?, github_url=?, portfolio_url=?, last_active=?
+        WHERE email=?
+    """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.linkedin_url, payload.github_url, payload.portfolio_url, time.time(), user_email))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
 
+@app.delete("/api/account/delete")
+async def delete_account(user_email: str = Depends(get_current_user_email)):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM jobs WHERE user_email=?", (user_email,))
+    cursor.execute("DELETE FROM users WHERE email=?", (user_email,))
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": "Account permanently deleted."}
+
+# --- AI Decision Engine ---
 @app.post("/api/gemini/smart-decision")
 async def execute_smart_decision(payload: DecisionRequest):
     api_key = os.getenv("GEMINI_API_KEY")
@@ -674,8 +630,7 @@ Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%2
         detail=f"AI model generation temporarily rate-limited. Please retry shortly. ({str(last_error)})"
     )
 
-# --- Admin Cockpit Endpoints ---
-
+# --- Admin Cockpit with IST Timestamps & Active Dots ---
 @app.post("/admin/delete-user")
 async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
@@ -704,8 +659,16 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    # Converts SQLite default UTC to IST (UTC +5:30)
     cursor.execute("""
-        SELECT u.email, u.full_name, u.target_role, u.created_at, COUNT(j.id) as job_count
+        SELECT 
+            u.email, 
+            u.full_name, 
+            u.target_role, 
+            datetime(u.created_at, '+5 hours', '+30 minutes') as ist_created_at, 
+            u.token, 
+            u.last_active, 
+            COUNT(j.id) as job_count
         FROM users u
         LEFT JOIN jobs j ON u.email = j.user_email
         GROUP BY u.email
@@ -715,144 +678,81 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     
     cursor.execute("SELECT COUNT(*) FROM jobs")
     total_jobs_count = cursor.fetchone()[0] or 0
-
-    cursor.execute("SELECT status, COUNT(*) FROM jobs GROUP BY status")
-    status_counts = dict(cursor.fetchall())
-    status_applied = status_counts.get("Applied", 0)
-    status_interviewing = status_counts.get("Interviewing", 0)
-    status_offered = status_counts.get("Offered", 0)
-    status_rejected = status_counts.get("Rejected", 0)
-
-    cursor.execute("""
-        SELECT strftime('%Y-%m-%d', created_at) as day, COUNT(*)
-        FROM users GROUP BY day ORDER BY day ASC LIMIT 30
-    """)
-    daily_signups = cursor.fetchall()
-
     conn.close()
 
     total_users_count = len(users)
-    avg_per_week = round(total_users_count / 4.3, 1) if total_users_count > 0 else 0
-    avg_per_month = round(total_users_count / 1.0, 1) if total_users_count > 0 else 0
+    now = time.time()
 
-    daily_labels = json.dumps([d[0] for d in daily_signups] or ["Today"])
-    daily_values = json.dumps([d[1] for d in daily_signups] or [total_users_count])
-    
-    status_labels = json.dumps(["Applied", "Interviewing", "Offered", "Rejected"])
-    status_values = json.dumps([status_applied, status_interviewing, status_offered, status_rejected])
+    table_rows = []
+    active_now_count = 0
 
-    table_rows = "".join([
-        f"""<tr id="row-{idx}">
-            <td><strong style="color:#FFF;">{u[0]}</strong></td>
-            <td>{u[1] or '<span style="color:#64748B;">Not Set</span>'}</td>
-            <td>{u[2] or '<span style="color:#64748B;">Not Set</span>'}</td>
-            <td>{u[3]}</td>
-            <td><span class="badge">{u[4]} jobs</span></td>
-            <td>
-                <button class="btn-del" onclick="deleteUserRow('{u[0]}', 'row-{idx}')">Delete</button>
-            </td>
-        </tr>"""
-        for idx, u in enumerate(users)
-    ])
+    for idx, u in enumerate(users):
+        email, full_name, target_role, created_at, token, last_active, job_count = u
+        is_active = bool(token and token.strip() and (now - (last_active or 0) < 7200))
+        if is_active:
+            active_now_count += 1
+            dot_html = '<span style="display:inline-flex; align-items:center; gap:6px; color:#2DD4BF;"><span style="height:8px; width:8px; background:#2DD4BF; border-radius:50%; box-shadow:0 0 8px #2DD4BF;"></span> Online</span>'
+        else:
+            dot_html = '<span style="display:inline-flex; align-items:center; gap:6px; color:#64748B;"><span style="height:8px; width:8px; background:#64748B; border-radius:50%;"></span> Offline</span>'
+
+        table_rows.append(f"""
+        <tr id="row-{idx}">
+            <td><strong style="color:#FFF;">{email}</strong></td>
+            <td>{dot_html}</td>
+            <td>{full_name or '<span style="color:#64748B;">Not Set</span>'}</td>
+            <td>{target_role or '<span style="color:#64748B;">Not Set</span>'}</td>
+            <td>{created_at} IST</td>
+            <td><span class="badge">{job_count} jobs</span></td>
+            <td><button class="btn-del" onclick="deleteUserRow('{email}', 'row-{idx}')">Delete</button></td>
+        </tr>
+        """)
+
+    rendered_table = "".join(table_rows) if table_rows else '<tr><td colspan="7" style="text-align:center; padding:2rem; color:#64748B;">No users registered yet.</td></tr>'
 
     return f"""
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>NexJob AI - Executive Admin Cockpit</title>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <meta charset="UTF-8"><title>NexJob AI - Admin Cockpit</title>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
         <style>
-            :root {{
-                --bg: #07090F; --surface: #0E1424; --elevated: #151D33;
-                --border: rgba(255,255,255,0.08); --indigo: #6366F1;
-                --teal: #14B8A6; --coral: #F43F5E; --amber: #F59E0B;
-                --text: #F8FAFC; --muted: #94A3B8;
-            }}
-            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body {{ font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); padding: 2rem; min-height: 100vh; }}
-            .header-bar {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }}
-            .title {{ font-size: 1.6rem; font-weight: 800; }}
-            .gradient-txt {{ background: linear-gradient(135deg, var(--indigo), var(--teal)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }}
-            .stat-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }}
-            .stat-label {{ font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 700; }}
-            .stat-val {{ font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 800; margin-top: 6px; }}
-            .charts-grid {{ display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem; margin-bottom: 2.5rem; }}
-            .chart-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }}
-            .chart-title {{ font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; color: #FFF; }}
-            .table-container {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; overflow-x: auto; }}
-            .table-top {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px; }}
-            .search-box {{ background: var(--elevated); border: 1px solid var(--border); color: #FFF; padding: 8px 14px; border-radius: 8px; font-size: 0.88rem; min-width: 260px; outline: none; }}
-            table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }}
-            th, td {{ padding: 12px 16px; border-bottom: 1px solid var(--border); }}
-            th {{ background: #0A0E1A; color: var(--muted); text-transform: uppercase; font-size: 0.72rem; }}
-            .badge {{ font-family: 'JetBrains Mono', monospace; background: rgba(99, 102, 241, 0.15); color: #818CF8; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }}
-            .btn-del {{ background: rgba(244, 63, 94, 0.15); border: 1px solid var(--coral); color: #FECDD3; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }}
-            .btn-del:hover {{ background: var(--coral); color: #FFF; }}
-            .btn-home {{ background: var(--elevated); border: 1px solid var(--border); color: #FFF; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; }}
-            @media (max-width: 900px) {{ .charts-grid {{ grid-template-columns: 1fr; }} }}
+            :root {{ --bg:#07090F; --surface:#0E1424; --elevated:#151D33; --border:rgba(255,255,255,0.08); --indigo:#6366F1; --teal:#14B8A6; --coral:#F43F5E; --text:#F8FAFC; --muted:#94A3B8; }}
+            * {{ margin:0; padding:0; box-sizing:border-box; }}
+            body {{ font-family:'Plus Jakarta Sans', sans-serif; background:var(--bg); color:var(--text); padding:2rem; }}
+            .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; }}
+            .stats {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }}
+            .card {{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; }}
+            .val {{ font-family:'JetBrains Mono', monospace; font-size:1.8rem; font-weight:800; margin-top:4px; }}
+            table {{ width:100%; border-collapse:collapse; text-align:left; font-size:0.88rem; }}
+            th, td {{ padding:12px 16px; border-bottom:1px solid var(--border); }}
+            th {{ background:#0A0E1A; color:var(--muted); text-transform:uppercase; font-size:0.72rem; }}
+            .badge {{ background:rgba(99,102,241,0.15); color:#818CF8; padding:3px 8px; border-radius:4px; font-weight:700; font-family:'JetBrains Mono', monospace; }}
+            .btn-del {{ background:rgba(244,63,94,0.15); border:1px solid var(--coral); color:#FECDD3; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; }}
         </style>
     </head>
     <body>
-        <div class="header-bar">
-            <div>
-                <h1 class="title">NexJob AI <span class="gradient-txt">Central Cockpit</span></h1>
-                <p style="color: var(--muted); font-size: 0.85rem; margin-top: 4px;">System metrics, candidate directory, and recruitment analytics.</p>
-            </div>
-            <a href="/" class="btn-home">← Open App</a>
+        <div class="header">
+            <div><h1 style="font-size:1.6rem; font-weight:800;">NexJob AI Central Cockpit</h1><p style="color:var(--muted); font-size:0.85rem;">Global accounts, live session tracking, and user directories.</p></div>
+            <a href="/" style="background:var(--elevated); border:1px solid var(--border); color:#FFF; padding:8px 16px; border-radius:8px; text-decoration:none; font-size:0.85rem;">← View Main App</a>
         </div>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">Total Accounts</div><div class="stat-val" style="color: var(--indigo);">{total_users_count}</div></div>
-            <div class="stat-card"><div class="stat-label">Avg Users / Week</div><div class="stat-val" style="color: var(--teal);">{avg_per_week}</div></div>
-            <div class="stat-card"><div class="stat-label">Avg Users / Month</div><div class="stat-val" style="color: var(--amber);">{avg_per_month}</div></div>
-            <div class="stat-card"><div class="stat-label">Tracked Applications</div><div class="stat-val" style="color: #A855F7;">{total_jobs_count}</div></div>
+        <div class="stats">
+            <div class="card"><div style="font-size:0.75rem; text-transform:uppercase; color:var(--muted); font-weight:700;">Total Registrations</div><div class="val" style="color:var(--indigo);">{total_users_count}</div></div>
+            <div class="card"><div style="font-size:0.75rem; text-transform:uppercase; color:var(--muted); font-weight:700;">Live / Active Users</div><div class="val" style="color:var(--teal);">{active_now_count}</div></div>
+            <div class="card"><div style="font-size:0.75rem; text-transform:uppercase; color:var(--muted); font-weight:700;">Tracked Applications</div><div class="val" style="color:#A855F7;">{total_jobs_count}</div></div>
         </div>
-        <div class="charts-grid">
-            <div class="chart-card"><div class="chart-title">📈 User Growth</div><canvas id="growthChart" height="120"></canvas></div>
-            <div class="chart-card"><div class="chart-title">📊 Global Pipeline Status</div><canvas id="pipelineChart" height="120"></canvas></div>
-        </div>
-        <div class="table-container">
-            <div class="table-top">
-                <h3 style="font-size: 1.1rem; font-weight: 700;">Registered Candidate Directory ({total_users_count})</h3>
-                <input type="text" id="userSearch" class="search-box" placeholder="Search by email or name..." onkeyup="filterUserTable()">
-            </div>
+        <div class="card" style="overflow-x:auto;">
+            <h3 style="margin-bottom:1rem; font-size:1.05rem;">Registered Candidate History & Status</h3>
             <table>
                 <thead>
-                    <tr><th>Candidate Email</th><th>Full Name</th><th>Target Role</th><th>Joined Date</th><th>Applications</th><th>Action</th></tr>
+                    <tr><th>Candidate Email</th><th>Status</th><th>Full Name</th><th>Target Role</th><th>Joined Date (IST)</th><th>Applications</th><th>Actions</th></tr>
                 </thead>
-                <tbody id="userTableBody">
-                    {table_rows if table_rows else '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:2rem;">No registered candidates found.</td></tr>'}
-                </tbody>
+                <tbody>{rendered_table}</tbody>
             </table>
         </div>
         <script>
-            const ctxGrowth = document.getElementById('growthChart').getContext('2d');
-            new Chart(ctxGrowth, {{
-                type: 'line',
-                data: {{
-                    labels: {daily_labels},
-                    datasets: [{{ label: 'Signups', data: {daily_values}, borderColor: '#6366F1', backgroundColor: 'rgba(99, 102, 241, 0.15)', fill: true, tension: 0.35, borderWidth: 2, pointBackgroundColor: '#14B8A6' }}]
-                }},
-                options: {{ responsive: true, plugins: {{ legend: {{ display: false }} }}, scales: {{ y: {{ beginAtZero: true }}, x: {{ grid: {{ display: false }} }} }} }}
-            }});
-            const ctxPipe = document.getElementById('pipelineChart').getContext('2d');
-            new Chart(ctxPipe, {{
-                type: 'doughnut',
-                data: {{ labels: {status_labels}, datasets: [{{ data: {status_values}, backgroundColor: ['#6366F1', '#F59E0B', '#14B8A6', '#64748B'], borderWidth: 0 }}] }},
-                options: {{ responsive: true, plugins: {{ legend: {{ position: 'bottom' }} }} }}
-            }});
-            function filterUserTable() {{
-                const input = document.getElementById('userSearch').value.toLowerCase();
-                document.querySelectorAll('#userTableBody tr').forEach(row => {{
-                    row.style.display = row.innerText.toLowerCase().includes(input) ? '' : 'none';
-                }});
-            }}
             async function deleteUserRow(email, rowId) {{
-                if (!confirm(`Permanently delete ${{email}}?`)) return;
-                const res = await fetch('/admin/delete-user', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ email: email }}) }});
+                if (!confirm(`Delete ${{email}}?`)) return;
+                const res = await fetch('/admin/delete-user', {{ method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify({{ email }}) }});
                 if (res.ok) document.getElementById(rowId).remove();
             }}
         </script>
@@ -860,25 +760,15 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     </html>
     """
 
-# --- SEO Sitemap & Robots ---
-
+# --- Sitemap, Robots, Static Mounts ---
 @app.get("/sitemap.xml")
 async def get_sitemap():
-    sitemap_content = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://ai-job-tracker-9a3m.onrender.com/</loc>
-    <lastmod>2026-08-29</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-</urlset>"""
-    return Response(content=sitemap_content, media_type="application/xml")
+    content = """<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://ai-job-tracker-9a3m.onrender.com/</loc><lastmod>2026-08-30</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>"""
+    return Response(content=content, media_type="application/xml")
 
 @app.get("/robots.txt")
 async def get_robots():
-    robots_content = "User-agent: *\nAllow: /\nSitemap: https://ai-job-tracker-9a3m.onrender.com/sitemap.xml"
-    return Response(content=robots_content, media_type="text/plain")
+    return Response(content="User-agent: *\nAllow: /\nSitemap: https://ai-job-tracker-9a3m.onrender.com/sitemap.xml", media_type="text/plain")
 
 @app.get("/")
 async def serve_home():
