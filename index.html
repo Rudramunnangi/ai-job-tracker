@@ -30,530 +30,8 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <style>
-    :root {
-      --bg: #07090F;
-      --surface: #0E1424;
-      --surface-elevated: #151D33;
-      --surface-card: #11182B;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(99, 102, 241, 0.5);
-      --accent-indigo: #6366F1;
-      --accent-teal: #14B8A6;
-      --accent-teal-glow: #2DD4BF;
-      --accent-coral: #F43F5E;
-      --accent-amber: #F59E0B;
-      --text-main: #F8FAFC;
-      --text-muted: #94A3B8;
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 18px;
-      --radius-full: 9999px;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    /* 1. Dynamic Animated Gradient Background */
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background: radial-gradient(circle at 50% 0%, #151A2E 0%, #07090F 60%, #05070B 100%);
-      background-size: 200% 200%;
-      animation: dynamicBgShift 18s ease infinite alternate;
-      color: var(--text-main);
-      overflow-x: hidden;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    @keyframes dynamicBgShift {
-      0% { background-position: 0% 0%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 100%; }
-    }
-
-    /* Ambient Dynamic Mouse Orbs */
-    .orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(120px);
-      z-index: -1;
-      pointer-events: none;
-      opacity: 0.35;
-      transition: transform 0.2s ease-out;
-    }
-    .orb-1 { width: 450px; height: 450px; background: radial-gradient(circle, #6366F1, transparent 70%); top: -100px; left: -100px; }
-    .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, #14B8A6, transparent 70%); bottom: -100px; right: -100px; }
-
-    /* Navigation Bar */
-    .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 2rem;
-      background: rgba(14, 20, 36, 0.7);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 800;
-      font-size: 1.25rem;
-      text-decoration: none;
-      color: #FFF;
-      letter-spacing: -0.5px;
-    }
-    .brand-logo svg { width: 32px; height: 32px; }
-    .nav-actions { display: flex; align-items: center; gap: 12px; }
-
-    /* Interactive Buttons */
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-indigo), #4F46E5);
-      color: #FFF;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 0.6rem 1.25rem;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .btn-primary:hover {
-      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
-      transform: translateY(-1px);
-    }
-    .btn-primary.compact { padding: 0.4rem 0.8rem; font-size: 0.78rem; }
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      padding: 0.6rem 1.25rem;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-ghost:hover { background: rgba(255, 255, 255, 0.05); }
-    /* Custom Branded File Input & Upload Dropzone */
-.custom-file-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  background: var(--surface-elevated);
-  border: 1px dashed rgba(99, 102, 241, 0.4);
-  border-radius: var(--radius-sm);
-  padding: 12px 16px;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.custom-file-wrapper:hover {
-  border-color: var(--accent-teal-glow);
-  background: rgba(20, 184, 166, 0.04);
-}
-
-/* Hide native ugly input, trigger via styled label */
-.custom-file-input {
-  display: none;
-}
-
-.custom-file-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #A5B4FC;
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  padding: 0.45rem 0.9rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.custom-file-label:hover {
-  background: var(--accent-indigo);
-  color: #FFF;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
-}
-
-.file-status-text {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-    .avatar-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-teal));
-      color: #FFF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      border: 2px solid var(--surface-elevated);
-      cursor: pointer;
-    }
-
-    /* Container */
-    .main-container {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 2.5rem 1.5rem;
-      flex: 1;
-      width: 100%;
-    }
-
-    /* Hero Section */
-    .hero-section { text-align: center; margin-bottom: 3rem; }
-    
-    /* 2. Glowing Interactive Tagline Chip */
-    .hero-badge {
-      display: inline-block;
-      padding: 6px 16px;
-      background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(20, 184, 166, 0.2));
-      border: 1px solid rgba(45, 212, 191, 0.4);
-      border-radius: var(--radius-full);
-      color: #A5B4FC;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 1rem;
-      box-shadow: 0 0 16px rgba(45, 212, 191, 0.25);
-      animation: badgePulse 3s infinite ease-in-out alternate;
-    }
-
-    @keyframes badgePulse {
-      0% { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 0 12px rgba(99, 102, 241, 0.2); }
-      100% { border-color: rgba(45, 212, 191, 0.6); box-shadow: 0 0 22px rgba(45, 212, 191, 0.4); }
-    }
-
-    /* 3. Shifting Neon Tagline Gradient */
-    .hero-title {
-      font-size: 2.8rem;
-      font-weight: 800;
-      letter-spacing: -1px;
-      line-height: 1.15;
-      margin-bottom: 0.75rem;
-    }
-    .hero-title span {
-      background: linear-gradient(135deg, #FFFFFF 0%, #818CF8 35%, #2DD4BF 70%, #F43F5E 100%);
-      background-size: 300% 300%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: textGradientFlow 8s ease infinite alternate;
-    }
-
-    @keyframes textGradientFlow {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .hero-subtitle {
-      font-size: 1.05rem;
-      color: var(--text-muted);
-      max-width: 600px;
-      margin: 0 auto;
-      line-height: 1.5;
-    }
-
-    /* Pipeline Dashboard */
-    .dashboard-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem;
-      margin-bottom: 3rem;
-    }
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .kpi-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 1.2rem;
-    }
-    .kpi-label { font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; }
-    .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 800; margin-top: 4px; }
-
-    .pipeline-board {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
-    }
-    .pipeline-col {
-      background: var(--surface-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      min-height: 280px;
-    }
-    .pipeline-header {
-      display: flex;
-      justify-content: space-between;
-      font-weight: 700;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      margin-bottom: 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .pipeline-card {
-      background: var(--surface-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 0.85rem;
-      margin-bottom: 0.75rem;
-      transition: all 0.2s ease;
-    }
-    .pipeline-card:hover {
-      border-color: var(--accent-indigo);
-      transform: translateY(-2px);
-    }
-    .pipeline-role { font-weight: 700; font-size: 0.9rem; margin-bottom: 2px; }
-    .pipeline-comp { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
-    .tag-chip {
-      display: inline-block;
-      font-size: 0.68rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-muted);
-      margin-right: 4px;
-    }
-    .empty-col-text {
-      text-align: center;
-      color: #475569;
-      font-size: 0.82rem;
-      margin-top: auto;
-      margin-bottom: auto;
-    }
-
-    /* Form Inputs */
-    .form-group { margin-bottom: 1.25rem; }
-    .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-    .form-input, .form-textarea, .form-select {
-      width: 100%;
-      background: var(--surface-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 0.75rem 1rem;
-      color: var(--text-main);
-      font-family: inherit;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent-indigo); }
-    .form-textarea { resize: vertical; min-height: 120px; }
-    .form-select.mini { padding: 2px 6px; font-size: 0.75rem; width: auto; }
-
-    /* 4. 3-Step Flow with Fully Visible Cards */
-    .flow-wrapper {
-      position: relative;
-      padding-left: 28px;
-    }
-    .progress-line-track {
-      position: absolute;
-      left: 6px;
-      top: 0;
-      width: 4px;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 999px;
-    }
-    .progress-line-fill {
-      width: 100%;
-      height: 33%;
-      background: linear-gradient(to bottom, #6366F1, #2DD4BF);
-      border-radius: 999px;
-      transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 0 12px #2DD4BF;
-    }
-    .flow-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 2rem;
-    }
-    .flow-step-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    
-    /* FIX: Ensure all cards are 100% visible with no dark overlay */
-    .reveal-card {
-      opacity: 1 !important;
-      transform: translateY(0);
-    }
-    .reveal-card.active, .reveal-card:hover {
-      border-color: rgba(99, 102, 241, 0.6);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    }
-
-    .step-indicator {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      font-weight: 800;
-      color: var(--accent-teal-glow);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 0.5rem;
-    }
-
-    /* Branded Loading Spinner */
-    .buffering-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 1rem;
-      gap: 1.2rem;
-    }
-    .buffering-logo-spinner {
-      width: 64px;
-      height: 64px;
-      animation: pulseGlow 1.5s infinite ease-in-out alternate;
-    }
-    @keyframes pulseGlow {
-      from { transform: scale(0.95); filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.4)); }
-      to { transform: scale(1.05); filter: drop-shadow(0 0 16px rgba(45, 212, 191, 0.6)); }
-    }
-    .buffering-text {
-      font-size: 0.92rem;
-      color: var(--accent-teal-glow);
-      font-weight: 600;
-      letter-spacing: 0.2px;
-    }
-
-    /* Markdown Engine Styling */
-    .result-score-card {
-      background: var(--surface-elevated);
-      border-left: 4px solid var(--accent-teal-glow);
-      border-radius: var(--radius-sm);
-      padding: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-    .score-badge {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--accent-teal-glow);
-      margin-bottom: 0.5rem;
-    }
-    .highlight-section {
-      background: var(--surface-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 1.25rem;
-      margin-top: 1rem;
-    }
-    .highlight-section h3 { font-size: 1.05rem; margin-bottom: 0.75rem; color: #FFF; }
-    .highlight-section ul { padding-left: 1.25rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
-    .verified-job-link { color: var(--accent-teal-glow); font-weight: 600; text-decoration: none; }
-    .verified-job-link:hover { text-decoration: underline; }
-
-    /* Modals & Backdrop */
-    .modal-backdrop {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
-    .modal-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-      width: 100%;
-      max-width: 480px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      position: relative;
-    }
-    .diagnostic-error {
-      background: rgba(244, 63, 94, 0.15);
-      border: 1px solid var(--accent-coral);
-      color: #FECDD3;
-      padding: 0.75rem 1rem;
-      border-radius: var(--radius-sm);
-      font-size: 0.82rem;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    /* Drawer */
-    .drawer {
-      position: fixed;
-      top: 0; right: -380px; width: 340px; height: 100vh;
-      background: var(--surface);
-      border-left: 1px solid var(--border);
-      z-index: 1100;
-      transition: right 0.3s ease;
-      padding: 2rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-    }
-    .drawer.open { right: 0; }
-    .drawer-scrim {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1050;
-      display: none;
-    }
-    .drawer-scrim.active { display: block; }
-
-    /* Footer */
-    .footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem;
-      margin-top: auto;
-      text-align: center;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    .footer-links { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.75rem; }
-    .footer-links a { color: var(--accent-teal-glow); text-decoration: none; }
-    .footer-links a:hover { text-decoration: underline; }
-  </style>
+  <!-- External Design System & UI/UX Pro Max Styles -->
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
@@ -604,8 +82,8 @@
     <section id="memberPipelineContainer" class="dashboard-panel" style="display: none;">
       <div class="panel-header">
         <div>
-          <h2 style="font-size: 1.3rem; font-weight: 800;">Apex Application Board</h2>
-          <p style="font-size: 0.82rem; color: var(--text-muted);">Manage candidate stages and automated follow-up triggers.</p>
+          <h2 class="panel-title">Apex Application Board</h2>
+          <p class="panel-subtitle">Manage candidate stages and automated follow-up triggers.</p>
         </div>
         <button class="btn-primary" onclick="openJobModal()">+ Add To Board</button>
       </div>
@@ -613,21 +91,26 @@
       <!-- KPI Summary Cards -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label">Total Applications</div>
+          <div class="kpi-label">Total Applications <span>📊</span></div>
           <div class="kpi-value" id="statTotal" style="color: var(--accent-indigo);">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">In Pipeline</div>
+          <div class="kpi-label">In Pipeline <span>🚀</span></div>
           <div class="kpi-value" id="statPipe" style="color: #818CF8;">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Offers Received</div>
+          <div class="kpi-label">Offers Received <span>🎉</span></div>
           <div class="kpi-value" id="statOffers" style="color: var(--accent-teal);">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Follow-ups Due</div>
+          <div class="kpi-label">Follow-ups Due <span>⏰</span></div>
           <div class="kpi-value" id="statNudges" style="color: var(--accent-coral);">0</div>
         </div>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="board-filter-bar">
+        <input type="text" id="boardSearchInput" class="board-search-input" placeholder="🔍 Filter applications by company, role, or tag..." oninput="filterBoard(this.value)">
       </div>
 
       <!-- Follow-up Nudges -->
@@ -637,18 +120,40 @@
       <div class="pipeline-board" id="pipelineGrid"></div>
     </section>
 
-    <!-- 3-Step ATS Flow Container with Progress Tracker -->
+    <!-- 3-Step ATS Stepper Flow -->
     <div class="flow-wrapper">
-      <div class="progress-line-track">
-        <div class="progress-line-fill" id="activeProgressLine"></div>
+      <!-- Interactive Stepper Navigation Tabs -->
+      <div class="stepper-nav" id="stepperNav">
+        <button class="step-tab active" id="tabStep1" onclick="goToStep(1)">
+          <div class="step-num-badge">01</div>
+          <div class="step-tab-meta">
+            <span class="step-tab-title">Target Opening</span>
+            <span class="step-tab-sub">Role & Job Description</span>
+          </div>
+        </button>
+        <button class="step-tab" id="tabStep2" onclick="goToStep(2)">
+          <div class="step-num-badge">02</div>
+          <div class="step-tab-meta">
+            <span class="step-tab-title">Candidate Profile</span>
+            <span class="step-tab-sub">Resume & Experience</span>
+          </div>
+        </button>
+        <button class="step-tab" id="tabStep3" onclick="goToStep(3)">
+          <div class="step-num-badge">03</div>
+          <div class="step-tab-meta">
+            <span class="step-tab-title">Strategic Output</span>
+            <span class="step-tab-sub">ATS Alignment & Outreach</span>
+          </div>
+        </button>
       </div>
 
       <div class="flow-grid">
-        
         <!-- Step 01: Job Details -->
-        <div class="flow-step-card reveal-card active" id="step-1">
-          <div class="step-indicator">Step 01 // Target Opening</div>
-          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Job Description & Role Spec</h2>
+        <div class="flow-step-card active" id="step-1">
+          <div class="step-card-header">
+            <div class="step-indicator-text">Step 01 // Target Opening</div>
+            <h2 class="step-card-title">Job Description & Role Spec</h2>
+          </div>
           
           <div id="jobSelectionControl" class="form-group" style="display: none;">
             <label class="form-label" for="roleSelector">Load From Application Board</label>
@@ -670,47 +175,64 @@
             <label class="form-label" for="jobDesc">Target Job Description (JD)</label>
             <textarea id="jobDesc" class="form-textarea" placeholder="Paste the complete job description, tech stack requirements, and qualifications here..."></textarea>
           </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+            <button class="btn-primary" onclick="goToStep(2)">
+              Continue to Candidate Profile →
+            </button>
+          </div>
         </div>
 
         <!-- Step 02: Resume Vault & Input -->
-        <div class="flow-step-card reveal-card" id="step-2">
-          <div class="step-indicator">Step 02 // Candidate Profile</div>
-          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Candidate Resume & Experience</h2>
+        <div class="flow-step-card" id="step-2">
+          <div class="step-card-header">
+            <div class="step-indicator-text">Step 02 // Candidate Profile</div>
+            <h2 class="step-card-title">Candidate Resume & Experience</h2>
+          </div>
 
-          
           <div id="resumeVaultBox" class="form-group" style="display: none; margin-bottom: 1.25rem;">
-  <label class="form-label">Upload PDF Resume</label>
-  <div class="custom-file-wrapper">
-    <input type="file" id="pdfFileInput" class="custom-file-input" accept=".pdf" onchange="handleFileSelect(event)">
-    <label for="pdfFileInput" class="custom-file-label">
-       Select PDF
-    </label>
-    <span id="selectedFileName" class="file-status-text">No file chosen</span>
-    <button class="btn-primary compact" onclick="uploadResumePDF()">Sync Profile Resume</button>
-  </div>
-</div>
+            <label class="form-label">Upload PDF Resume</label>
+            <div class="custom-file-wrapper">
+              <input type="file" id="pdfFileInput" class="custom-file-input" accept=".pdf" onchange="handleFileSelect(event)">
+              <label for="pdfFileInput" class="custom-file-label">
+                📄 Select PDF Resume
+              </label>
+              <span id="selectedFileName" class="file-status-text">No file chosen</span>
+              <button class="btn-primary compact" onclick="uploadResumePDF()">Sync Profile Resume</button>
+            </div>
+          </div>
 
           <div class="form-group">
             <label class="form-label" for="userResume">Resume Content (Plain Text)</label>
             <textarea id="userResume" class="form-textarea" placeholder="Paste your formatted resume text here (Projects, Work History, Core Tech Stack)..."></textarea>
           </div>
 
-          <button class="btn-primary" style="width: 100%; padding: 0.85rem;" onclick="runATSExecution()">
-            Evaluate Alignment & Generate Strategy →
-          </button>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 12px; flex-wrap: wrap;">
+            <button class="btn-ghost" onclick="goToStep(1)">
+              ← Back to Step 1
+            </button>
+            <button class="btn-primary" style="padding: 0.85rem 1.6rem;" onclick="runATSExecution()">
+              Evaluate Alignment & Generate Strategy 🚀
+            </button>
+          </div>
         </div>
 
         <!-- Step 03: Strategic Intelligence Output -->
-        <div class="flow-step-card reveal-card" id="step-3">
-          <div class="step-indicator">Step 03 // Strategic Intelligence</div>
-          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">ATS Alignment & Outreach Engine</h2>
+        <div class="flow-step-card" id="step-3">
+          <div class="step-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <div class="step-indicator-text">Step 03 // Strategic Intelligence</div>
+              <h2 class="step-card-title">ATS Alignment & Outreach Engine</h2>
+            </div>
+            <button class="btn-ghost" onclick="goToStep(2)">← Modify Inputs</button>
+          </div>
+
           <div id="atsResultWindow">
-            <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">
+            <p style="color: var(--text-muted); font-size: 0.95rem; text-align: center; padding: 3rem 0;">
               Complete Steps 01 and 02 above to generate an ATS breakdown, high-probability matching roles, and tailored outreach letters.
             </p>
           </div>
         </div>
-
       </div>
     </div>
   </main>
@@ -946,6 +468,9 @@
       <a href="/admin" target="_blank">Admin Cockpit</a>
     </div>
   </footer>
+
+  <!-- Toast Notifications Container -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <script src="/app.js"></script>
 </body>

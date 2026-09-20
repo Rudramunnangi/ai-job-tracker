@@ -15,6 +15,80 @@ function getAuthHeaders() {
     };
 }
 
+// --- UI/UX Pro Max Enhancement Helpers ---
+function goToStep(stepNum) {
+    [1, 2, 3].forEach(n => {
+        const card = document.getElementById(`step-${n}`);
+        const tab = document.getElementById(`tabStep${n}`);
+        if (card) {
+            if (n === stepNum) {
+                card.classList.add('active');
+                card.style.display = 'block';
+            } else {
+                card.classList.remove('active');
+                card.style.display = 'none';
+            }
+        }
+        if (tab) {
+            if (n === stepNum) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        }
+    });
+    const targetCard = document.getElementById(`step-${stepNum}`);
+    if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(12px) scale(0.95)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+function copyToClipboard(text, label = 'Outreach message') {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(`${label} copied to clipboard!`, 'success');
+        }).catch(() => {
+            showToast(`Could not copy automatically.`, 'error');
+        });
+    } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast(`${label} copied to clipboard!`, 'success');
+    }
+}
+
+function filterBoard(query) {
+    const q = (query || '').toLowerCase().trim();
+    const cards = document.querySelectorAll('.pipeline-card');
+    cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        if (!q || text.includes(q)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
 function toggleDrawer() {
     const drawer = document.getElementById('profileDrawer');
     const scrim = document.getElementById('drawerScrim');
@@ -876,22 +950,19 @@ async function runATSExecution() {
     const resultBox = document.getElementById('atsResultWindow');
 
     if (!jd || jd.length < 10) {
-        alert("Please paste the target Job Description in Step 01.");
-        document.getElementById('step-1').scrollIntoView({ behavior: 'smooth' });
+        showToast("Please paste the target Job Description in Step 01.", "error");
+        goToStep(1);
         return;
     }
 
     if (!resume || resume.length < 10) {
-        alert("Please paste or upload your resume in Step 02.");
-        document.getElementById('step-2').scrollIntoView({ behavior: 'smooth' });
+        showToast("Please paste or upload your resume in Step 02.", "error");
+        goToStep(2);
         return;
     }
 
-    resultBox.innerHTML = getBrandedBufferingHTML("Evaluating candidate alignment with AI...");
-    document.getElementById('step-3').scrollIntoView({ behavior: 'smooth' });
-
-    const fillLine = document.getElementById('activeProgressLine');
-    if (fillLine) fillLine.style.height = '100%';
+    goToStep(3);
+    resultBox.innerHTML = getBrandedBufferingHTML("Evaluating candidate alignment with AI & generating strategy...");
 
     const isGuest = (!currentUser || !currentUser.email || !authToken);
 
@@ -911,13 +982,26 @@ async function runATSExecution() {
         });
         const data = await res.json();
         if (res.ok) {
-            resultBox.innerHTML = typeof marked !== 'undefined' ? marked.parse(data.result) : data.result;
+            const parsedHTML = typeof marked !== 'undefined' ? marked.parse(data.result) : data.result;
+            resultBox.innerHTML = `
+                <div class="result-actions" style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                    <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultContent').innerText, 'Full ATS report')">
+                        📋 Copy Full Report
+                    </button>
+                </div>
+                <div id="atsResultContent">
+                    ${parsedHTML}
+                </div>
+            `;
             updateDynamicJobLinks(role);
+            showToast("ATS alignment strategy ready!", "success");
         } else {
-            resultBox.innerHTML = `<p style="color: var(--accent-coral); text-align: center;">Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
+            resultBox.innerHTML = `<p style="color: var(--accent-coral); text-align: center; padding: 2rem;">Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
+            showToast(data.detail || "Evaluation failed.", "error");
         }
     } catch (err) {
-        resultBox.innerHTML = '<p style="color: var(--accent-coral); text-align: center;">Connection error. Ensure the server is online.</p>';
+        resultBox.innerHTML = '<p style="color: var(--accent-coral); text-align: center; padding: 2rem;">Connection error. Ensure the server is online.</p>';
+        showToast("Network connection error.", "error");
     }
 }
 
