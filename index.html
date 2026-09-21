@@ -35,34 +35,30 @@
 </head>
 <body>
 
-  <!-- Ambient Glow -->
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-
   <!-- Navigation -->
   <nav class="navbar">
     <a href="/" class="brand-logo">
       <svg viewBox="0 0 100 100" fill="none">
-        <rect width="100" height="100" rx="24" fill="#151D33"/>
+        <rect width="100" height="100" rx="20" fill="#141A26"/>
         <path d="M30 70V30L70 70V30" stroke="url(#logoG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="70" cy="30" r="6" fill="#2DD4BF"/>
+        <circle cx="70" cy="30" r="6" fill="#10B981"/>
         <defs>
           <linearGradient id="logoG" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#6366F1"/>
-            <stop offset="100%" stop-color="#14B8A6"/>
+            <stop offset="0%" stop-color="#5B5FEF"/>
+            <stop offset="100%" stop-color="#10B981"/>
           </linearGradient>
         </defs>
       </svg>
-      <span>NexJob AI</span>
+      <span>NexJob</span><span class="brand-badge">PRO</span>
     </a>
 
     <div class="nav-actions">
       <div id="guestTopControls">
         <button class="btn-ghost" onclick="openAuthModal('login')">Sign In</button>
-        <button class="btn-primary" onclick="openAuthModal('signup_step1')">Get Started</button>
+        <button class="btn-primary" onclick="openAuthModal('signup_step1')">Get Started Free</button>
       </div>
       <div id="userTopControls" style="display: none; align-items: center; gap: 12px;">
-        <span id="userDisplayName" style="font-weight: 600; font-size: 0.9rem;">User</span>
+        <span id="userDisplayName" style="font-weight: 600; font-size: 0.88rem;">User</span>
         <button class="avatar-btn" id="userAvatarLetter" onclick="toggleDrawer()">U</button>
       </div>
     </div>
@@ -71,46 +67,49 @@
   <!-- Main Container -->
   <main class="main-container">
     
-    <!-- Hero Banner -->
+    <!-- Hero Banner (Human, Grounded Copy) -->
     <header class="hero-section">
-      <div class="hero-badge">Autonomous Career Intelligence</div>
-      <h1 class="hero-title"><span>Engineer Your Career Trajectory</span></h1>
-      <p class="hero-subtitle">High-precision ATS scoring, proactive Kanban pipeline tracking, and AI-engineered recruiter outreach.</p>
+      <div class="hero-pill">
+        <span class="hero-pill-dot"></span>
+        <span>ATS Scanner & Application Tracker</span>
+      </div>
+      <h1 class="hero-title">Stop sending resumes into the black hole.</h1>
+      <p class="hero-subtitle">Recruiters spend 6 seconds on your resume. NexJob shows you exactly what they see, fixes your missing keywords, and writes your follow-up emails before you apply.</p>
     </header>
 
-    <!-- Member Apex Application Pipeline Board -->
+    <!-- Member Job Pipeline Board -->
     <section id="memberPipelineContainer" class="dashboard-panel" style="display: none;">
       <div class="panel-header">
         <div>
-          <h2 class="panel-title">Apex Application Board</h2>
-          <p class="panel-subtitle">Manage candidate stages and automated follow-up triggers.</p>
+          <h2 class="panel-title">Job Tracker</h2>
+          <p class="panel-subtitle">Track applications, detect ghosting, and get reminders when it's time to follow up.</p>
         </div>
-        <button class="btn-primary" onclick="openJobModal()">+ Add To Board</button>
+        <button class="btn-primary" onclick="openJobModal()">+ Add Application</button>
       </div>
 
       <!-- KPI Summary Cards -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label">Total Applications <span>📊</span></div>
-          <div class="kpi-value" id="statTotal" style="color: var(--accent-indigo);">0</div>
+          <div class="kpi-label">Total Applied <span>📋</span></div>
+          <div class="kpi-value" id="statTotal" style="color: var(--accent-primary);">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">In Pipeline <span>🚀</span></div>
+          <div class="kpi-label">In Review <span>⏳</span></div>
           <div class="kpi-value" id="statPipe" style="color: #818CF8;">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Offers Received <span>🎉</span></div>
-          <div class="kpi-value" id="statOffers" style="color: var(--accent-teal);">0</div>
+          <div class="kpi-label">Interviews / Offers <span>🎉</span></div>
+          <div class="kpi-value" id="statOffers" style="color: var(--accent-success);">0</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Follow-ups Due <span>⏰</span></div>
-          <div class="kpi-value" id="statNudges" style="color: var(--accent-coral);">0</div>
+          <div class="kpi-value" id="statNudges" style="color: var(--accent-danger);">0</div>
         </div>
       </div>
 
       <!-- Search & Filter Bar -->
       <div class="board-filter-bar">
-        <input type="text" id="boardSearchInput" class="board-search-input" placeholder="🔍 Filter applications by company, role, or tag..." oninput="filterBoard(this.value)">
+        <input type="text" id="boardSearchInput" class="board-search-input" placeholder="Search by company, role title, or tech tag..." oninput="filterBoard(this.value)">
       </div>
 
       <!-- Follow-up Nudges -->
@@ -120,29 +119,29 @@
       <div class="pipeline-board" id="pipelineGrid"></div>
     </section>
 
-    <!-- 3-Step ATS Stepper Flow -->
+    <!-- 3-Step Work Flow -->
     <div class="flow-wrapper">
       <!-- Interactive Stepper Navigation Tabs -->
       <div class="stepper-nav" id="stepperNav">
         <button class="step-tab active" id="tabStep1" onclick="goToStep(1)">
           <div class="step-num-badge">01</div>
           <div class="step-tab-meta">
-            <span class="step-tab-title">Target Opening</span>
+            <span class="step-tab-title">Target Job</span>
             <span class="step-tab-sub">Role & Job Description</span>
           </div>
         </button>
         <button class="step-tab" id="tabStep2" onclick="goToStep(2)">
           <div class="step-num-badge">02</div>
           <div class="step-tab-meta">
-            <span class="step-tab-title">Candidate Profile</span>
-            <span class="step-tab-sub">Resume & Experience</span>
+            <span class="step-tab-title">Your Resume</span>
+            <span class="step-tab-sub">Upload PDF or Paste Text</span>
           </div>
         </button>
         <button class="step-tab" id="tabStep3" onclick="goToStep(3)">
           <div class="step-num-badge">03</div>
           <div class="step-tab-meta">
-            <span class="step-tab-title">Strategic Output</span>
-            <span class="step-tab-sub">ATS Alignment & Outreach</span>
+            <span class="step-tab-title">Match Report</span>
+            <span class="step-tab-sub">Gaps, Traps & Outreach</span>
           </div>
         </button>
       </div>
@@ -151,34 +150,34 @@
         <!-- Step 01: Job Details -->
         <div class="flow-step-card active" id="step-1">
           <div class="step-card-header">
-            <div class="step-indicator-text">Step 01 // Target Opening</div>
-            <h2 class="step-card-title">Job Description & Role Spec</h2>
+            <div class="step-indicator-text">Step 01 // Target Job</div>
+            <h2 class="step-card-title">Paste the Job Description</h2>
           </div>
           
           <div id="jobSelectionControl" class="form-group" style="display: none;">
-            <label class="form-label" for="roleSelector">Load From Application Board</label>
+            <label class="form-label" for="roleSelector">Load from your Job Tracker</label>
             <select id="roleSelector" class="form-select" onchange="onTrackedJobChange()"></select>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div class="form-group">
-              <label class="form-label" for="targetJobCompany">Company Name</label>
-              <input type="text" id="targetJobCompany" class="form-input" placeholder="e.g. Google">
+              <label class="form-label" for="targetJobCompany">Company</label>
+              <input type="text" id="targetJobCompany" class="form-input" placeholder="e.g. Stripe">
             </div>
             <div class="form-group">
-              <label class="form-label" for="targetJobRole">Target Role Title</label>
-              <input type="text" id="targetJobRole" class="form-input" placeholder="e.g. Senior AI Engineer">
+              <label class="form-label" for="targetJobRole">Role Title</label>
+              <input type="text" id="targetJobRole" class="form-input" placeholder="e.g. Senior Backend Engineer">
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="jobDesc">Target Job Description (JD)</label>
-            <textarea id="jobDesc" class="form-textarea" placeholder="Paste the complete job description, tech stack requirements, and qualifications here..."></textarea>
+            <label class="form-label" for="jobDesc">Job Description Requirements</label>
+            <textarea id="jobDesc" class="form-textarea" placeholder="Paste the job description or requirements here..."></textarea>
           </div>
 
           <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
             <button class="btn-primary" onclick="goToStep(2)">
-              Continue to Candidate Profile →
+              Next: Add Resume →
             </button>
           </div>
         </div>
@@ -186,55 +185,177 @@
         <!-- Step 02: Resume Vault & Input -->
         <div class="flow-step-card" id="step-2">
           <div class="step-card-header">
-            <div class="step-indicator-text">Step 02 // Candidate Profile</div>
-            <h2 class="step-card-title">Candidate Resume & Experience</h2>
+            <div class="step-indicator-text">Step 02 // Your Resume</div>
+            <h2 class="step-card-title">Upload or Paste Your Resume</h2>
           </div>
 
           <div id="resumeVaultBox" class="form-group" style="display: none; margin-bottom: 1.25rem;">
-            <label class="form-label">Upload PDF Resume</label>
+            <label class="form-label">Upload Resume (PDF)</label>
             <div class="custom-file-wrapper">
               <input type="file" id="pdfFileInput" class="custom-file-input" accept=".pdf" onchange="handleFileSelect(event)">
               <label for="pdfFileInput" class="custom-file-label">
-                📄 Select PDF Resume
+                Select PDF
               </label>
               <span id="selectedFileName" class="file-status-text">No file chosen</span>
-              <button class="btn-primary compact" onclick="uploadResumePDF()">Sync Profile Resume</button>
+              <button class="btn-primary compact" onclick="uploadResumePDF()">Sync to Profile</button>
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="userResume">Resume Content (Plain Text)</label>
-            <textarea id="userResume" class="form-textarea" placeholder="Paste your formatted resume text here (Projects, Work History, Core Tech Stack)..."></textarea>
+            <textarea id="userResume" class="form-textarea" placeholder="Paste your resume text here (Skills, Experience, Projects)..."></textarea>
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 12px; flex-wrap: wrap;">
             <button class="btn-ghost" onclick="goToStep(1)">
-              ← Back to Step 1
+              ← Back to Job Details
             </button>
-            <button class="btn-primary" style="padding: 0.85rem 1.6rem;" onclick="runATSExecution()">
-              Evaluate Alignment & Generate Strategy 🚀
+            <button class="btn-primary" style="padding: 0.8rem 1.6rem;" onclick="runATSExecution()">
+              Scan Resume for Match
             </button>
           </div>
         </div>
 
-        <!-- Step 03: Strategic Intelligence Output -->
+        <!-- Step 03: Strategic Intelligence Output with 4 Killer Feature Tabs -->
         <div class="flow-step-card" id="step-3">
           <div class="step-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
-              <div class="step-indicator-text">Step 03 // Strategic Intelligence</div>
-              <h2 class="step-card-title">ATS Alignment & Outreach Engine</h2>
+              <div class="step-indicator-text">Step 03 // Match Report</div>
+              <h2 class="step-card-title">Compatibility & Action Plan</h2>
             </div>
-            <button class="btn-ghost" onclick="goToStep(2)">← Modify Inputs</button>
+            <button class="btn-ghost" onclick="goToStep(2)">← Edit Resume / Job</button>
+          </div>
+
+          <!-- Killer Feature Segmented Tabs -->
+          <div class="result-segment-nav" id="resultSegmentNav" style="display: none;">
+            <button class="segment-tab-btn active" id="tabResMatch" onclick="switchResultTab('ats')">📊 Match & Missing Skills</button>
+            <button class="segment-tab-btn" id="tabResScan" onclick="switchResultTab('scan')">⏱️ 6-Second Recruiter Scan</button>
+            <button class="segment-tab-btn" id="tabResTraps" onclick="switchResultTab('traps')">🎯 Interview Traps</button>
+            <button class="segment-tab-btn" id="tabResOutreach" onclick="switchResultTab('outreach')">✉️ Recruiter Outreach</button>
           </div>
 
           <div id="atsResultWindow">
             <p style="color: var(--text-muted); font-size: 0.95rem; text-align: center; padding: 3rem 0;">
-              Complete Steps 01 and 02 above to generate an ATS breakdown, high-probability matching roles, and tailored outreach letters.
+              Add your target job in Step 1 and your resume in Step 2 to generate your full breakdown.
             </p>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Core Capabilities Showcase -->
+    <section class="showcase-section">
+      <div class="section-header-center">
+        <div class="section-badge-chip">Engineered for Results</div>
+        <h2 class="section-title-lg">Everything you need to get hired, not ignored</h2>
+        <p class="section-subtext">Most candidates send resumes into a black hole. NexJob gives you the recruiter's perspective, fixes your gaps, and prepares your follow-ups.</p>
+      </div>
+
+      <div class="features-grid-3">
+        <div class="feature-box">
+          <div class="feature-icon-badge">⏱️</div>
+          <h3 class="feature-title">6-Second Recruiter Scan</h3>
+          <p class="feature-desc">Recruiters skim before they read. See your instant Green Flags, Red Flags, and Skim Verdict before you submit your application.</p>
+          <div class="feature-highlight-pill">✓ Know What They See</div>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-badge">🎯</div>
+          <h3 class="feature-title">Missing Skill Gaps & Bullets</h3>
+          <p class="feature-desc">Pinpoint the exact tools and technologies missing from your resume, complete with suggested bullet points you can copy directly into your experience section.</p>
+          <div class="feature-highlight-pill">✓ 1-Click Copy Suggestions</div>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-badge">🛡️</div>
+          <h3 class="feature-title">Interview Trap Predictor</h3>
+          <p class="feature-desc">Interviewers always probe resume gaps. We predict the 3 toughest, most uncomfortable questions you will face and give you battle-tested answer frameworks.</p>
+          <div class="feature-highlight-pill">✓ Defend Every Gap</div>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-badge">✉️</div>
+          <h3 class="feature-title">Anti-Ghosting Follow-Up Engine</h3>
+          <p class="feature-desc">Never wonder what to say when an application goes quiet. Get ready-to-send outreach notes and timed check-ins for Day 3, Day 7, and Day 14.</p>
+          <div class="feature-highlight-pill">✓ 3x Higher Reply Rates</div>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-badge">📋</div>
+          <h3 class="feature-title">Visual Application Board</h3>
+          <p class="feature-desc">Keep track of every role from first contact to offer. Automated reminders alert you when an application has been waiting for more than 5 days without a reply.</p>
+          <div class="feature-highlight-pill">✓ Stay Organized</div>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-badge">🔒</div>
+          <h3 class="feature-title">100% Private & Secure</h3>
+          <p class="feature-desc">Your resume and job applications belong to you alone. We never sell your data to recruiters, headhunters, or third parties. Delete your data at any time.</p>
+          <div class="feature-highlight-pill">✓ Zero Data Resale</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Frequently Asked Questions (FAQ) Section -->
+    <section class="faq-section">
+      <div class="section-header-center">
+        <div class="section-badge-chip">Clear Answers</div>
+        <h2 class="section-title-lg">Frequently Asked Questions</h2>
+        <p class="section-subtext">Straightforward answers about how NexJob works and how your data is protected.</p>
+      </div>
+
+      <div class="faq-container">
+        <div class="faq-card" onclick="toggleFaq(this)">
+          <button class="faq-question">
+            <span>How does the match score work?</span>
+            <span class="faq-toggle-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            We evaluate your resume directly against the job requirements. Instead of just counting keywords, we examine whether your past roles and projects demonstrate the depth required for the role, highlighting both your strengths and missing requirements.
+          </div>
+        </div>
+
+        <div class="faq-card" onclick="toggleFaq(this)">
+          <button class="faq-question">
+            <span>What is the 6-Second Recruiter Scan?</span>
+            <span class="faq-toggle-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Studies show recruiters spend an average of 6 seconds skimming a resume before deciding to read further or move on. The 6-Second Scan simulates this review, pointing out immediate green flags that stand out and red flags that could cause hesitation.
+          </div>
+        </div>
+
+        <div class="faq-card" onclick="toggleFaq(this)">
+          <button class="faq-question">
+            <span>How does the Anti-Ghosting Follow-up work?</span>
+            <span class="faq-toggle-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Following up at the right cadence drastically increases your response rate. NexJob gives you pre-written, professional follow-up templates timed for Day 3 (quick LinkedIn note), Day 7 (polite status check), and Day 14 (value-add check-in).
+          </div>
+        </div>
+
+        <div class="faq-card" onclick="toggleFaq(this)">
+          <button class="faq-question">
+            <span>Can I use NexJob without creating an account?</span>
+            <span class="faq-toggle-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Yes. Anyone can paste a job description and resume to run an instant scan. Creating a free account allows you to upload PDF resumes, save your application board, and sync your profile across sessions.
+          </div>
+        </div>
+
+        <div class="faq-card" onclick="toggleFaq(this)">
+          <button class="faq-question">
+            <span>Is my resume and application data kept private?</span>
+            <span class="faq-toggle-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Yes, 100%. We do not sell, rent, or share your resume or personal information with anyone. You can permanently delete your account and all associated data at any time from your settings.
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Side Navigation Drawer -->
@@ -334,7 +455,7 @@
         <div style="display: flex; align-items: flex-start; gap: 8px; margin: 14px 0; font-size: 0.82rem; color: var(--text-muted);">
           <input type="checkbox" id="signupTermsAccept" checked style="accent-color: var(--accent-indigo); margin-top: 3px;">
           <label for="signupTermsAccept">
-            I agree to the <a href="#terms" style="color: var(--accent-indigo);">Terms of Service</a> & <a href="#privacy" style="color: var(--accent-indigo);">Privacy Policy</a>.
+            I agree to the <a href="javascript:openLegalModal('terms')" style="color: var(--accent-teal-glow); text-decoration: underline;">Terms of Service</a> & <a href="javascript:openLegalModal('privacy')" style="color: var(--accent-teal-glow); text-decoration: underline;">Privacy Policy</a>.
           </label>
         </div>
 
@@ -460,14 +581,165 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <div>NexJob AI © 2026. Empowering Autonomous Technical Careers.</div>
+    <div>NexJob AI © 2026. Built with craft for serious job seekers.</div>
     <div class="footer-links">
       <a id="footerLinkedInLink" href="https://www.linkedin.com/jobs/" target="_blank">LinkedIn Jobs</a>
       <a id="footerIndeedLink" href="https://www.indeed.com/" target="_blank">Indeed Portal</a>
       <a id="footerGoogleLink" href="https://www.google.com/search?q=jobs&ibp=htl;jobs" target="_blank">Google Careers</a>
+      <a href="javascript:openLegalModal('terms')">Terms of Service</a>
+      <a href="javascript:openLegalModal('privacy')">Privacy Policy</a>
       <a href="/admin" target="_blank">Admin Cockpit</a>
     </div>
   </footer>
+
+  <!-- Anti-Ghosting Follow-Up Modal -->
+  <div class="modal-backdrop" id="followupModal" style="display: none;">
+    <div class="modal-box" style="max-width: 580px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+          <h3 id="followupModalTitle" style="font-size: 1.2rem; font-weight: 800;">Anti-Ghosting Follow-Up Sequence</h3>
+          <p id="followupModalSubtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Proven cadence for getting replies after applying.</p>
+        </div>
+        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeFollowupModal()">✕</button>
+      </div>
+
+      <div class="ghosting-timeline-card" style="padding: 0; background: transparent; border: none;">
+        <!-- Day 3 -->
+        <div class="timeline-step">
+          <div class="timeline-step-icon">03</div>
+          <div class="timeline-step-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="timeline-step-title">Day 3: LinkedIn Connection Note</div>
+              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyFollowupNote('day3')">📋 Copy</button>
+            </div>
+            <div class="timeline-step-desc">Under 300 characters. Send with your connection request to the recruiter or hiring manager.</div>
+            <div id="followupDay3Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
+          </div>
+        </div>
+
+        <!-- Day 7 -->
+        <div class="timeline-step">
+          <div class="timeline-step-icon">07</div>
+          <div class="timeline-step-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="timeline-step-title">Day 7: Polite Status Check</div>
+              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyFollowupNote('day7')">📋 Copy</button>
+            </div>
+            <div class="timeline-step-desc">Send via email or LinkedIn DM if you haven't received an update after one full week.</div>
+            <div id="followupDay7Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
+          </div>
+        </div>
+
+        <!-- Day 14 -->
+        <div class="timeline-step">
+          <div class="timeline-step-icon">14</div>
+          <div class="timeline-step-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="timeline-step-title">Day 14: Value-Add Final Touch</div>
+              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyFollowupNote('day14')">📋 Copy</button>
+            </div>
+            <div class="timeline-step-desc">Share a quick perspective or thoughtful observation about their product.</div>
+            <div id="followupDay14Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button class="btn-ghost" onclick="closeFollowupModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legal Modal: Terms of Service & Privacy Policy -->
+  <div class="modal-backdrop" id="legalModal" style="display: none;">
+    <div class="modal-box legal-modal">
+      <div class="legal-modal-header">
+        <div>
+          <h3 style="font-size: 1.3rem; font-weight: 800; color: #FFF;">Legal & Data Governance</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Last updated: September 2026</p>
+        </div>
+        <button class="close-btn" onclick="closeLegalModal()">✕</button>
+      </div>
+
+      <div class="legal-tabs">
+        <button class="legal-tab-btn active" id="btnTabTerms" onclick="switchLegalTab('terms')">Terms of Service</button>
+        <button class="legal-tab-btn" id="btnTabPrivacy" onclick="switchLegalTab('privacy')">Privacy Policy</button>
+      </div>
+
+      <div class="legal-body-scroll">
+        <!-- Terms View -->
+        <div id="legalViewTerms">
+          <div class="legal-section-block">
+            <h4>1. Acceptance of Terms</h4>
+            <p>By accessing or using NexJob AI ("the Platform", "we", "us", or "our"), you agree to be bound by these Terms of Service. If you do not agree to all terms and conditions, you are expressly prohibited from using the platform.</p>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>2. AI Career Intelligence & Disclaimers</h4>
+            <p>NexJob AI utilizes advanced artificial intelligence and algorithmic models to evaluate resumes against target job descriptions and generate recruiter communications. You acknowledge that:</p>
+            <ul>
+              <li>ATS match scores, skill gap evaluations, and interview recommendations are for informational and career development purposes only.</li>
+              <li>NexJob AI does not guarantee interviews, employment offers, or hiring outcomes with any third-party employer.</li>
+              <li>Generated outreach messages should be reviewed, edited, and validated by candidates before dispatch to recruiters.</li>
+            </ul>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>3. Candidate Data & Resume Ownership</h4>
+            <p>You retain 100% full intellectual property ownership of all resumes, cover letters, career profiles, and credentials submitted to the platform. By uploading content, you grant NexJob AI a limited, worldwide license solely to process, analyze, and format your data to provide our career services to you.</p>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>4. User Accounts & Security</h4>
+            <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorized access or security breaches. NexJob AI reserves the right to terminate accounts that engage in abusive, fraudulent, or automated scraping activities.</p>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>5. Limitation of Liability</h4>
+            <p>In no event shall NexJob AI or its founders be liable for any indirect, consequential, exemplary, incidental, special, or punitive damages arising from your use of the platform or reliance on generated recommendations.</p>
+          </div>
+        </div>
+
+        <!-- Privacy View -->
+        <div id="legalViewPrivacy" style="display: none;">
+          <div class="legal-section-block">
+            <h4>1. Information We Collect</h4>
+            <p>We only collect information necessary to deliver high-precision career intelligence:</p>
+            <ul>
+              <li><strong>Account Credentials:</strong> Email address, unique username, and encrypted password hash.</li>
+              <li><strong>Candidate Profile:</strong> Target role, full name, technical skills, and optional portfolio links (LinkedIn, GitHub).</li>
+              <li><strong>Resume Content:</strong> Extracted plain text and PDF document contents uploaded to your Resume Vault.</li>
+              <li><strong>Job Tracking Records:</strong> Companies, role titles, application dates, status stages, and job descriptions saved to your Kanban board.</li>
+            </ul>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>2. Strict Zero Data Sale Policy</h4>
+            <p><strong>We never sell, rent, monetize, or broker your personal information or resume contents to data aggregators, staffing agencies, or third-party advertisers.</strong> Your data is used exclusively to evaluate job compatibility and automate your job search pipeline.</p>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>3. AI Model Data Privacy</h4>
+            <p>Resume evaluations performed by Google Gemini API utilize secure enterprise API endpoints with zero retention for public training. Your proprietary resume texts and career history are not used to train public foundation models.</p>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>4. Data Security & Retention</h4>
+            <p>All data transmitted between your browser and our servers is secured using modern TLS 1.3 encryption. Passwords and OTP codes are protected using one-way cryptographic SHA-256 hashing.</p>
+          </div>
+
+          <div class="legal-section-block">
+            <h4>5. Right to Erasure (Complete Account Deletion)</h4>
+            <p>You have full autonomy over your data. You may permanently delete your account, stored profile, uploaded resumes, and application board history at any time with a single click in Account Settings. All associated records are instantly removed from our active database.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="legal-modal-footer">
+        <button class="btn-primary" onclick="closeLegalModal()">I Understand & Agree</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast Notifications Container -->
   <div id="toastContainer" class="toast-container"></div>

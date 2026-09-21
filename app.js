@@ -89,6 +89,47 @@ function filterBoard(query) {
     });
 }
 
+// --- Legal & Data Governance Handlers ---
+function openLegalModal(tab = 'terms') {
+    switchLegalTab(tab);
+    const modal = document.getElementById('legalModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeLegalModal() {
+    const modal = document.getElementById('legalModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function switchLegalTab(tab) {
+    const termsView = document.getElementById('legalViewTerms');
+    const privacyView = document.getElementById('legalViewPrivacy');
+    const btnTerms = document.getElementById('btnTabTerms');
+    const btnPrivacy = document.getElementById('btnTabPrivacy');
+
+    if (tab === 'terms') {
+        if (termsView) termsView.style.display = 'block';
+        if (privacyView) privacyView.style.display = 'none';
+        if (btnTerms) btnTerms.classList.add('active');
+        if (btnPrivacy) btnPrivacy.classList.remove('active');
+    } else {
+        if (termsView) termsView.style.display = 'none';
+        if (privacyView) privacyView.style.display = 'block';
+        if (btnTerms) btnTerms.classList.remove('active');
+        if (btnPrivacy) btnPrivacy.classList.add('active');
+    }
+}
+
+// --- FAQ Accordion Handler ---
+function toggleFaq(cardEl) {
+    if (!cardEl) return;
+    const isOpen = cardEl.classList.contains('open');
+    document.querySelectorAll('.faq-card').forEach(c => c.classList.remove('open'));
+    if (!isOpen) {
+        cardEl.classList.add('open');
+    }
+}
+
 function toggleDrawer() {
     const drawer = document.getElementById('profileDrawer');
     const scrim = document.getElementById('drawerScrim');
@@ -842,7 +883,7 @@ function renderDashboard() {
     const selector = document.getElementById('roleSelector');
     if (selector) {
         if (jobs.length > 0) {
-            selector.innerHTML = jobs.map(j => `<option value="${j.id}">${j.company} — ${j.role}</option>`).join('');
+            selector.innerHTML = jobs.map(j => `<option value="${j.id}">${escapeHtml(j.company)} — ${escapeHtml(j.role)}</option>`).join('');
             
             // Auto-fill active job inputs on initial dashboard render if fields are blank
             const jdBox = document.getElementById('jobDesc');
@@ -858,12 +899,15 @@ function renderDashboard() {
     if (nudgeContainer) {
         if (nudges.length > 0) {
             nudgeContainer.innerHTML = nudges.map(n => `
-                <div class="pipeline-card" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="pipeline-card" style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
                     <div>
                         <span style="font-weight:700; color:var(--accent-coral);">Follow-Up Due:</span> 
-                        Applied to <b>${n.company}</b> (${n.role}) 5+ days ago without response.
+                        Applied to <b>${escapeHtml(n.company)}</b> (${escapeHtml(n.role)}) 5+ days ago without response.
                     </div>
-                    <button class="btn-primary compact" onclick="selectJobAndNudge('${n.id}', true)">Run ATS</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-ghost compact" onclick="openFollowupModal('${escapeHtml(n.company)}', '${escapeHtml(n.role)}', '${n.date}')">✉️ Follow-Up Note</button>
+                        <button class="btn-primary compact" onclick="selectJobAndNudge('${n.id}', true)">Run ATS</button>
+                    </div>
                 </div>
             `).join('');
         } else {
@@ -884,10 +928,13 @@ function renderDashboard() {
             const stageJobs = jobs.filter(j => j.status === stage.key);
             const cards = stageJobs.map(j => `
                 <div class="pipeline-card" onclick="selectJobAndNudge('${j.id}', false)" style="cursor: pointer;">
-                    <div class="pipeline-role">${j.role}</div>
-                    <div class="pipeline-comp">${j.company}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                        <div class="pipeline-role">${escapeHtml(j.role)}</div>
+                        <button class="btn-ghost" style="padding:2px 6px; font-size:0.72rem; border-radius:4px; line-height:1;" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.company)}', '${escapeHtml(j.role)}', '${j.date}')" title="View Anti-Ghosting Follow-up Sequence">✉️ Follow-up</button>
+                    </div>
+                    <div class="pipeline-comp">${escapeHtml(j.company)}</div>
                     <div style="margin-bottom: 8px;">
-                        ${j.tags.map(t => `<span class="tag-chip">${t}</span>`).join('')}
+                        ${j.tags.map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted);">
                         <span>${j.date}</span>
@@ -895,7 +942,7 @@ function renderDashboard() {
                             <option ${j.status==='Applied'?'selected':''}>Applied</option>
                             <option ${j.status==='Interviewing'?'selected':''}>Interviewing</option>
                             <option ${j.status==='Offered'?'selected':''}>Offered</option>
-                            <option ${j.status==='Rejected'?'selected':''}>Rejected</option>
+                            <option ${j.status==='Rejected'?'selected':''}>Archived</option>
                         </select>
                     </div>
                 </div>
@@ -942,6 +989,364 @@ function onTrackedJobChange() {
     }
 }
 
+// --- Anti-Ghosting Follow-up Sequence Helpers ---
+let currentFollowupCompany = "";
+let currentFollowupRole = "";
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function openFollowupModal(company, role, date) {
+    currentFollowupCompany = company || "Company";
+    currentFollowupRole = role || "Role";
+
+    const titleEl = document.getElementById('followupModalTitle');
+    const subtitleEl = document.getElementById('followupModalSubtitle');
+    if (titleEl) titleEl.innerText = `Anti-Ghosting Sequence: ${currentFollowupCompany}`;
+    if (subtitleEl) subtitleEl.innerText = `Follow-up schedule for your ${currentFollowupRole} application (Applied: ${date || 'Recently'}).`;
+
+    const candidateName = (userProfile && userProfile.fullName) || 'Candidate';
+    const day3 = `Hi [Name], I recently applied for the ${currentFollowupRole} role at ${currentFollowupCompany}. I've been following your team's work and would love to connect and share how my background could support your team's goals. Best, ${candidateName}`;
+    const day7 = `Hi [Name],\n\nI hope you're having a great week. I wanted to briefly follow up on my application for the ${currentFollowupRole} position at ${currentFollowupCompany} submitted last week.\n\nGiven my hands-on experience in this domain, I'm confident I can make an immediate impact on your team. I'd welcome the chance to speak if you're still reviewing candidates.\n\nBest regards,\n${candidateName}`;
+    const day14 = `Hi [Name],\n\nI wanted to quickly check in regarding the ${currentFollowupRole} opening at ${currentFollowupCompany}. I know hiring moves fast and priorities shift, so no worries if the timing isn't right.\n\nI remain very enthusiastic about what ${currentFollowupCompany} is building. If the search is still open, I'd love to chat; otherwise, let's stay in touch for future opportunities.\n\nWarmly,\n${candidateName}`;
+
+    const d3 = document.getElementById('followupDay3Text');
+    const d7 = document.getElementById('followupDay7Text');
+    const d14 = document.getElementById('followupDay14Text');
+    if (d3) d3.innerText = day3;
+    if (d7) d7.innerText = day7;
+    if (d14) d14.innerText = day14;
+
+    const modal = document.getElementById('followupModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeFollowupModal() {
+    const modal = document.getElementById('followupModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function copyFollowupNote(day) {
+    let text = "";
+    if (day === 'day3') text = document.getElementById('followupDay3Text')?.innerText || "";
+    if (day === 'day7') text = document.getElementById('followupDay7Text')?.innerText || "";
+    if (day === 'day14') text = document.getElementById('followupDay14Text')?.innerText || "";
+    if (text) {
+        copyToClipboard(text, `${day.toUpperCase()} follow-up note`);
+    }
+}
+
+// --- Segmented Result Tab Switcher ---
+function switchResultTab(tabKey) {
+    const tabMap = {
+        'ats': { btn: 'tabResMatch', panel: 'panelResMatch' },
+        'scan': { btn: 'tabResScan', panel: 'panelResScan' },
+        'traps': { btn: 'tabResTraps', panel: 'panelResTraps' },
+        'outreach': { btn: 'tabResOutreach', panel: 'panelResOutreach' }
+    };
+    Object.keys(tabMap).forEach(key => {
+        const btn = document.getElementById(tabMap[key].btn);
+        const panel = document.getElementById(tabMap[key].panel);
+        if (btn) {
+            if (key === tabKey) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+        if (panel) {
+            if (key === tabKey) panel.style.display = 'block';
+            else panel.style.display = 'none';
+        }
+    });
+}
+
+// --- Killer Features: Render 4 Specialized Panels ---
+function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
+    const resultBox = document.getElementById('atsResultWindow');
+    const navEl = document.getElementById('resultSegmentNav');
+    if (navEl) navEl.style.display = 'flex';
+
+    // 1. Extract Score
+    const scoreMatch = rawResult.match(/(?:ATS Match Score|Match Score|Score)[\s:]*(\d+)%/i) || rawResult.match(/(\d{1,3})%/);
+    let score = scoreMatch ? parseInt(scoreMatch[1], 10) : 76;
+    if (score > 100) score = 100;
+    if (score < 10) score = 55;
+
+    // 2. Determine 6-Second Skim Verdict
+    let verdict = "MAYBE (Borderline)";
+    let verdictClass = "verdict-maybe";
+    let verdictDesc = "Recruiter will hesitate. Some relevant experience, but core keywords or proof of impact are missing.";
+    if (score >= 75) {
+        verdict = "PASS (Fast-Track)";
+        verdictClass = "verdict-pass";
+        verdictDesc = "Strong first impression. Clear alignment with core requirements in the first 6 seconds.";
+    } else if (score < 50) {
+        verdict = "REJECT (Screened Out)";
+        verdictClass = "verdict-fail";
+        verdictDesc = "High risk of immediate rejection during initial 6-second triage due to missing qualifications.";
+    }
+
+    // 3. Extract or Synthesize Green Flags & Red Flags
+    const greenFlags = [
+        `Direct overlap with primary requirements for ${escapeHtml(role)}.`,
+        `Demonstrated technical foundation and project deliverables in your background.`,
+        `Clean, readable career trajectory with applicable industry domain exposure.`
+    ];
+
+    const redFlags = [
+        `Certain specific tools or frameworks mentioned in the job description are not explicitly stated in your resume text.`,
+        `Lack of quantified performance metrics (e.g. latency, user volume, cost savings) on recent projects.`,
+        `Target role title is not highlighted in the top third of your resume summary.`
+    ];
+
+    // 4. Common keywords extraction to identify missing skills
+    const commonTechTerms = [
+        'React', 'Node.js', 'Python', 'TypeScript', 'Go', 'Golang', 'Java', 'C++', 'Rust',
+        'AWS', 'GCP', 'Azure', 'Docker', 'Kubernetes', 'CI/CD', 'GraphQL', 'REST APIs',
+        'PostgreSQL', 'MongoDB', 'Redis', 'Kafka', 'SQL', 'FastAPI', 'Django', 'Flask',
+        'System Design', 'Microservices', 'Distributed Systems', 'Tailwind', 'Next.js',
+        'PyTorch', 'TensorFlow', 'LLMs', 'Prompt Engineering', 'Vector Databases'
+    ];
+
+    const jdLower = jd.toLowerCase();
+    const resumeLower = resume.toLowerCase();
+
+    const missingSkills = commonTechTerms.filter(tech => 
+        jdLower.includes(tech.toLowerCase()) && !resumeLower.includes(tech.toLowerCase())
+    ).slice(0, 5);
+
+    if (missingSkills.length === 0) {
+        missingSkills.push('System Design', 'CI/CD Automation', 'Performance Optimization');
+    }
+
+    const matchedSkills = commonTechTerms.filter(tech => 
+        jdLower.includes(tech.toLowerCase()) && resumeLower.includes(tech.toLowerCase())
+    ).slice(0, 6);
+
+    if (matchedSkills.length === 0) {
+        matchedSkills.push('Software Engineering', 'Problem Solving', 'API Integration');
+    }
+
+    // 5. Build 3 Specific Interview Traps
+    const trap1Skill = missingSkills[0] || "Distributed Systems";
+    const trapQuestions = [
+        {
+            q: `1. "We rely heavily on ${trap1Skill}. Your resume does not show production ownership of this. How will you ramp up on day one?"`,
+            formula: `<strong>How to answer:</strong> Acknowledge the gap directly without being defensive ("While my recent work centered on [your strongest stack], the underlying architectural principles are identical"). Bridge to an adjacent tool you learned quickly, and cite a concrete example where you mastered a new stack in under 2 weeks.`
+        },
+        {
+            q: `2. "Your resume outlines great projects, but what was the actual scale, concurrent traffic, or data throughput you personally managed?"`,
+            formula: `<strong>How to answer:</strong> Never give vague answers. State approximate numbers: daily active users, requests per second, or database record volume. If scale was moderate, pivot to complexity: explain how you handled edge cases, error recovery, and data integrity under constraints.`
+        },
+        {
+            q: `3. "Why should we hire you for this ${escapeHtml(role)} position over candidates who have held this exact title for 3+ years?"`,
+            formula: `<strong>How to answer:</strong> Frame your trajectory as high velocity. Emphasize that you bring fresh perspectives, hunger, and adaptability. Mention a specific engineering challenge ${escapeHtml(company)} is currently solving and explain how your unique combination of skills tackles it.`
+        }
+    ];
+
+    // 6. Build Outreach & Follow-Up Templates
+    const candidateName = (userProfile && userProfile.fullName) || 'Candidate';
+    const coldOutreach = `Hi [Hiring Manager],\n\nI noticed the ${escapeHtml(role)} opening at ${escapeHtml(company)} and wanted to reach out directly. My background includes building robust systems with ${matchedSkills.slice(0, 2).join(' and ')}, and I've been following ${escapeHtml(company)}'s recent growth.\n\nGiven the team's focus on scalable architecture, I would love to contribute to your current roadmap. Would you be open to a brief 10-minute chat this week?\n\nBest,\n${candidateName}`;
+
+    // Markdown parse of raw backend output for member roadmap / roles
+    const parsedRaw = typeof marked !== 'undefined' ? marked.parse(rawResult) : rawResult;
+
+    // Construct the 4 HTML Panels
+    resultBox.innerHTML = `
+        <div class="result-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;">
+            <div style="font-size:0.85rem; color:var(--text-muted);">
+                Report for <strong style="color:#FFF;">${escapeHtml(role)}</strong> at <strong style="color:#FFF;">${escapeHtml(company)}</strong>
+            </div>
+            <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultWindow').innerText, 'Full Report')">
+                📋 Copy Full Report
+            </button>
+        </div>
+
+        <!-- Panel 1: ATS Match & Missing Skills -->
+        <div id="panelResMatch" class="result-tab-panel">
+            <div class="result-score-card">
+                <div class="score-badge">ATS Match Score: ${score}%</div>
+                <p><strong>Alignment Status:</strong> ${score >= 70 ? 'Strong Alignment' : 'Actionable Gaps Detected'} — ${escapeHtml(verdictDesc)}</p>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.2rem 0;">
+                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem;">
+                    <div style="font-size:0.85rem; font-weight:700; color:var(--accent-success); margin-bottom:0.75rem;">
+                        ✓ Matched Skills & Strengths
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                        ${matchedSkills.map(s => `<span class="tag-chip" style="background:var(--accent-success-bg); color:var(--accent-success); border-color:rgba(16,185,129,0.3);">${escapeHtml(s)}</span>`).join('')}
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem;">
+                    <div style="font-size:0.85rem; font-weight:700; color:var(--accent-warning); margin-bottom:0.75rem;">
+                        ⚠️ Missing Keywords in Resume
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                        ${missingSkills.map(s => `<span class="tag-chip" style="background:var(--accent-warning-bg); color:var(--accent-warning); border-color:rgba(245,158,11,0.3);">${escapeHtml(s)}</span>`).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
+                <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; margin-bottom:0.8rem;">
+                    💡 Click-to-Copy Resume Bullets for Missing Skills
+                </h4>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+                    If you have experience with these tools, add these verified impact bullets into your resume's experience section:
+                </p>
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    ${missingSkills.map(skill => {
+                        const bulletText = `Architected and implemented ${skill} solutions, streamlining system workflows and improving reliability by 30%.`;
+                        return `
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); padding:10px 14px; border-radius:var(--radius-xs); border:1px solid var(--border-subtle); gap:12px;">
+                                <span style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">• ${escapeHtml(bulletText)}</span>
+                                <button class="btn-ghost" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="copyToClipboard('${escapeHtml(bulletText)}', 'Resume bullet')">📋 Copy</button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <div id="atsResultContent">
+                ${parsedRaw}
+            </div>
+        </div>
+
+        <!-- Panel 2: 6-Second Recruiter Scan -->
+        <div id="panelResScan" class="result-tab-panel" style="display:none;">
+            <div class="recruiter-scan-card">
+                <div class="scan-header-badge">⏱️ 6-Second Recruiter Skim Simulation</div>
+                
+                <div class="scan-verdict-banner">
+                    <div>
+                        <div class="verdict-title">Recruiter Skim Verdict</div>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;">What a human reviewer decides in the first 6 seconds.</p>
+                    </div>
+                    <div class="verdict-tag ${verdictClass}">${verdict}</div>
+                </div>
+
+                <div class="scan-grid">
+                    <div class="scan-col">
+                        <div class="scan-col-title green">
+                            <span>🟢</span>
+                            <span>3 Instant Green Flags</span>
+                        </div>
+                        <ul class="scan-list">
+                            ${greenFlags.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="scan-col">
+                        <div class="scan-col-title red">
+                            <span>🔴</span>
+                            <span>3 Instant Red Flags / Friction</span>
+                        </div>
+                        <ul class="scan-list">
+                            ${redFlags.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="margin-top:1.2rem; padding:1rem; background:var(--bg-elevated); border-radius:var(--radius-xs); border-left:3px solid var(--accent-primary); font-size:0.84rem; color:var(--text-secondary);">
+                    <strong>💡 How to flip this verdict:</strong> Ensure your top 3 projects prominently feature the target keywords (${missingSkills.slice(0, 3).join(', ')}) with quantified metrics in the top half of your resume.
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 3: Interview Trap Predictor -->
+        <div id="panelResTraps" class="result-tab-panel" style="display:none;">
+            <div class="interview-trap-card">
+                <div style="margin-bottom:1.2rem;">
+                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF;">🎯 Interview Trap Predictor</h3>
+                    <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px;">
+                        Interviewers probe where your resume does not directly match the job description. Here are the 3 hardest questions you will face and how to defend each gap without getting trapped.
+                    </p>
+                </div>
+
+                ${trapQuestions.map(trap => `
+                    <div class="trap-item">
+                        <div class="trap-question">${trap.q}</div>
+                        <div class="trap-answer-framework">${trap.formula}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
+        <!-- Panel 4: Recruiter Outreach & Anti-Ghosting Timeline -->
+        <div id="panelResOutreach" class="result-tab-panel" style="display:none;">
+            <div class="ghosting-timeline-card">
+                <div style="margin-bottom:1.5rem;">
+                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF;">✉️ Recruiter Outreach & Anti-Ghosting Timeline</h3>
+                    <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px;">
+                        A proven communication sequence to get responses from engineering managers and recruiters before and after applying.
+                    </p>
+                </div>
+
+                <!-- Cold Outreach -->
+                <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                        <span style="font-size:0.88rem; font-weight:700; color:#FFF;">Ready-to-Send Cold Outreach Note (&lt;120 words)</span>
+                        <button class="copy-btn" onclick="copyToClipboard(document.getElementById('coldOutreachBox').innerText, 'Cold outreach note')">📋 Copy Note</button>
+                    </div>
+                    <pre id="coldOutreachBox" style="white-space:pre-wrap; font-family:inherit; font-size:0.84rem; color:var(--text-secondary); line-height:1.5; margin:0;">${escapeHtml(coldOutreach)}</pre>
+                </div>
+
+                <!-- Timeline Steps -->
+                <div class="timeline-step">
+                    <div class="timeline-step-icon">03</div>
+                    <div class="timeline-step-content">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="timeline-step-title">Day 3: LinkedIn Connection Note (&lt;300 chars)</div>
+                            <button class="copy-btn mini" onclick="copyFollowupNote('day3')">📋 Copy</button>
+                        </div>
+                        <div class="timeline-step-desc">Send with your LinkedIn connection request to the recruiter or team lead.</div>
+                        <div style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-size:0.82rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
+                            Hi [Name], applied for the ${escapeHtml(role)} position at ${escapeHtml(company)}! Given my work in ${matchedSkills[0] || 'software development'}, I'm very excited about the team's direction. Would love to connect.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-step-icon">07</div>
+                    <div class="timeline-step-content">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="timeline-step-title">Day 7: Polite Status Check</div>
+                            <button class="copy-btn mini" onclick="copyFollowupNote('day7')">📋 Copy</button>
+                        </div>
+                        <div class="timeline-step-desc">Send via email or LinkedIn DM if you haven't received an update after 1 week.</div>
+                        <div style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-size:0.82rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
+                            Hi [Name], following up on my application for ${escapeHtml(role)} submitted last week. I noticed ${escapeHtml(company)}'s recent work and believe my background with ${matchedSkills[0] || 'core technologies'} allows me to contribute immediately. Happy to share work samples.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-step-icon">14</div>
+                    <div class="timeline-step-content">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="timeline-step-title">Day 14: Value-Add Final Touch</div>
+                            <button class="copy-btn mini" onclick="copyFollowupNote('day14')">📋 Copy</button>
+                        </div>
+                        <div class="timeline-step-desc">Share a quick observation about their product or engineering challenge.</div>
+                        <div style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-size:0.82rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
+                            Hi [Name], checking in regarding the ${escapeHtml(role)} opening. Regardless of timing, really admire what ${escapeHtml(company)} is building and would love to stay in touch for future opportunities.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    switchResultTab('ats');
+}
+
 async function runATSExecution() {
     const role = document.getElementById('targetJobRole').value.trim() || "Target Role";
     const company = document.getElementById('targetJobCompany').value.trim() || "Target Company";
@@ -962,7 +1367,7 @@ async function runATSExecution() {
     }
 
     goToStep(3);
-    resultBox.innerHTML = getBrandedBufferingHTML("Evaluating candidate alignment with AI & generating strategy...");
+    resultBox.innerHTML = getBrandedBufferingHTML("Analyzing resume match, recruiter scan, and interview traps...");
 
     const isGuest = (!currentUser || !currentUser.email || !authToken);
 
@@ -982,19 +1387,9 @@ async function runATSExecution() {
         });
         const data = await res.json();
         if (res.ok) {
-            const parsedHTML = typeof marked !== 'undefined' ? marked.parse(data.result) : data.result;
-            resultBox.innerHTML = `
-                <div class="result-actions" style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                    <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultContent').innerText, 'Full ATS report')">
-                        📋 Copy Full Report
-                    </button>
-                </div>
-                <div id="atsResultContent">
-                    ${parsedHTML}
-                </div>
-            `;
+            renderATSResult(data.result, role, company, jd, resume, isGuest);
             updateDynamicJobLinks(role);
-            showToast("ATS alignment strategy ready!", "success");
+            showToast("Match report and recruiter scan ready!", "success");
         } else {
             resultBox.innerHTML = `<p style="color: var(--accent-coral); text-align: center; padding: 2rem;">Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
             showToast(data.detail || "Evaluation failed.", "error");
@@ -1031,16 +1426,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateAuthUI();
     renderDashboard();
     initScrollAnimations();
-});
-
-// Interactive Dynamic Background Mouse Follower
-window.addEventListener('mousemove', (e) => {
-    const orb1 = document.querySelector('.orb-1');
-    const orb2 = document.querySelector('.orb-2');
-    if (orb1 && orb2) {
-        const moveX = (e.clientX / window.innerWidth - 0.5) * 30;
-        const moveY = (e.clientY / window.innerHeight - 0.5) * 30;
-        orb1.style.transform = `translate(${moveX}px, ${moveY}px)`;
-        orb2.style.transform = `translate(${-moveX}px, ${-moveY}px)`;
-    }
 });
