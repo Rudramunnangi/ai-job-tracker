@@ -1,39 +1,49 @@
 /* ==========================================================================
-   NexJob — Production Grade Interface
-   Design Philosophy: Linear / Raycast Craft (Obsidian Matte, Tactile, High-Contrast)
+   NexJob: Production Grade Interface
+   Design Philosophy: Linear / Raycast Craft (Obsidian Matte, Multi-Accent, High-Contrast)
    Fonts: Plus Jakarta Sans (Headings/Body) + JetBrains Mono (Metrics/Code)
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. Design Tokens & CSS Variables
+   1. Design Tokens & CSS Variables (Desaturated Multi-Accent System)
    -------------------------------------------------------------------------- */
 :root {
-  /* Matte Obsidian Surfaces */
+  /* Matte Obsidian Surfaces (Surface Lightness for Elevation) */
   --bg-canvas: #090B10;
   --bg-surface: #0E121A;
   --bg-elevated: #141A26;
   --bg-card: #182030;
   --bg-card-hover: #1E273B;
   --bg-input: #0B0E15;
-  --bg-glass: rgba(14, 18, 26, 0.85);
+  --bg-glass: rgba(14, 18, 26, 0.92);
 
   /* Borders & Dividers */
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-medium: rgba(255, 255, 255, 0.12);
-  --border-focus: #5B5FEF;
-  --border-hover: rgba(255, 255, 255, 0.18);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --border-focus: #5256D8;
+  --border-hover: rgba(255, 255, 255, 0.22);
 
-  /* Accents */
-  --accent-primary: #5B5FEF;
-  --accent-primary-hover: #4B4FD8;
-  --accent-primary-glow: rgba(91, 95, 239, 0.22);
-  --accent-success: #10B981;
-  --accent-success-bg: rgba(16, 185, 129, 0.1);
-  --accent-warning: #F59E0B;
-  --accent-warning-bg: rgba(245, 158, 11, 0.1);
-  --accent-danger: #F43F5E;
-  --accent-danger-bg: rgba(244, 63, 94, 0.1);
-  --accent-teal: #14B8A6;
+  /* Rebalanced, Desaturated Accents (Teal, Indigo, Coral in Equal Weight) */
+  --accent-primary: #5256D8;
+  --accent-primary-hover: #4347BF;
+  --accent-primary-glow: rgba(82, 86, 216, 0.2);
+
+  --accent-teal: #0D9488;
+  --accent-teal-hover: #0F766E;
+  --accent-teal-bg: rgba(13, 148, 136, 0.12);
+
+  --accent-coral: #E11D48;
+  --accent-coral-hover: #BE123C;
+  --accent-coral-bg: rgba(225, 29, 72, 0.12);
+
+  --accent-warning: #D97706;
+  --accent-warning-bg: rgba(217, 119, 6, 0.12);
+
+  --accent-success: #0D9488;
+  --accent-success-bg: rgba(13, 148, 136, 0.12);
+
+  --accent-danger: #E11D48;
+  --accent-danger-bg: rgba(225, 29, 72, 0.12);
 
   /* Typography */
   --text-main: #F1F5F9;
@@ -45,23 +55,23 @@
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Radii */
-  --radius-xs: 5px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  /* Deliberate Radii: Sharper on Data/Metrics, Softer on Containers */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   --radius-full: 9999px;
 
-  /* Elevation */
-  --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.5), 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-elevated: 0 12px 32px -4px rgba(0, 0, 0, 0.65);
+  /* Elevation via Surface Lightness Tokens (No Blurry Drop Shadows) */
+  --shadow-card: none;
+  --shadow-elevated: none;
 
   /* Transitions */
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* --------------------------------------------------------------------------
-   2. Reset & Base Styles
+   2. Reset & Base Styles (No Background Orbs or Blobs Anywhere)
    -------------------------------------------------------------------------- */
 *, *::before, *::after {
   margin: 0;
@@ -84,20 +94,6 @@ body {
   flex-direction: column;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Subtle Top Ambient Lighting (No Blobs, Just Directional Soft Light) */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 900px;
-  height: 380px;
-  background: radial-gradient(ellipse at 50% 0%, rgba(91, 95, 239, 0.12) 0%, rgba(16, 185, 129, 0.04) 40%, transparent 70%);
-  z-index: -1;
-  pointer-events: none;
 }
 
 /* Custom Scrollbar */
@@ -275,11 +271,37 @@ kbd {
 }
 
 .hero-section {
+  position: relative;
   text-align: center;
   margin-bottom: 3.5rem;
+  padding: 3.2rem 1.5rem 3.6rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.hero-3d-wrapper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.hero-3d-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  opacity: 0.75;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
   max-width: 760px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
+  pointer-events: auto;
 }
 
 .hero-pill {
@@ -301,8 +323,8 @@ kbd {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent-success);
-  box-shadow: 0 0 8px var(--accent-success);
+  background: var(--accent-teal);
+  box-shadow: 0 0 8px var(--accent-teal);
 }
 
 .hero-title {
@@ -312,6 +334,36 @@ kbd {
   line-height: 1.15;
   color: #FFF;
   margin-bottom: 1rem;
+}
+
+/* Dynamic-Color Heading (Slow, Subtle 9s Hue-Drift Loop) */
+.hero-title .gradient-text {
+  background: linear-gradient(120deg, var(--accent-teal), var(--accent-primary), var(--accent-coral), var(--accent-teal));
+  background-size: 300% 100%;
+  animation: hue-drift 9s ease-in-out infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline;
+}
+
+@keyframes hue-drift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-title .gradient-text {
+    animation: none;
+    background: linear-gradient(120deg, var(--accent-teal), var(--accent-primary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
 .hero-subtitle {
@@ -1326,4 +1378,323 @@ kbd {
   .step-tab { min-width: 100%; }
   .scan-grid { grid-template-columns: 1fr; }
   .features-grid-3 { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------------------------------------------------
+   15. Unified Branded Buffering & Loading Animation (<BrandLoader />)
+   -------------------------------------------------------------------------- */
+.brand-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 2.5rem 1rem;
+}
+
+.brand-loader-sm {
+  flex-direction: row;
+  gap: 8px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand-loader-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-loader .brand-loader-svg {
+  width: 54px;
+  height: 54px;
+  animation: brandPulse 2.4s ease-in-out infinite;
+}
+
+.brand-loader-sm .brand-loader-svg {
+  width: 18px;
+  height: 18px;
+  animation: none;
+}
+
+.brand-loader-bg {
+  fill: var(--bg-elevated);
+  stroke: var(--border-medium);
+  stroke-width: 1.5;
+}
+
+.brand-loader-path {
+  stroke: var(--accent-primary);
+  stroke-width: 10;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: brandDraw 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.brand-loader-dot {
+  fill: var(--accent-teal);
+  animation: brandDotPulse 2.4s ease-in-out infinite;
+}
+
+.brand-loader-text {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.brand-loader-sm .brand-loader-text {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+@keyframes brandDraw {
+  0% {
+    stroke-dashoffset: 200;
+    stroke: var(--accent-teal);
+  }
+  50% {
+    stroke-dashoffset: 0;
+    stroke: var(--accent-primary);
+  }
+  100% {
+    stroke-dashoffset: -200;
+    stroke: var(--accent-coral);
+  }
+}
+
+@keyframes brandPulse {
+  0%, 100% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes brandDotPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-loader .brand-loader-svg,
+  .brand-loader-path,
+  .brand-loader-dot {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   16. Application Monitoring & Integrations Hub Styles
+   -------------------------------------------------------------------------- */
+.pulse-indicator {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  box-shadow: 0 0 8px var(--accent-teal);
+  margin-right: 4px;
+}
+
+.encryption-security-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.85rem 1.1rem;
+  background: rgba(13, 148, 136, 0.08);
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.encryption-security-bar strong {
+  color: #FFF;
+}
+
+.integrations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.4rem;
+}
+
+.integration-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.2rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  gap: 12px;
+}
+
+.integration-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.integration-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.integration-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #FFF;
+}
+
+.integration-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.integration-status-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.integration-status-pill.active {
+  background: var(--accent-teal-bg);
+  color: var(--accent-teal);
+  border: 1px solid rgba(13, 148, 136, 0.3);
+}
+
+.integration-status-pill.idle {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   17. Instant Fit & 1-Click Auto-Apply
+   -------------------------------------------------------------------------- */
+.instant-fit-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.4rem;
+  margin-top: 1.5rem;
+}
+
+.instant-fit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.instant-fit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.instant-fit-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.instant-fit-card:hover {
+  border-color: var(--border-medium);
+}
+
+.fit-score-badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-teal-bg);
+  color: var(--accent-teal);
+  border: 1px solid rgba(13, 148, 136, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   18. Executive Print / PDF Export Styles (@media print)
+   -------------------------------------------------------------------------- */
+@media print {
+  body {
+    background: #FFF !important;
+    color: #000 !important;
+  }
+  .navbar, .footer, .stepper-nav, .result-segment-nav, .nav-actions,
+  .btn-primary, .btn-ghost, .copy-btn, .modal-backdrop, .hero-section,
+  #memberPipelineContainer, .showcase-section, .faq-section {
+    display: none !important;
+  }
+  .main-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .flow-step-card {
+    display: block !important;
+    background: #FFF !important;
+    color: #000 !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  #panelResMatch, #panelResScan, #panelResTraps, #panelResOutreach {
+    display: block !important;
+    page-break-inside: avoid;
+    margin-bottom: 2rem;
+  }
+  .result-score-card, .recruiter-scan-card, .interview-trap-card, .ghosting-timeline-card {
+    background: #FAFAFA !important;
+    border: 1px solid #DDD !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+  .scan-col, .trap-item {
+    background: #FFF !important;
+    border: 1px solid #EEE !important;
+    color: #111 !important;
+  }
+  .scan-col-title, .verdict-title, .step-card-title, .trap-question {
+    color: #000 !important;
+  }
+  .trap-answer-framework, .scan-list, .timeline-step-desc {
+    color: #333 !important;
+  }
 }

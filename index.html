@@ -27,6 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
@@ -41,11 +42,11 @@
       <svg viewBox="0 0 100 100" fill="none">
         <rect width="100" height="100" rx="20" fill="#141A26"/>
         <path d="M30 70V30L70 70V30" stroke="url(#logoG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="70" cy="30" r="6" fill="#10B981"/>
+        <circle cx="70" cy="30" r="6" fill="#0D9488"/>
         <defs>
           <linearGradient id="logoG" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#5B5FEF"/>
-            <stop offset="100%" stop-color="#10B981"/>
+            <stop offset="0%" stop-color="#5256D8"/>
+            <stop offset="100%" stop-color="#0D9488"/>
           </linearGradient>
         </defs>
       </svg>
@@ -67,14 +68,19 @@
   <!-- Main Container -->
   <main class="main-container">
     
-    <!-- Hero Banner (Human, Grounded Copy) -->
+    <!-- Hero Banner with 3D Particle Network Canvas & Dynamic Color Heading -->
     <header class="hero-section">
-      <div class="hero-pill">
-        <span class="hero-pill-dot"></span>
-        <span>ATS Scanner & Application Tracker</span>
+      <div class="hero-3d-wrapper">
+        <canvas id="heroNetworkCanvas" class="hero-3d-canvas" aria-hidden="true"></canvas>
       </div>
-      <h1 class="hero-title">Stop sending resumes into the black hole.</h1>
-      <p class="hero-subtitle">Recruiters spend 6 seconds on your resume. NexJob shows you exactly what they see, fixes your missing keywords, and writes your follow-up emails before you apply.</p>
+      <div class="hero-content">
+        <div class="hero-pill">
+          <span class="hero-pill-dot"></span>
+          <span>ATS Scanner & Application Tracker</span>
+        </div>
+        <h1 class="hero-title">Stop sending resumes into the <span class="gradient-text">black hole.</span></h1>
+        <p class="hero-subtitle">Recruiters spend 6 seconds on your resume. NexJob shows you exactly what they see, fixes your missing keywords, and automates your follow-ups before you apply.</p>
+      </div>
     </header>
 
     <!-- Member Job Pipeline Board -->
@@ -84,7 +90,10 @@
           <h2 class="panel-title">Job Tracker</h2>
           <p class="panel-subtitle">Track applications, detect ghosting, and get reminders when it's time to follow up.</p>
         </div>
-        <button class="btn-primary" onclick="openJobModal()">+ Add Application</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn-ghost" onclick="openIntegrationsModal()"><span class="pulse-indicator"></span> ⚡ Connect Email & Apps</button>
+          <button class="btn-primary" onclick="openJobModal()">+ Add Application</button>
+        </div>
       </div>
 
       <!-- KPI Summary Cards -->
@@ -223,7 +232,10 @@
               <div class="step-indicator-text">Step 03 // Match Report</div>
               <h2 class="step-card-title">Compatibility & Action Plan</h2>
             </div>
-            <button class="btn-ghost" onclick="goToStep(2)">← Edit Resume / Job</button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn-ghost" onclick="downloadRoadmapPDF()" id="btnDownloadPDF" style="display: none;">📥 Download PDF Guide</button>
+              <button class="btn-ghost" onclick="goToStep(2)">← Edit Resume / Job</button>
+            </div>
           </div>
 
           <!-- Killer Feature Segmented Tabs -->
@@ -248,7 +260,7 @@
       <div class="section-header-center">
         <div class="section-badge-chip">Engineered for Results</div>
         <h2 class="section-title-lg">Everything you need to get hired, not ignored</h2>
-        <p class="section-subtext">Most candidates send resumes into a black hole. NexJob gives you the recruiter's perspective, fixes your gaps, and prepares your follow-ups.</p>
+        <p class="section-subtext">Most candidates send resumes into a black hole. NexJob gives you the recruiter's perspective, fixes your gaps, and automates your follow-ups.</p>
       </div>
 
       <div class="features-grid-3">
@@ -256,42 +268,56 @@
           <div class="feature-icon-badge">⏱️</div>
           <h3 class="feature-title">6-Second Recruiter Scan</h3>
           <p class="feature-desc">Recruiters skim before they read. See your instant Green Flags, Red Flags, and Skim Verdict before you submit your application.</p>
-          <div class="feature-highlight-pill">✓ Know What They See</div>
+          <div class="feature-highlight-pill">Direct Recruiter View</div>
         </div>
 
         <div class="feature-box">
           <div class="feature-icon-badge">🎯</div>
           <h3 class="feature-title">Missing Skill Gaps & Bullets</h3>
           <p class="feature-desc">Pinpoint the exact tools and technologies missing from your resume, complete with suggested bullet points you can copy directly into your experience section.</p>
-          <div class="feature-highlight-pill">✓ 1-Click Copy Suggestions</div>
+          <div class="feature-highlight-pill">Copy-Ready Bullets</div>
         </div>
 
         <div class="feature-box">
           <div class="feature-icon-badge">🛡️</div>
           <h3 class="feature-title">Interview Trap Predictor</h3>
           <p class="feature-desc">Interviewers always probe resume gaps. We predict the 3 toughest, most uncomfortable questions you will face and give you battle-tested answer frameworks.</p>
-          <div class="feature-highlight-pill">✓ Defend Every Gap</div>
+          <div class="feature-highlight-pill">Counter-Framing Defense</div>
         </div>
 
         <div class="feature-box">
           <div class="feature-icon-badge">✉️</div>
           <h3 class="feature-title">Anti-Ghosting Follow-Up Engine</h3>
           <p class="feature-desc">Never wonder what to say when an application goes quiet. Get ready-to-send outreach notes and timed check-ins for Day 3, Day 7, and Day 14.</p>
-          <div class="feature-highlight-pill">✓ 3x Higher Reply Rates</div>
+          <div class="feature-highlight-pill">High Response Cadence</div>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-badge">⚡</div>
+          <h3 class="feature-title">Connected Email & Portal Sync</h3>
+          <p class="feature-desc">Connect Gmail, Outlook, LinkedIn, and Naukri. NexJob monitors incoming interview invites and status changes, syncing your board automatically.</p>
+          <div class="feature-highlight-pill">AES-256 Encrypted Sync</div>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-badge">🚀</div>
+          <h3 class="feature-title">Instant Fit & 1-Click Apply</h3>
+          <p class="feature-desc">Discover verified roles matching your current resume strengths. Apply with 1 click and automatically track application progress on your board.</p>
+          <div class="feature-highlight-pill">Immediate Pipeline Sync</div>
         </div>
 
         <div class="feature-box">
           <div class="feature-icon-badge">📋</div>
           <h3 class="feature-title">Visual Application Board</h3>
           <p class="feature-desc">Keep track of every role from first contact to offer. Automated reminders alert you when an application has been waiting for more than 5 days without a reply.</p>
-          <div class="feature-highlight-pill">✓ Stay Organized</div>
+          <div class="feature-highlight-pill">Full Lifecycle View</div>
         </div>
 
         <div class="feature-box">
           <div class="feature-icon-badge">🔒</div>
           <h3 class="feature-title">100% Private & Secure</h3>
           <p class="feature-desc">Your resume and job applications belong to you alone. We never sell your data to recruiters, headhunters, or third parties. Delete your data at any time.</p>
-          <div class="feature-highlight-pill">✓ Zero Data Resale</div>
+          <div class="feature-highlight-pill">Zero Data Resale</div>
         </div>
       </div>
     </section>
@@ -644,8 +670,102 @@
         </div>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-primary" onclick="dispatchColdEmail(currentFollowupCompany, currentFollowupRole)">📧 Send to HR (1-Click)</button>
         <button class="btn-ghost" onclick="closeFollowupModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Monitoring & Integrations Hub Modal -->
+  <div class="modal-backdrop" id="integrationsModal" style="display: none;">
+    <div class="modal-box" style="max-width: 620px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+          <h3 style="font-size: 1.25rem; font-weight: 800;">Application Monitoring & Integrations</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Connect your mailboxes and job platforms to automate status updates.</p>
+        </div>
+        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeIntegrationsModal()">✕</button>
+      </div>
+
+      <!-- Security & Encryption Badge -->
+      <div class="encryption-security-bar">
+        <span>🛡️</span>
+        <div>
+          <strong>End-to-End Encrypted (AES-256-GCM / TLS 1.3)</strong>
+          <div>Credentials and tokens are stored in isolated cryptographic vaults. Your messages are never sold, scraped, or retained.</div>
+        </div>
+      </div>
+
+      <div class="integrations-list">
+        <!-- Mail Listener -->
+        <div class="integration-item">
+          <div class="integration-meta">
+            <div class="integration-icon">📬</div>
+            <div>
+              <div class="integration-name">Email Inbox Monitoring (Gmail / Outlook)</div>
+              <div class="integration-desc">Detects interview invites, assessment links, and application status changes.</div>
+            </div>
+          </div>
+          <button class="btn-ghost compact" id="btnToggleEmailSync" onclick="toggleIntegration('email_monitor')">
+            <span class="pulse-indicator"></span> Active
+          </button>
+        </div>
+
+        <!-- LinkedIn -->
+        <div class="integration-item">
+          <div class="integration-meta">
+            <div class="integration-icon">💼</div>
+            <div>
+              <div class="integration-name">LinkedIn Jobs & InMail</div>
+              <div class="integration-desc">Auto-sync Easy Apply submissions and recruiter messages.</div>
+            </div>
+          </div>
+          <button class="btn-ghost compact" id="btnToggleLinkedIn" onclick="toggleIntegration('linkedin')">
+            Connected
+          </button>
+        </div>
+
+        <!-- Naukri -->
+        <div class="integration-item">
+          <div class="integration-meta">
+            <div class="integration-icon">🌐</div>
+            <div>
+              <div class="integration-name">Naukri.com Portal</div>
+              <div class="integration-desc">Sync active applications, recruiter view alerts, and interview calls.</div>
+            </div>
+          </div>
+          <button class="btn-ghost compact" id="btnToggleNaukri" onclick="toggleIntegration('naukri')">
+            Connect
+          </button>
+        </div>
+
+        <!-- Internshala -->
+        <div class="integration-item">
+          <div class="integration-meta">
+            <div class="integration-icon">🎓</div>
+            <div>
+              <div class="integration-name">Internshala Careers</div>
+              <div class="integration-desc">Monitor internships, assignment submissions, and shortlists.</div>
+            </div>
+          </div>
+          <button class="btn-ghost compact" id="btnToggleInternshala" onclick="toggleIntegration('internshala')">
+            Connect
+          </button>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div>
+          <span style="font-weight: 600; color: #FFF;">Direct Email Forwarding: </span>
+          <code id="syncEmailWebhook" style="color: var(--accent-teal); font-family: var(--font-mono);">tracker-sync@nexjob.ai</code>
+        </div>
+        <button class="btn-ghost" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyToClipboard('tracker-sync@nexjob.ai', 'Sync address')">📋 Copy</button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <button class="btn-ghost" onclick="closeIntegrationsModal()">Close</button>
+        <button class="btn-primary" id="btnTriggerSync" onclick="triggerPlatformSync()">🔄 Sync Applications Now</button>
       </div>
     </div>
   </div>
