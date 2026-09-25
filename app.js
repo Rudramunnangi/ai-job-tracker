@@ -1754,8 +1754,7 @@ function initAmbientMeshBackground() {
         const w = ambientMeshCanvas.width;
         const h = ambientMeshCanvas.height;
 
-        ambientMeshCtx.fillStyle = '#080A0E';
-        ambientMeshCtx.fillRect(0, 0, w, h);
+        ambientMeshCtx.clearRect(0, 0, w, h);
 
         ambientNodes.forEach(node => {
             node.x += node.vx;

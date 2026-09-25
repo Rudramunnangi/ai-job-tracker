@@ -22,10 +22,10 @@
   }
   </script>
 
-  <!-- Typography & Libraries (Sora display, IBM Plex Sans body, IBM Plex Mono metrics) -->
+  <!-- Typography: Google Sans & Google Sans Text (with JetBrains Mono for metrics) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=Google+Sans+Text:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -35,6 +35,15 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+
+  <!-- Dynamic Atmospheric Background (Engineering Grid & Floating Ambient Aurora Orbs) -->
+  <div class="ambient-visual-layer" aria-hidden="true">
+    <div class="ambient-grid-mesh"></div>
+    <div class="ambient-glow-orb orb-indigo"></div>
+    <div class="ambient-glow-orb orb-teal"></div>
+    <div class="ambient-glow-orb orb-coral"></div>
+    <div class="ambient-glow-orb orb-purple"></div>
+  </div>
 
   <!-- Dynamic Atmospheric Background Mesh & Tactile Noise Texture -->
   <canvas id="ambientMeshCanvas" class="ambient-mesh-canvas" aria-hidden="true"></canvas>
@@ -285,113 +294,67 @@
       </div>
     </div>
 
-    <!-- Core Capabilities Architecture (Asymmetrical Command Console & Matrix) -->
+    <!-- Core Capabilities (Simple, Clear English) -->
     <section class="showcase-section">
       <div class="section-header-center">
-        <div class="section-badge-chip">Engineered for Results</div>
+        <div class="section-badge-chip">Built for Job Seekers</div>
         <h2 class="section-title-lg">Everything you need to get hired, not ignored</h2>
-        <p class="section-subtext">Most candidates send resumes into a black hole. NexJob gives you the recruiter's perspective, fixes your gaps, and automates your pipeline.</p>
+        <p class="section-subtext">Simple, proven tools that help you stand out to hiring managers and take control of your career search.</p>
       </div>
 
-      <!-- Vertical Connected Journey Rail (Restructured from Bento Grid with Connected Line & Progress Marker) -->
-      <div class="capabilities-journey-rail" id="capabilitiesJourneyRail">
-        <div class="rail-spine">
-          <div class="rail-dotted-line"></div>
-          <div class="rail-progress-line" id="railProgressLine"></div>
-          <div class="rail-glowing-marker" id="railGlowingMarker"></div>
+      <div class="features-grid-cards">
+        <!-- Feature 1: Recruiter Review -->
+        <div class="feature-card card-spotlight">
+          <div class="feature-icon-box" style="background: rgba(91, 95, 239, 0.12); color: var(--accent-primary);">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <h3 class="feature-card-title">Instant 6-Second Recruiter Review</h3>
+          <p class="feature-card-desc">Recruiters take less than 6 seconds to decide whether to interview you. NexJob shows you exactly what they notice first, highlights any red flags, and prepares you for the hardest interview questions before you apply.</p>
         </div>
 
-        <!-- Stop 01: Diagnostic Engine -->
-        <div class="rail-stop-item card-spotlight" data-stop="1">
-          <div class="rail-stop-node">01</div>
-          <div class="rail-stop-card">
-            <div class="console-card-header">
-              <span class="console-badge">DIAGNOSTIC ENGINE</span>
-              <span class="indicator-bullet pass"></span>
-            </div>
-            <h3 class="console-card-title">6-Second Recruiter Triage & Interview Trap Defense</h3>
-            <p class="console-card-desc">Recruiters skim before they read. We calculate your instant Green Flags, Red Flags, and Skim Verdict before you apply, then predict the 3 toughest interview questions based on your resume gaps, arming you with tested STAR frameworks.</p>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1rem;">
-              <span class="console-badge">Green & Red Flag Triage</span>
-              <span class="console-badge">STAR Counter-Framing</span>
-              <span class="console-badge">Verdict Flipper</span>
-            </div>
+        <!-- Feature 2: Data Privacy -->
+        <div class="feature-card card-spotlight">
+          <div class="feature-icon-box" style="background: rgba(34, 211, 200, 0.12); color: var(--accent-teal);">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
+          <h3 class="feature-card-title">100% Private &amp; Confidential</h3>
+          <p class="feature-card-desc">Your resume and personal details are strictly protected. We never sell your data, never share your files with third parties, and never train public models on your information. You can delete your account and data at any time.</p>
         </div>
 
-        <!-- Stop 02: Infrastructure Ledger -->
-        <div class="rail-stop-item card-spotlight" data-stop="2">
-          <div class="rail-stop-node">02</div>
-          <div class="rail-stop-card">
-            <div class="console-card-header">
-              <span class="console-badge">INFRASTRUCTURE LEDGER</span>
-              <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">AI Processing Model</span>
-              <span class="telemetry-val">Enterprise Gemini (Zero-Retention)</span>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">Data At-Rest Cipher</span>
-              <span class="telemetry-val" style="color: var(--accent-teal);">AES-256-GCM</span>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">Network In-Transit</span>
-              <span class="telemetry-val">TLS 1.3 Strict HTTPS</span>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">Data Resale Policy</span>
-              <span class="telemetry-val" style="color: var(--accent-success);">Strict Zero (GDPR Ready)</span>
-            </div>
+        <!-- Feature 3: Missing Skills -->
+        <div class="feature-card card-spotlight">
+          <div class="feature-icon-box" style="background: rgba(255, 122, 89, 0.12); color: var(--accent-coral);">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
           </div>
+          <h3 class="feature-card-title">Missing Skills &amp; Ready-to-Copy Bullets</h3>
+          <p class="feature-card-desc">Never guess why you didn't get a call. See the exact skills and keywords the employer wants that your resume is missing, with ready-made, quantified accomplishment bullets you can copy directly into your resume.</p>
         </div>
 
-        <!-- Stop 03: Skill Gaps & Bullets -->
-        <div class="rail-stop-item card-spotlight" data-stop="3">
-          <div class="rail-stop-node">03</div>
-          <div class="rail-stop-card">
-            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
-              <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-            </div>
-            <h4 class="capability-title">Skill Gaps & Bullets</h4>
-            <p class="capability-desc">Pinpoint missing technologies with ready-to-copy, quantified impact bullets for your resume.</p>
+        <!-- Feature 4: Follow-ups -->
+        <div class="feature-card card-spotlight">
+          <div class="feature-icon-box" style="background: rgba(91, 95, 239, 0.12); color: var(--accent-primary);">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           </div>
+          <h3 class="feature-card-title">No More Ghosting: Follow-Up Templates</h3>
+          <p class="feature-card-desc">Tired of applying and waiting in total silence? Get friendly, professional follow-up messages timed for Day 3, Day 7, and Day 14 after applying to help you get real responses from recruiters.</p>
         </div>
 
-        <!-- Stop 04: Anti-Ghosting Cadence -->
-        <div class="rail-stop-item card-spotlight" data-stop="4">
-          <div class="rail-stop-node">04</div>
-          <div class="rail-stop-card">
-            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
-              <svg class="icon-svg-lg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            </div>
-            <h4 class="capability-title">Anti-Ghosting Cadence</h4>
-            <p class="capability-desc">Timed outreach check-ins for Day 3, 7, and 14 to drastically increase recruiter reply rates.</p>
+        <!-- Feature 5: Connected Portals -->
+        <div class="feature-card card-spotlight">
+          <div class="feature-icon-box" style="background: rgba(34, 211, 200, 0.12); color: var(--accent-teal);">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           </div>
+          <h3 class="feature-card-title">Sync All Your Applications in One Place</h3>
+          <p class="feature-card-desc">Keep your entire job search organized without messy spreadsheets. Connect your email or job platforms like LinkedIn, Indeed, and Naukri to automatically log applications and track interview invites as soon as they land.</p>
         </div>
 
-        <!-- Stop 05: Connected Portal Sync -->
-        <div class="rail-stop-item card-spotlight" data-stop="5">
-          <div class="rail-stop-node">05</div>
-          <div class="rail-stop-card">
-            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
-              <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-            </div>
-            <h4 class="capability-title">Connected Portal Sync</h4>
-            <p class="capability-desc">Monitor Gmail, Outlook, LinkedIn, and Naukri to auto-update interview invites and status changes.</p>
+        <!-- Feature 6: Instant Job Matching -->
+        <div class="feature-card card-spotlight">
+          <div class="feature-icon-box" style="background: rgba(245, 166, 35, 0.12); color: var(--accent-warning);">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           </div>
-        </div>
-
-        <!-- Stop 06: Instant Fit & 1-Click Apply -->
-        <div class="rail-stop-item card-spotlight" data-stop="6">
-          <div class="rail-stop-node">06</div>
-          <div class="rail-stop-card">
-            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
-              <svg class="icon-svg-lg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            </div>
-            <h4 class="capability-title">Instant Fit & 1-Click Apply</h4>
-            <p class="capability-desc">Discover high-fit roles and submit directly into your live Kanban pipeline with one click.</p>
-          </div>
+          <h3 class="feature-card-title">Instant Job Matches with 1-Click Tracking</h3>
+          <p class="feature-card-desc">Find live open roles that fit your actual experience and strengths. See your real match score before applying and save jobs directly into your personal tracking board with a single click.</p>
         </div>
       </div>
     </section>

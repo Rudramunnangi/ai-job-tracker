@@ -3,6 +3,7 @@ import sqlite3
 import json
 import io
 import time
+import datetime
 import random
 import hashlib
 import secrets
@@ -658,103 +659,867 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         raise HTTPException(status_code=401, detail="Unauthorized Admin Access")
 
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    # Converts SQLite default UTC to IST (UTC +5:30)
+
+    # 1. Fetch complete user records with joined applications count
     cursor.execute("""
         SELECT 
             u.email, 
+            u.username,
             u.full_name, 
             u.target_role, 
+            u.skills,
+            u.resume,
+            u.linkedin_url,
+            u.github_url,
+            u.portfolio_url,
+            u.auth_provider,
+            u.created_at,
             datetime(u.created_at, '+5 hours', '+30 minutes') as ist_created_at, 
+            date(u.created_at, '+5 hours', '+30 minutes') as ist_created_date,
             u.token, 
             u.last_active, 
+            datetime(u.last_active, 'unixepoch', '+5 hours', '+30 minutes') as ist_last_active,
             COUNT(j.id) as job_count
         FROM users u
         LEFT JOIN jobs j ON u.email = j.user_email
         GROUP BY u.email
         ORDER BY u.created_at DESC
     """)
-    users = cursor.fetchall()
-    
+    user_rows = cursor.fetchall()
+
+    # 2. Fetch all tracked job applications
+    cursor.execute("""
+        SELECT id, user_email, company, role, date, status, tags
+        FROM jobs
+        ORDER BY date DESC
+    """)
+    job_rows = cursor.fetchall()
+
+    # 3. Daily customer registration breakdown (Past 14 Days)
+    cursor.execute("""
+        SELECT 
+            date(created_at, '+5 hours', '+30 minutes') as signup_date,
+            COUNT(*) as new_signups
+        FROM users
+        GROUP BY signup_date
+        ORDER BY signup_date DESC
+        LIMIT 14
+    """)
+    daily_rows = cursor.fetchall()
+
     cursor.execute("SELECT COUNT(*) FROM jobs")
     total_jobs_count = cursor.fetchone()[0] or 0
     conn.close()
 
-    total_users_count = len(users)
+    total_users_count = len(user_rows)
     now = time.time()
 
-    table_rows = []
+    # Map jobs by user email
+    user_jobs_map = {}
+    for j in job_rows:
+        ue = j["user_email"]
+        if ue not in user_jobs_map:
+            user_jobs_map[ue] = []
+        user_jobs_map[ue].append({
+            "id": j["id"],
+            "company": j["company"],
+            "role": j["role"],
+            "date": j["date"],
+            "status": j["status"],
+            "tags": j["tags"]
+        })
+
     active_now_count = 0
+    new_today_count = 0
+    regular_users_count = 0
+    google_auth_count = 0
 
-    for idx, u in enumerate(users):
-        email, full_name, target_role, created_at, token, last_active, job_count = u
-        is_active = bool(token and token.strip() and (now - (last_active or 0) < 7200))
-        if is_active:
+    now_ist = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
+    today_ist_str = now_ist.strftime("%Y-%m-%d")
+
+    customers_list = []
+
+    for u in user_rows:
+        email = u["email"]
+        created_date = u["ist_created_date"] or ""
+        last_act = u["last_active"] or 0
+        job_cnt = u["job_count"] or 0
+        auth_prov = u["auth_provider"] or "local"
+
+        is_online = bool(u["token"] and u["token"].strip() and (now - last_act < 7200))
+        if is_online:
             active_now_count += 1
-            dot_html = '<span style="display:inline-flex; align-items:center; gap:6px; color:#2DD4BF;"><span style="height:8px; width:8px; background:#2DD4BF; border-radius:50%; box-shadow:0 0 8px #2DD4BF;"></span> Online</span>'
-        else:
-            dot_html = '<span style="display:inline-flex; align-items:center; gap:6px; color:#64748B;"><span style="height:8px; width:8px; background:#64748B; border-radius:50%;"></span> Offline</span>'
 
-        table_rows.append(f"""
-        <tr id="row-{idx}">
-            <td><strong style="color:#FFF;">{email}</strong></td>
-            <td>{dot_html}</td>
-            <td>{full_name or '<span style="color:#64748B;">Not Set</span>'}</td>
-            <td>{target_role or '<span style="color:#64748B;">Not Set</span>'}</td>
-            <td>{created_at} IST</td>
-            <td><span class="badge">{job_count} jobs</span></td>
-            <td><button class="btn-del" onclick="deleteUserRow('{email}', 'row-{idx}')">Delete</button></td>
-        </tr>
-        """)
+        is_new_today = (created_date == today_ist_str)
+        if is_new_today:
+            new_today_count += 1
 
-    rendered_table = "".join(table_rows) if table_rows else '<tr><td colspan="7" style="text-align:center; padding:2rem; color:#64748B;">No users registered yet.</td></tr>'
+        is_regular = (job_cnt > 0) or (last_act > 0 and created_date != today_ist_str)
+        if is_regular:
+            regular_users_count += 1
+
+        if auth_prov == "google":
+            google_auth_count += 1
+
+        customers_list.append({
+            "email": email,
+            "username": u["username"] or "",
+            "full_name": u["full_name"] or "",
+            "target_role": u["target_role"] or "",
+            "skills": u["skills"] or "",
+            "resume": u["resume"] or "",
+            "linkedin_url": u["linkedin_url"] or "",
+            "github_url": u["github_url"] or "",
+            "portfolio_url": u["portfolio_url"] or "",
+            "auth_provider": auth_prov,
+            "ist_created_at": u["ist_created_at"] or "N/A",
+            "ist_last_active": u["ist_last_active"] if last_act > 0 else "Never",
+            "is_online": is_online,
+            "job_count": job_cnt,
+            "is_new_today": is_new_today,
+            "is_regular": is_regular,
+            "jobs": user_jobs_map.get(email, [])
+        })
+
+    avg_jobs_per_user = round(total_jobs_count / max(1, total_users_count), 1)
+
+    daily_signups_data = [{"date": r["signup_date"] or "N/A", "count": r["new_signups"]} for r in daily_rows]
+    customers_json = json.dumps(customers_list).replace("</script>", "<\\/script>")
+    daily_json = json.dumps(daily_signups_data).replace("</script>", "<\\/script>")
 
     return f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <meta charset="UTF-8"><title>NexJob AI - Admin Cockpit</title>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NexJob AI - Executive Admin Cockpit</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Google+Sans+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
         <style>
-            :root {{ --bg:#07090F; --surface:#0E1424; --elevated:#151D33; --border:rgba(255,255,255,0.08); --indigo:#6366F1; --teal:#14B8A6; --coral:#F43F5E; --text:#F8FAFC; --muted:#94A3B8; }}
+            :root {{
+                --bg: #07090F;
+                --surface: #0E1424;
+                --elevated: #151D33;
+                --border: rgba(255, 255, 255, 0.08);
+                --border-hover: rgba(255, 255, 255, 0.18);
+                --indigo: #5B5FEF;
+                --teal: #22D3C8;
+                --coral: #FF7A59;
+                --amber: #F5A623;
+                --text: #F8FAFC;
+                --muted: #94A3B8;
+                --dim: #4B5565;
+            }}
             * {{ margin:0; padding:0; box-sizing:border-box; }}
-            body {{ font-family:'Plus Jakarta Sans', sans-serif; background:var(--bg); color:var(--text); padding:2rem; }}
-            .header {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; }}
-            .stats {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }}
-            .card {{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; }}
-            .val {{ font-family:'JetBrains Mono', monospace; font-size:1.8rem; font-weight:800; margin-top:4px; }}
-            table {{ width:100%; border-collapse:collapse; text-align:left; font-size:0.88rem; }}
-            th, td {{ padding:12px 16px; border-bottom:1px solid var(--border); }}
-            th {{ background:#0A0E1A; color:var(--muted); text-transform:uppercase; font-size:0.72rem; }}
-            .badge {{ background:rgba(99,102,241,0.15); color:#818CF8; padding:3px 8px; border-radius:4px; font-weight:700; font-family:'JetBrains Mono', monospace; }}
-            .btn-del {{ background:rgba(244,63,94,0.15); border:1px solid var(--coral); color:#FECDD3; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; }}
+            body {{
+                font-family: 'Google Sans', 'Google Sans Text', sans-serif;
+                background-color: var(--bg);
+                color: var(--text);
+                padding: 2rem;
+                min-height: 100vh;
+                line-height: 1.5;
+            }}
+            .header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+                padding-bottom: 1.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+            .header h1 {{ font-size: 1.65rem; font-weight: 800; letter-spacing: -0.02em; color: #FFF; }}
+            .header p {{ color: var(--muted); font-size: 0.88rem; margin-top: 4px; }}
+            .btn-group {{ display: flex; gap: 10px; flex-wrap: wrap; }}
+            .btn {{
+                background: var(--elevated);
+                border: 1px solid var(--border);
+                color: #FFF;
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-family: inherit;
+                font-size: 0.84rem;
+                font-weight: 600;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                transition: all 0.15s ease;
+            }}
+            .btn:hover {{ background: #1E294B; border-color: var(--border-hover); }}
+            .btn-primary {{ background: var(--indigo); border-color: transparent; }}
+            .btn-primary:hover {{ background: #4B4FD8; }}
+
+            /* KPI Stats Grid */
+            .stats-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 1.25rem;
+                margin-bottom: 2rem;
+            }}
+            .stat-card {{
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1.25rem 1.4rem;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                position: relative;
+                overflow: hidden;
+            }}
+            .stat-title {{
+                font-size: 0.76rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--muted);
+            }}
+            .stat-value {{
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 1.9rem;
+                font-weight: 800;
+                color: #FFF;
+            }}
+            .stat-sub {{ font-size: 0.75rem; color: var(--muted); }}
+
+            /* Daily Breakdown & Grid Layout */
+            .main-grid {{
+                display: grid;
+                grid-template-columns: 1fr 340px;
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }}
+            @media (max-width: 1080px) {{
+                .main-grid {{ grid-template-columns: 1fr; }}
+            }}
+            .panel {{
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1.5rem;
+            }}
+            .panel-header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.25rem;
+                flex-wrap: wrap;
+                gap: 10px;
+            }}
+            .panel-title {{ font-size: 1.1rem; font-weight: 700; color: #FFF; }}
+
+            /* Search & Filter Bar */
+            .filter-bar {{
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 1.25rem;
+            }}
+            .search-input {{
+                background: var(--bg);
+                border: 1px solid var(--border);
+                color: #FFF;
+                padding: 8px 14px;
+                border-radius: 8px;
+                font-family: inherit;
+                font-size: 0.85rem;
+                min-width: 280px;
+                flex: 1;
+            }}
+            .search-input:focus {{ outline: none; border-color: var(--indigo); }}
+            .filter-chip {{
+                background: var(--elevated);
+                border: 1px solid var(--border);
+                color: var(--muted);
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 0.78rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }}
+            .filter-chip.active, .filter-chip:hover {{
+                background: rgba(91, 95, 239, 0.2);
+                border-color: var(--indigo);
+                color: #FFF;
+            }}
+
+            /* Table Styles */
+            table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 0.86rem; }}
+            th, td {{ padding: 12px 14px; border-bottom: 1px solid var(--border); }}
+            th {{
+                background: #0A0E1A;
+                color: var(--muted);
+                text-transform: uppercase;
+                font-size: 0.72rem;
+                letter-spacing: 0.05em;
+                position: sticky;
+                top: 0;
+            }}
+            tr:hover td {{ background: rgba(255, 255, 255, 0.02); }}
+
+            /* Clickable Customer Name Button */
+            .customer-btn {{
+                background: transparent;
+                border: none;
+                padding: 0;
+                text-align: left;
+                cursor: pointer;
+                font-family: inherit;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }}
+            .customer-btn:hover .c-name {{
+                color: var(--teal);
+                text-decoration: underline;
+            }}
+            .c-name {{ font-weight: 700; color: #FFF; font-size: 0.88rem; transition: color 0.15s ease; }}
+            .c-email {{ font-size: 0.74rem; color: var(--muted); }}
+
+            .dot-online {{
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                color: var(--teal);
+                font-size: 0.75rem;
+                font-weight: 600;
+            }}
+            .dot-online::before {{
+                content: '';
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: var(--teal);
+                box-shadow: 0 0 8px var(--teal);
+            }}
+            .dot-offline {{
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                color: var(--muted);
+                font-size: 0.75rem;
+            }}
+            .dot-offline::before {{
+                content: '';
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: var(--dim);
+            }}
+            .badge {{
+                background: rgba(91, 95, 239, 0.15);
+                color: #A5B4FC;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-weight: 700;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.75rem;
+            }}
+            .badge-teal {{
+                background: rgba(34, 211, 200, 0.15);
+                color: var(--teal);
+            }}
+            .badge-amber {{
+                background: rgba(245, 166, 35, 0.15);
+                color: var(--amber);
+            }}
+            .btn-sm-del {{
+                background: rgba(220, 38, 38, 0.15);
+                border: 1px solid rgba(220, 38, 38, 0.35);
+                color: #FECDD3;
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 0.74rem;
+                font-weight: 600;
+                cursor: pointer;
+            }}
+            .btn-sm-del:hover {{ background: rgba(220, 38, 38, 0.3); }}
+
+            /* Daily Signups Bars */
+            .daily-row {{
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 8px 0;
+                border-bottom: 1px solid var(--border);
+                font-size: 0.82rem;
+            }}
+            .daily-bar-wrap {{
+                flex: 1;
+                height: 6px;
+                background: var(--elevated);
+                border-radius: 3px;
+                overflow: hidden;
+            }}
+            .daily-bar {{
+                height: 100%;
+                background: linear-gradient(90deg, var(--indigo), var(--teal));
+                border-radius: 3px;
+            }}
+
+            /* Detail Modal (Opens when clicking name) */
+            .modal-backdrop {{
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.75);
+                backdrop-filter: blur(6px);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 1.5rem;
+            }}
+            .modal-box {{
+                background: var(--surface);
+                border: 1px solid var(--border-hover);
+                border-radius: 14px;
+                width: 100%;
+                max-width: 680px;
+                max-height: 90vh;
+                overflow-y: auto;
+                padding: 2rem;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            }}
+            .modal-header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 1rem;
+            }}
+            .detail-section {{
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }}
+            .detail-label {{
+                font-size: 0.75rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--muted);
+            }}
+            .detail-value {{
+                font-size: 0.9rem;
+                color: #FFF;
+            }}
+            .resume-box {{
+                background: var(--bg);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1rem;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.76rem;
+                color: #CBD5E1;
+                max-height: 180px;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                line-height: 1.5;
+            }}
+            .skill-chip {{
+                background: var(--elevated);
+                border: 1px solid var(--border);
+                color: var(--teal);
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 0.74rem;
+                display: inline-block;
+                margin: 2px 4px 2px 0;
+            }}
         </style>
     </head>
     <body>
         <div class="header">
-            <div><h1 style="font-size:1.6rem; font-weight:800;">NexJob AI Central Cockpit</h1><p style="color:var(--muted); font-size:0.85rem;">Global accounts, live session tracking, and user directories.</p></div>
-            <a href="/" style="background:var(--elevated); border:1px solid var(--border); color:#FFF; padding:8px 16px; border-radius:8px; text-decoration:none; font-size:0.85rem;">← View Main App</a>
+            <div>
+                <h1>NexJob AI Owner Central Cockpit</h1>
+                <p>Real-time customer analytics, candidate profiles, daily signups & system activity (IST Timezone).</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="exportToCSV()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export Customers CSV
+                </button>
+                <a href="/" target="_blank" class="btn btn-primary">← View Public Web App</a>
+            </div>
         </div>
-        <div class="stats">
-            <div class="card"><div style="font-size:0.75rem; text-transform:uppercase; color:var(--muted); font-weight:700;">Total Registrations</div><div class="val" style="color:var(--indigo);">{total_users_count}</div></div>
-            <div class="card"><div style="font-size:0.75rem; text-transform:uppercase; color:var(--muted); font-weight:700;">Live / Active Users</div><div class="val" style="color:var(--teal);">{active_now_count}</div></div>
-            <div class="card"><div style="font-size:0.75rem; text-transform:uppercase; color:var(--muted); font-weight:700;">Tracked Applications</div><div class="val" style="color:#A855F7;">{total_jobs_count}</div></div>
+
+        <!-- 6 Key Performance Indicators -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Total Customers</div>
+                <div class="stat-value" style="color:var(--indigo);">{total_users_count}</div>
+                <div class="stat-sub">{google_auth_count} Google • {total_users_count - google_auth_count} Email</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">New Today (Last 24h)</div>
+                <div class="stat-value" style="color:var(--teal);">{new_today_count}</div>
+                <div class="stat-sub">Joined on {today_ist_str}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Regular Customers</div>
+                <div class="stat-value" style="color:#A855F7;">{regular_users_count}</div>
+                <div class="stat-sub">Active / Tracking Apps</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Live Right Now</div>
+                <div class="stat-value" style="color:var(--teal);">{active_now_count}</div>
+                <div class="stat-sub">Active in past 2 hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Tracked Applications</div>
+                <div class="stat-value" style="color:var(--amber);">{total_jobs_count}</div>
+                <div class="stat-sub">Candidate job pipelines</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Avg Apps / User</div>
+                <div class="stat-value" style="color:var(--coral);">{avg_jobs_per_user}</div>
+                <div class="stat-sub">Average application volume</div>
+            </div>
         </div>
-        <div class="card" style="overflow-x:auto;">
-            <h3 style="margin-bottom:1rem; font-size:1.05rem;">Registered Candidate History & Status</h3>
-            <table>
-                <thead>
-                    <tr><th>Candidate Email</th><th>Status</th><th>Full Name</th><th>Target Role</th><th>Joined Date (IST)</th><th>Applications</th><th>Actions</th></tr>
-                </thead>
-                <tbody>{rendered_table}</tbody>
-            </table>
+
+        <!-- Main Workspace Grid: Customer Directory + Daily Growth Breakdown -->
+        <div class="main-grid">
+            <!-- Left: Customer Directory Table -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title">Customer Directory</div>
+                        <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Click any candidate's name to view their complete profile, resume, and tracked jobs.</div>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by name, email, target role..." oninput="filterCustomers()">
+                    <button class="filter-chip active" id="chipAll" onclick="setFilter('all')">All ({total_users_count})</button>
+                    <button class="filter-chip" id="chipOnline" onclick="setFilter('online')">Online ({active_now_count})</button>
+                    <button class="filter-chip" id="chipNew" onclick="setFilter('new')">New Today ({new_today_count})</button>
+                    <button class="filter-chip" id="chipRegular" onclick="setFilter('regular')">Regular ({regular_users_count})</button>
+                    <button class="filter-chip" id="chipGoogle" onclick="setFilter('google')">Google ({google_auth_count})</button>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Candidate (Click Name)</th>
+                                <th>Status</th>
+                                <th>Target Role</th>
+                                <th>Applications</th>
+                                <th>Joined (IST)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTableBody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right: Daily Customer Signups Trend -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Daily Signups</div>
+                    <span class="badge badge-teal">Past 14 Days</span>
+                </div>
+                <div id="dailySignupsList">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
         </div>
+
+        <!-- Customer Detail Modal (Opens when clicking Candidate Name) -->
+        <div class="modal-backdrop" id="customerModal" onclick="if(event.target===this) closeCustomerModal()">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <div>
+                        <h2 id="mName" style="font-size:1.35rem; font-weight:800; color:#FFF;">Candidate Name</h2>
+                        <div id="mEmail" style="color:var(--muted); font-size:0.85rem; margin-top:2px;">email@example.com</div>
+                    </div>
+                    <button class="btn" style="padding:4px 10px;" onclick="closeCustomerModal()">&times; Close</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+                    <div class="detail-section">
+                        <div class="detail-label">Status & Account Type</div>
+                        <div id="mStatusBadge" class="detail-value">Online</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Joined Date (IST)</div>
+                        <div id="mJoined" class="detail-value" style="font-family:'JetBrains Mono', monospace;">2026-09-25</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Target Role</div>
+                        <div id="mRole" class="detail-value">Software Engineer</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Last Active (IST)</div>
+                        <div id="mLastActive" class="detail-value" style="font-family:'JetBrains Mono', monospace;">Just now</div>
+                    </div>
+                </div>
+
+                <div class="detail-section" id="mSocialWrap">
+                    <div class="detail-label">Links & Profiles</div>
+                    <div id="mSocialLinks" style="display:flex; gap:10px; flex-wrap:wrap; font-size:0.82rem;"></div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-label">Stored Skills</div>
+                    <div id="mSkills" style="display:flex; flex-wrap:wrap; gap:4px;">None specified</div>
+                </div>
+
+                <div class="detail-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="detail-label">Stored Resume Text</div>
+                        <button class="btn" style="padding:2px 8px; font-size:0.72rem;" onclick="copyModalResume()">Copy Resume</button>
+                    </div>
+                    <div class="resume-box" id="mResume">No resume on file.</div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-label">Tracked Job Applications (<span id="mJobCount">0</span>)</div>
+                    <div id="mJobsTable" style="max-height:160px; overflow-y:auto;"></div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:1rem; margin-top:0.5rem;">
+                    <a id="mMailToBtn" href="#" class="btn btn-primary" style="font-size:0.82rem;">Email Candidate</a>
+                    <button id="mDeleteBtn" class="btn-sm-del" style="padding:8px 14px; font-size:0.82rem;" onclick="deleteFromModal()">Delete Customer Account</button>
+                </div>
+            </div>
+        </div>
+
         <script>
-            async function deleteUserRow(email, rowId) {{
-                if (!confirm(`Delete ${{email}}?`)) return;
-                const res = await fetch('/admin/delete-user', {{ method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify({{ email }}) }});
-                if (res.ok) document.getElementById(rowId).remove();
+            const CUSTOMERS = {customers_json};
+            const DAILY_DATA = {daily_json};
+            let currentFilter = 'all';
+            let currentCustomerEmail = null;
+
+            // Render Table
+            function renderTable(data) {{
+                const tbody = document.getElementById('customersTableBody');
+                if (!data || data.length === 0) {{
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--muted);">No candidates match your search.</td></tr>';
+                    return;
+                }}
+
+                tbody.innerHTML = data.map((c, idx) => {{
+                    const dot = c.is_online ? '<span class="dot-online">Online</span>' : '<span class="dot-offline">Offline</span>';
+                    const nameDisplay = c.full_name || 'Candidate (No name set)';
+                    return `
+                    <tr id="row-${{idx}}">
+                        <td>
+                            <button class="customer-btn" onclick="openCustomerModal('${{encodeURIComponent(c.email)}}')">
+                                <span class="c-name">${{nameDisplay}}</span>
+                                <span class="c-email">${{c.email}}</span>
+                            </button>
+                        </td>
+                        <td>${{dot}}</td>
+                        <td style="color:#CBD5E1;">${{c.target_role || '<span style="color:var(--dim);">Not specified</span>'}}</td>
+                        <td><span class="badge badge-teal">${{c.job_count}} apps</span></td>
+                        <td style="font-family:'JetBrains Mono', monospace; font-size:0.78rem; color:var(--muted);">${{c.ist_created_at}}</td>
+                        <td>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn" style="padding:3px 8px; font-size:0.72rem;" onclick="openCustomerModal('${{encodeURIComponent(c.email)}}')">Details</button>
+                                <button class="btn-sm-del" onclick="deleteUserRow('${{c.email}}', 'row-${{idx}}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    `;
+                }}).join('');
             }}
+
+            // Render Daily Signups
+            function renderDaily() {{
+                const container = document.getElementById('dailySignupsList');
+                if (!DAILY_DATA || DAILY_DATA.length === 0) {{
+                    container.innerHTML = '<div style="color:var(--muted); font-size:0.85rem; padding:1rem 0;">No signups recorded yet.</div>';
+                    return;
+                }}
+                const maxCount = Math.max(...DAILY_DATA.map(d => d.count), 1);
+                container.innerHTML = DAILY_DATA.map(d => {{
+                    const pct = Math.min(100, Math.round((d.count / maxCount) * 100));
+                    return `
+                    <div class="daily-row">
+                        <span style="font-family:'JetBrains Mono', monospace; color:#CBD5E1;">${{d.date}}</span>
+                        <div class="daily-bar-wrap">
+                            <div class="daily-bar" style="width:${{pct}}%;"></div>
+                        </div>
+                        <span class="badge badge-teal">+${{d.count}}</span>
+                    </div>
+                    `;
+                }}).join('');
+            }}
+
+            // Open Customer Detail Modal
+            function openCustomerModal(encodedEmail) {{
+                const email = decodeURIComponent(encodedEmail);
+                const c = CUSTOMERS.find(item => item.email === email);
+                if (!c) return;
+
+                currentCustomerEmail = email;
+                document.getElementById('mName').textContent = c.full_name || 'Candidate Account';
+                document.getElementById('mEmail').textContent = c.email + (c.username ? ' (@' + c.username + ')' : '');
+                
+                const dotHtml = c.is_online ? '<span class="dot-online">Online Session Active</span>' : '<span class="dot-offline">Offline</span>';
+                const authBadge = c.auth_provider === 'google' ? '<span class="badge badge-amber" style="margin-left:6px;">Google OAuth</span>' : '<span class="badge" style="margin-left:6px;">Email & Password</span>';
+                document.getElementById('mStatusBadge').innerHTML = dotHtml + authBadge;
+
+                document.getElementById('mJoined').textContent = c.ist_created_at;
+                document.getElementById('mLastActive').textContent = c.ist_last_active;
+                document.getElementById('mRole').textContent = c.target_role || 'Not specified';
+
+                // Social Links
+                const socialDiv = document.getElementById('mSocialLinks');
+                const links = [];
+                if (c.linkedin_url) links.push(`<a href="${{c.linkedin_url}}" target="_blank" style="color:var(--teal); text-decoration:none;">LinkedIn ↗</a>`);
+                if (c.github_url) links.push(`<a href="${{c.github_url}}" target="_blank" style="color:#FFF; text-decoration:none;">GitHub ↗</a>`);
+                if (c.portfolio_url) links.push(`<a href="${{c.portfolio_url}}" target="_blank" style="color:var(--indigo); text-decoration:none;">Portfolio ↗</a>`);
+                socialDiv.innerHTML = links.length ? links.join(' • ') : '<span style="color:var(--dim);">No external profile links added</span>';
+
+                // Skills
+                const skillsDiv = document.getElementById('mSkills');
+                if (c.skills && c.skills.trim()) {{
+                    const tags = c.skills.split(',').map(s => s.trim()).filter(Boolean);
+                    skillsDiv.innerHTML = tags.map(t => `<span class="skill-chip">${{t}}</span>`).join('');
+                }} else {{
+                    skillsDiv.innerHTML = '<span style="color:var(--dim); font-size:0.82rem;">No skills saved in profile.</span>';
+                }}
+
+                // Resume
+                document.getElementById('mResume').textContent = c.resume || 'No resume stored by candidate.';
+
+                // Tracked Jobs
+                const jobsDiv = document.getElementById('mJobsTable');
+                document.getElementById('mJobCount').textContent = c.jobs.length;
+                if (c.jobs && c.jobs.length > 0) {{
+                    jobsDiv.innerHTML = `
+                        <table style="font-size:0.78rem;">
+                            <thead><tr><th>Company</th><th>Role</th><th>Status</th><th>Date</th></tr></thead>
+                            <tbody>
+                                ${{c.jobs.map(j => `
+                                    <tr>
+                                        <td><strong>${{j.company}}</strong></td>
+                                        <td>${{j.role}}</td>
+                                        <td><span class="badge">${{j.status}}</span></td>
+                                        <td style="color:var(--muted);">${{j.date}}</td>
+                                    </tr>
+                                `).join('')}}
+                            </tbody>
+                        </table>
+                    `;
+                }} else {{
+                    jobsDiv.innerHTML = '<div style="color:var(--dim); font-size:0.82rem; padding:6px 0;">No job applications tracked yet.</div>';
+                }}
+
+                document.getElementById('mMailToBtn').href = `mailto:${{c.email}}?subject=NexJob%20AI%20Candidate%20Update`;
+                document.getElementById('customerModal').style.display = 'flex';
+            }}
+
+            function closeCustomerModal() {{
+                document.getElementById('customerModal').style.display = 'none';
+            }}
+
+            function copyModalResume() {{
+                const txt = document.getElementById('mResume').textContent;
+                navigator.clipboard.writeText(txt);
+                alert('Candidate resume copied to clipboard.');
+            }}
+
+            async function deleteFromModal() {{
+                if (!currentCustomerEmail) return;
+                if (!confirm(`Permanently delete account and all data for ${{currentCustomerEmail}}?`)) return;
+                const res = await fetch('/admin/delete-user', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ email: currentCustomerEmail }})
+                }});
+                if (res.ok) {{
+                    alert(`User ${{currentCustomerEmail}} successfully deleted.`);
+                    location.reload();
+                }}
+            }}
+
+            async function deleteUserRow(email, rowId) {{
+                if (!confirm(`Delete user ${{email}}?`)) return;
+                const res = await fetch('/admin/delete-user', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ email }})
+                }});
+                if (res.ok) {{
+                    const el = document.getElementById(rowId);
+                    if (el) el.remove();
+                }}
+            }}
+
+            // Filter & Search Logic
+            function setFilter(type) {{
+                currentFilter = type;
+                document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+                const chip = document.getElementById('chip' + type.charAt(0).toUpperCase() + type.slice(1));
+                if (chip) chip.classList.add('active');
+                filterCustomers();
+            }}
+
+            function filterCustomers() {{
+                const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+                let filtered = CUSTOMERS;
+
+                if (currentFilter === 'online') filtered = filtered.filter(c => c.is_online);
+                else if (currentFilter === 'new') filtered = filtered.filter(c => c.is_new_today);
+                else if (currentFilter === 'regular') filtered = filtered.filter(c => c.is_regular);
+                else if (currentFilter === 'google') filtered = filtered.filter(c => c.auth_provider === 'google');
+
+                if (q) {{
+                    filtered = filtered.filter(c => 
+                        c.email.toLowerCase().includes(q) ||
+                        c.full_name.toLowerCase().includes(q) ||
+                        c.target_role.toLowerCase().includes(q) ||
+                        c.jobs.some(j => j.company.toLowerCase().includes(q) || j.role.toLowerCase().includes(q))
+                    );
+                }}
+
+                renderTable(filtered);
+            }}
+
+            // Export to CSV
+            function exportToCSV() {{
+                const headers = ['Email', 'Full Name', 'Target Role', 'Joined (IST)', 'Last Active (IST)', 'Applications Count', 'Auth Provider'];
+                const rows = CUSTOMERS.map(c => [
+                    `"${{c.email}}"`,
+                    `"${{(c.full_name || '').replace(/"/g, '""')}}"`,
+                    `"${{(c.target_role || '').replace(/"/g, '""')}}"`,
+                    `"${{c.ist_created_at}}"`,
+                    `"${{c.ist_last_active}}"`,
+                    c.job_count,
+                    `"${{c.auth_provider}}"`
+                ]);
+                const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', `nexjob_candidates_${{new Date().toISOString().slice(0, 10)}}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }}
+
+            // Init
+            renderTable(CUSTOMERS);
+            renderDaily();
         </script>
     </body>
     </html>
