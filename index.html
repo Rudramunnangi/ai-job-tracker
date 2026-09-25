@@ -474,22 +474,39 @@
     </section>
   </main>
 
-  <!-- Site Footer (Point 26 & 27: Official Legal, Privacy, System Telemetry) -->
+  <!-- Site Footer -->
   <footer class="site-footer">
     <div class="footer-inner">
-      <div class="footer-left">
-        <div class="footer-brand">NexJob AI</div>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Autonomous Career Intelligence & Precision Job Tracking.</p>
-        <div class="footer-status-pill">
-          <span class="indicator-bullet pass" style="width: 6px; height: 6px;"></span>
-          <span>Engine v2.4 Online • Zero-Retention Gemini API</span>
+      <div class="footer-top">
+        <div class="footer-brand-col">
+          <div class="footer-brand">NexJob AI</div>
+          <p class="footer-desc">Autonomous Career Intelligence &amp; Precision Job Tracking. Built with craft for serious job seekers.</p>
+          <div class="footer-status-pill">
+            <span class="indicator-bullet pass" style="width: 6px; height: 6px;"></span>
+            <span>Engine v2.4 Online • Zero-Retention Gemini API</span>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <div class="footer-col-title">Live Job Portals</div>
+          <a id="footerLinkedInLink" href="https://www.linkedin.com/jobs/" target="_blank" rel="noopener noreferrer" class="footer-link">LinkedIn Jobs</a>
+          <a id="footerIndeedLink" href="https://www.indeed.com/" target="_blank" rel="noopener noreferrer" class="footer-link">Indeed Portal</a>
+          <a id="footerGoogleLink" href="https://www.google.com/search?q=jobs&amp;ibp=htl;jobs" target="_blank" rel="noopener noreferrer" class="footer-link">Google Careers</a>
+          <button type="button" class="footer-link-btn" onclick="openIntegrationsModal()">Connected Portals</button>
+        </div>
+
+        <div class="footer-col">
+          <div class="footer-col-title">Governance &amp; Desk</div>
+          <button type="button" class="footer-link-btn" onclick="openLegalModal('terms')">Terms of Service</button>
+          <button type="button" class="footer-link-btn" onclick="openLegalModal('privacy')">Privacy Policy</button>
+          <a href="/admin" target="_blank" class="footer-link">Admin Cockpit</a>
+          <a href="mailto:support@nexjob.ai" class="footer-link">support@nexjob.ai</a>
         </div>
       </div>
-      <div class="footer-nav">
-        <button class="footer-link-btn" onclick="openLegalModal('terms')">Terms of Service</button>
-        <button class="footer-link-btn" onclick="openLegalModal('privacy')">Privacy Policy</button>
-        <button class="footer-link-btn" onclick="openIntegrationsModal()">Connected Portals</button>
-        <a href="mailto:support@nexjob.ai" class="footer-link-btn">Support: support@nexjob.ai</a>
+
+      <div class="footer-bottom">
+        <div>© 2026 NexJob AI. All rights reserved.</div>
+        <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted);">Enterprise Career Intelligence • Zero-Retention AI Engine</div>
       </div>
     </div>
   </footer>
@@ -723,19 +740,6 @@
       <button class="btn-primary" style="width: 100%;" onclick="saveUserProfile()">Save Career Profile</button>
     </div>
   </div>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div>NexJob AI © 2026. Built with craft for serious job seekers.</div>
-    <div class="footer-links">
-      <a id="footerLinkedInLink" href="https://www.linkedin.com/jobs/" target="_blank">LinkedIn Jobs</a>
-      <a id="footerIndeedLink" href="https://www.indeed.com/" target="_blank">Indeed Portal</a>
-      <a id="footerGoogleLink" href="https://www.google.com/search?q=jobs&ibp=htl;jobs" target="_blank">Google Careers</a>
-      <a href="javascript:openLegalModal('terms')">Terms of Service</a>
-      <a href="javascript:openLegalModal('privacy')">Privacy Policy</a>
-      <a href="/admin" target="_blank">Admin Cockpit</a>
-    </div>
-  </footer>
 
   <!-- Anti-Ghosting Follow-Up Modal -->
   <div class="modal-backdrop" id="followupModal" style="display: none;">
