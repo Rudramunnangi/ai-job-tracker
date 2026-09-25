@@ -1540,9 +1540,158 @@ kbd {
 .capability-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 14px; /* Explainer cards keep soft radius */
   padding: 1.4rem;
   transition: border-color 0.15s ease;
+}
+
+/* Vertical Connected Journey Rail (Item 3: Restructured from Bento Grid) */
+.capabilities-journey-rail {
+  position: relative;
+  max-width: 860px;
+  margin: 2.5rem auto;
+  padding-left: 3.2rem;
+}
+
+.rail-spine {
+  position: absolute;
+  top: 1.5rem;
+  bottom: 1.5rem;
+  left: 1.25rem;
+  width: 2px;
+}
+
+.rail-dotted-line {
+  position: absolute;
+  inset: 0;
+  border-left: 2px dotted rgba(255, 255, 255, 0.22);
+}
+
+.rail-progress-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 0%;
+  background: linear-gradient(180deg, var(--accent-teal), var(--accent-primary));
+  box-shadow: 0 0 10px rgba(34, 211, 200, 0.5);
+  transition: height 0.3s ease;
+}
+
+.rail-glowing-marker {
+  position: absolute;
+  top: 0%;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  box-shadow: 0 0 14px rgba(34, 211, 200, 0.9), 0 0 24px rgba(34, 211, 200, 0.5);
+  transition: top 0.3s ease;
+  pointer-events: none;
+}
+
+.rail-stop-item {
+  position: relative;
+  margin-bottom: 2rem;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.rail-stop-item.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.rail-stop-node {
+  position: absolute;
+  top: 1.4rem;
+  left: -2.85rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.rail-stop-item.in-view .rail-stop-node {
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
+  box-shadow: 0 0 8px rgba(34, 211, 200, 0.4);
+}
+
+.rail-stop-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px; /* Explainer cards keep soft radius */
+  padding: 1.8rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.rail-stop-card:hover {
+  border-color: var(--border-medium);
+  background: var(--bg-card-hover);
+}
+
+@media (max-width: 640px) {
+  .capabilities-journey-rail {
+    padding-left: 2.2rem;
+  }
+  .rail-spine {
+    left: 0.8rem;
+  }
+  .rail-stop-node {
+    left: -2.1rem;
+    width: 22px;
+    height: 22px;
+    font-size: 0.62rem;
+  }
+}
+
+/* Item 5: Sharper Corner Radius for Data Elements (vs. Soft Radius on Marketing Cards) */
+#step-3.flow-step-card,
+.match-report-card,
+.ats-result-window {
+  border-radius: 4px !important; /* Sharper data report container */
+}
+
+.ats-score-display,
+.score-circle,
+.score-container,
+.gauge-score-val,
+.score-pill {
+  border-radius: 4px !important; /* Sharper data score output */
+}
+
+.skill-tag,
+.skill-chip,
+.skill-pill,
+.skill-chip-pass,
+.skill-chip-gap,
+.matched-skill,
+.missing-skill,
+.tag-badge {
+  border-radius: 3px !important; /* Sharper data chips */
+}
+
+.fit-badge,
+.fit-score-badge,
+.fit-chip,
+.instant-fit-badge,
+.fit-match-percent {
+  border-radius: 3px !important; /* Sharper fit % output badges */
 }
 
 .capability-card:hover {

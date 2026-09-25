@@ -176,6 +176,13 @@ function getBrandedBufferingHTML(statusText = "Analyzing resume alignment...") {
     return getBrandLoaderHTML(statusText, "default");
 }
 
+function getBrandLoaderMiniSVG() {
+    return `<svg class="brand-loader-spin" viewBox="0 0 100 100" width="16" height="16" fill="none" style="display:inline-block; vertical-align:middle;">
+        <rect width="100" height="100" rx="22" fill="#0E1424" stroke="var(--border-subtle)" stroke-width="4"/>
+        <path d="M30 72V28L70 72V28" stroke="var(--accent-teal)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+}
+
 // 60-Second Cooldown Timers
 function startSignupTimer() {
     let timeLeft = 60;
@@ -643,6 +650,13 @@ async function uploadResumePDF() {
     const resultBox = document.getElementById('atsResultWindow');
     resultBox.innerHTML = getBrandedBufferingHTML("Parsing and analyzing PDF resume securely...");
 
+    const uploadBtn = document.querySelector('button[onclick="uploadResumePDF()"]');
+    const origUploadText = uploadBtn ? uploadBtn.innerHTML : "Sync to Profile";
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${getBrandLoaderMiniSVG()} Parsing PDF...</span>`;
+    }
+
     try {
         const res = await fetch("/api/resume/upload-pdf", {
             method: "POST",
@@ -666,6 +680,11 @@ async function uploadResumePDF() {
         }
     } catch (err) {
         resultBox.innerHTML = "<p style='color: var(--accent-coral); text-align: center;'>Connection error during PDF parsing.</p>";
+    } finally {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = origUploadText;
+        }
     }
 }
 
@@ -1634,6 +1653,13 @@ async function runATSExecution() {
         return;
     }
 
+    const btnATS = document.getElementById('btnATSExecution');
+    const origBtnHTML = btnATS ? btnATS.innerHTML : "Execute ATS Evaluation";
+    if (btnATS) {
+        btnATS.disabled = true;
+        btnATS.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;">${getBrandLoaderMiniSVG()} <span>Evaluating ATS Match...</span></span>`;
+    }
+
     goToStep(3);
     resultBox.innerHTML = getBrandLoaderHTML("Analyzing resume match, recruiter scan, and interview traps...");
 
@@ -1665,6 +1691,11 @@ async function runATSExecution() {
     } catch (err) {
         resultBox.innerHTML = '<p style="color: var(--accent-coral); text-align: center; padding: 2rem;">Connection error. Ensure the server is online.</p>';
         showToast("Network connection error.", "error");
+    } finally {
+        if (btnATS) {
+            btnATS.disabled = false;
+            btnATS.innerHTML = origBtnHTML;
+        }
     }
 }
 
@@ -1918,9 +1949,9 @@ function initHero3DNetwork() {
         particleColors[i * 3 + 2] = color.b;
 
         particleVelocities.push({
-            vx: (Math.random() - 0.5) * 0.22,
-            vy: (Math.random() - 0.5) * 0.22,
-            vz: (Math.random() - 0.5) * 0.18
+            vx: (Math.random() - 0.5) * 0.45,
+            vy: (Math.random() - 0.5) * 0.45,
+            vz: (Math.random() - 0.5) * 0.32
         });
     }
 
@@ -1959,13 +1990,16 @@ function initHero3DNetwork() {
     const linesMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
     heroNetworkGroup.add(linesMesh);
 
-    heroSection.addEventListener('mousemove', (e) => {
+    window.addEventListener('pointermove', (e) => {
+        if (!heroSection) return;
         const rect = heroSection.getBoundingClientRect();
-        heroMouseX = (e.clientX - rect.left) / rect.width - 0.5;
-        heroMouseY = (e.clientY - rect.top) / rect.height - 0.5;
-        heroTargetRotY = heroMouseX * 0.45;
-        heroTargetRotX = -heroMouseY * 0.35;
-    });
+        if (e.clientY < rect.bottom + 150 && e.clientY > rect.top - 150) {
+            heroMouseX = (e.clientX - rect.left) / rect.width - 0.5;
+            heroMouseY = (e.clientY - rect.top) / rect.height - 0.5;
+            heroTargetRotY = heroMouseX * 0.6;
+            heroTargetRotX = -heroMouseY * 0.42;
+        }
+    }, { passive: true });
 
     heroSection.addEventListener('mouseleave', () => {
         heroTargetRotX = 0;
@@ -2079,6 +2113,51 @@ function initHero3DNetwork() {
     animate();
 }
 
+// --- Item 3: Capabilities Journey Rail Progress & Fade-in Observer ---
+function initCapabilitiesJourneyRail() {
+    const rail = document.getElementById('capabilitiesJourneyRail');
+    if (!rail) return;
+
+    const stopItems = rail.querySelectorAll('.rail-stop-item');
+    const progressLine = document.getElementById('railProgressLine');
+    const glowingMarker = document.getElementById('railGlowingMarker');
+
+    // 1. Intersection Observer for fading/sliding in each stop
+    const stopObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+            }
+        });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    stopItems.forEach(item => stopObserver.observe(item));
+
+    // 2. Scroll listener to calculate progress and move glowing marker smoothly down the dotted line
+    function updateRailProgress() {
+        const rect = rail.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        const startY = windowHeight * 0.75;
+        const totalHeight = rect.height;
+        
+        const currentY = startY - rect.top;
+        let progress = currentY / totalHeight;
+        progress = Math.max(0, Math.min(1, progress));
+
+        const percent = (progress * 100).toFixed(1);
+        if (progressLine) {
+            progressLine.style.height = `${percent}%`;
+        }
+        if (glowingMarker) {
+            glowingMarker.style.top = `${percent}%`;
+        }
+    }
+
+    window.addEventListener('scroll', updateRailProgress, { passive: true });
+    updateRailProgress();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     initAmbientMeshBackground();
     await loadUserData();
@@ -2086,5 +2165,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderDashboard();
     initScrollAnimations();
     initHero3DNetwork();
+    initCapabilitiesJourneyRail();
     initCardSpotlight();
 });

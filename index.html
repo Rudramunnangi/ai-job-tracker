@@ -88,7 +88,7 @@
           <span class="hero-pill-dot"></span>
           <span>ATS Scanner & Application Tracker</span>
         </div>
-        <h1 class="hero-title">Stop sending resumes into the <span class="gradient-text">black hole.</span></h1>
+        <h1 class="hero-title"><span class="gradient-text">Stop sending resumes into the black hole.</span></h1>
         <p class="hero-subtitle">Recruiters spend 6 seconds on your resume. NexJob shows you exactly what they see, fixes your missing keywords, and automates your follow-ups before you apply.</p>
         
         <!-- Point 18 Fix: Instant Interactive Real Product Demos -->
@@ -250,8 +250,8 @@
             <button class="btn-ghost" onclick="goToStep(1)">
               ← Back to Job Details
             </button>
-            <button class="btn-primary" style="padding: 0.8rem 1.6rem;" onclick="runATSExecution()">
-              Scan Resume for Match
+            <button class="btn-primary" id="btnATSExecution" style="padding: 0.8rem 1.6rem;" onclick="runATSExecution()">
+              Execute ATS Evaluation
             </button>
           </div>
         </div>
@@ -309,26 +309,36 @@
         <p class="section-subtext">Most candidates send resumes into a black hole. NexJob gives you the recruiter's perspective, fixes your gaps, and automates your pipeline.</p>
       </div>
 
-      <!-- Asymmetrical Command Console (Point 6 Fix: Zero Clichéd 3-in-a-Row Cards) -->
-      <div class="command-console-grid">
-        <div class="command-console-card card-spotlight">
-          <div>
+      <!-- Vertical Connected Journey Rail (Restructured from Bento Grid with Connected Line & Progress Marker) -->
+      <div class="capabilities-journey-rail" id="capabilitiesJourneyRail">
+        <div class="rail-spine">
+          <div class="rail-dotted-line"></div>
+          <div class="rail-progress-line" id="railProgressLine"></div>
+          <div class="rail-glowing-marker" id="railGlowingMarker"></div>
+        </div>
+
+        <!-- Stop 01: Diagnostic Engine -->
+        <div class="rail-stop-item card-spotlight" data-stop="1">
+          <div class="rail-stop-node">01</div>
+          <div class="rail-stop-card">
             <div class="console-card-header">
               <span class="console-badge">DIAGNOSTIC ENGINE</span>
               <span class="indicator-bullet pass"></span>
             </div>
             <h3 class="console-card-title">6-Second Recruiter Triage & Interview Trap Defense</h3>
             <p class="console-card-desc">Recruiters skim before they read. We calculate your instant Green Flags, Red Flags, and Skim Verdict before you apply, then predict the 3 toughest interview questions based on your resume gaps, arming you with tested STAR frameworks.</p>
-          </div>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <span class="console-badge">Green & Red Flag Triage</span>
-            <span class="console-badge">STAR Counter-Framing</span>
-            <span class="console-badge">Verdict Flipper</span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1rem;">
+              <span class="console-badge">Green & Red Flag Triage</span>
+              <span class="console-badge">STAR Counter-Framing</span>
+              <span class="console-badge">Verdict Flipper</span>
+            </div>
           </div>
         </div>
 
-        <div class="command-console-card card-spotlight">
-          <div>
+        <!-- Stop 02: Infrastructure Ledger -->
+        <div class="rail-stop-item card-spotlight" data-stop="2">
+          <div class="rail-stop-node">02</div>
+          <div class="rail-stop-card">
             <div class="console-card-header">
               <span class="console-badge">INFRASTRUCTURE LEDGER</span>
               <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -351,40 +361,53 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 4-Column Capability Matrix -->
-      <div class="capabilities-matrix">
-        <div class="capability-card card-spotlight">
-          <div class="capability-icon-wrap">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        <!-- Stop 03: Skill Gaps & Bullets -->
+        <div class="rail-stop-item card-spotlight" data-stop="3">
+          <div class="rail-stop-node">03</div>
+          <div class="rail-stop-card">
+            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
+              <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            </div>
+            <h4 class="capability-title">Skill Gaps & Bullets</h4>
+            <p class="capability-desc">Pinpoint missing technologies with ready-to-copy, quantified impact bullets for your resume.</p>
           </div>
-          <h4 class="capability-title">Skill Gaps & Bullets</h4>
-          <p class="capability-desc">Pinpoint missing technologies with ready-to-copy, quantified impact bullets for your resume.</p>
         </div>
 
-        <div class="capability-card card-spotlight">
-          <div class="capability-icon-wrap">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <!-- Stop 04: Anti-Ghosting Cadence -->
+        <div class="rail-stop-item card-spotlight" data-stop="4">
+          <div class="rail-stop-node">04</div>
+          <div class="rail-stop-card">
+            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
+              <svg class="icon-svg-lg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <h4 class="capability-title">Anti-Ghosting Cadence</h4>
+            <p class="capability-desc">Timed outreach check-ins for Day 3, 7, and 14 to drastically increase recruiter reply rates.</p>
           </div>
-          <h4 class="capability-title">Anti-Ghosting Cadence</h4>
-          <p class="capability-desc">Timed outreach check-ins for Day 3, 7, and 14 to drastically increase recruiter reply rates.</p>
         </div>
 
-        <div class="capability-card card-spotlight">
-          <div class="capability-icon-wrap">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <!-- Stop 05: Connected Portal Sync -->
+        <div class="rail-stop-item card-spotlight" data-stop="5">
+          <div class="rail-stop-node">05</div>
+          <div class="rail-stop-card">
+            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
+              <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </div>
+            <h4 class="capability-title">Connected Portal Sync</h4>
+            <p class="capability-desc">Monitor Gmail, Outlook, LinkedIn, and Naukri to auto-update interview invites and status changes.</p>
           </div>
-          <h4 class="capability-title">Connected Portal Sync</h4>
-          <p class="capability-desc">Monitor Gmail, Outlook, LinkedIn, and Naukri to auto-update interview invites and status changes.</p>
         </div>
 
-        <div class="capability-card card-spotlight">
-          <div class="capability-icon-wrap">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <!-- Stop 06: Instant Fit & 1-Click Apply -->
+        <div class="rail-stop-item card-spotlight" data-stop="6">
+          <div class="rail-stop-node">06</div>
+          <div class="rail-stop-card">
+            <div class="capability-icon-wrap" style="margin-bottom: 0.75rem;">
+              <svg class="icon-svg-lg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <h4 class="capability-title">Instant Fit & 1-Click Apply</h4>
+            <p class="capability-desc">Discover high-fit roles and submit directly into your live Kanban pipeline with one click.</p>
           </div>
-          <h4 class="capability-title">Instant Fit & 1-Click Apply</h4>
-          <p class="capability-desc">Discover high-fit roles and submit directly into your live Kanban pipeline with one click.</p>
         </div>
       </div>
     </section>
