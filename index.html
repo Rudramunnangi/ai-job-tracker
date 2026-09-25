@@ -36,6 +36,10 @@
 </head>
 <body>
 
+  <!-- Dynamic Atmospheric Background Mesh & Tactile Noise Texture -->
+  <canvas id="ambientMeshCanvas" class="ambient-mesh-canvas" aria-hidden="true"></canvas>
+  <div class="noise-overlay" aria-hidden="true"></div>
+
   <!-- Navigation -->
   <nav class="navbar">
     <a href="/" class="brand-logo">
@@ -45,7 +49,7 @@
         <circle cx="70" cy="30" r="6" fill="#0D9488"/>
         <defs>
           <linearGradient id="logoG" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#5256D8"/>
+            <stop offset="0%" stop-color="#0284C7"/>
             <stop offset="100%" stop-color="#0D9488"/>
           </linearGradient>
         </defs>
@@ -69,7 +73,7 @@
   <main class="main-container">
     
     <!-- Hero Banner with 3D Particle Network Canvas & Dynamic Color Heading -->
-    <header class="hero-section">
+    <header class="hero-section card-spotlight">
       <div class="hero-3d-wrapper">
         <canvas id="heroNetworkCanvas" class="hero-3d-canvas" aria-hidden="true"></canvas>
       </div>
@@ -80,38 +84,59 @@
         </div>
         <h1 class="hero-title">Stop sending resumes into the <span class="gradient-text">black hole.</span></h1>
         <p class="hero-subtitle">Recruiters spend 6 seconds on your resume. NexJob shows you exactly what they see, fixes your missing keywords, and automates your follow-ups before you apply.</p>
+        
+        <!-- Point 18 Fix: Instant Interactive Real Product Demos -->
+        <div class="hero-demo-bar">
+          <span class="hero-demo-label">Live Interactive Preview:</span>
+          <button class="hero-demo-btn" onclick="loadInteractiveDemo('stripe')">
+            <span class="demo-chip">DEMO</span>
+            <span>Distributed Systems (Stripe)</span>
+          </button>
+          <button class="hero-demo-btn" onclick="loadInteractiveDemo('vercel')">
+            <span class="demo-chip">DEMO</span>
+            <span>Lead Frontend (Vercel)</span>
+          </button>
+          <button class="hero-demo-btn" onclick="loadInteractiveDemo('anthropic')">
+            <span class="demo-chip">DEMO</span>
+            <span>AI/ML Infrastructure (Anthropic)</span>
+          </button>
+        </div>
       </div>
     </header>
 
     <!-- Member Job Pipeline Board -->
-    <section id="memberPipelineContainer" class="dashboard-panel" style="display: none;">
+    <section id="memberPipelineContainer" class="dashboard-panel card-spotlight" style="display: none;">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Job Tracker</h2>
           <p class="panel-subtitle">Track applications, detect ghosting, and get reminders when it's time to follow up.</p>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button class="btn-ghost" onclick="openIntegrationsModal()"><span class="pulse-indicator"></span> ⚡ Connect Email & Apps</button>
+          <button class="btn-ghost" onclick="openIntegrationsModal()">
+            <span class="pulse-indicator"></span>
+            <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Connect Email & Apps
+          </button>
           <button class="btn-primary" onclick="openJobModal()">+ Add Application</button>
         </div>
       </div>
 
-      <!-- KPI Summary Cards -->
+      <!-- KPI Summary Cards (Clean SVGs, Zero Emojis) -->
       <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">Total Applied <span>📋</span></div>
+        <div class="kpi-card card-spotlight">
+          <div class="kpi-label">Total Applied <span><svg class="icon-svg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span></div>
           <div class="kpi-value" id="statTotal" style="color: var(--accent-primary);">0</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">In Review <span>⏳</span></div>
-          <div class="kpi-value" id="statPipe" style="color: #818CF8;">0</div>
+        <div class="kpi-card card-spotlight">
+          <div class="kpi-label">In Review <span><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
+          <div class="kpi-value" id="statPipe" style="color: #38BDF8;">0</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Interviews / Offers <span>🎉</span></div>
+        <div class="kpi-card card-spotlight">
+          <div class="kpi-label">Interviews / Offers <span><svg class="icon-svg" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7v4h10v-4h-2c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span></div>
           <div class="kpi-value" id="statOffers" style="color: var(--accent-success);">0</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Follow-ups Due <span>⏰</span></div>
+        <div class="kpi-card card-spotlight">
+          <div class="kpi-label">Follow-ups Due <span><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span></div>
           <div class="kpi-value" id="statNudges" style="color: var(--accent-danger);">0</div>
         </div>
       </div>
@@ -233,17 +258,32 @@
               <h2 class="step-card-title">Compatibility & Action Plan</h2>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn-ghost" onclick="downloadRoadmapPDF()" id="btnDownloadPDF" style="display: none;">📥 Download PDF Guide</button>
+              <button class="btn-ghost" onclick="downloadRoadmapPDF()" id="btnDownloadPDF" style="display: none;">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download PDF Guide
+              </button>
               <button class="btn-ghost" onclick="goToStep(2)">← Edit Resume / Job</button>
             </div>
           </div>
 
-          <!-- Killer Feature Segmented Tabs -->
+          <!-- Killer Feature Segmented Tabs (Clean Bespoke SVGs, Zero Emojis) -->
           <div class="result-segment-nav" id="resultSegmentNav" style="display: none;">
-            <button class="segment-tab-btn active" id="tabResMatch" onclick="switchResultTab('ats')">📊 Match & Missing Skills</button>
-            <button class="segment-tab-btn" id="tabResScan" onclick="switchResultTab('scan')">⏱️ 6-Second Recruiter Scan</button>
-            <button class="segment-tab-btn" id="tabResTraps" onclick="switchResultTab('traps')">🎯 Interview Traps</button>
-            <button class="segment-tab-btn" id="tabResOutreach" onclick="switchResultTab('outreach')">✉️ Recruiter Outreach</button>
+            <button class="segment-tab-btn active" id="tabResMatch" onclick="switchResultTab('ats')">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Match & Missing Skills
+            </button>
+            <button class="segment-tab-btn" id="tabResScan" onclick="switchResultTab('scan')">
+              <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              6-Second Recruiter Scan
+            </button>
+            <button class="segment-tab-btn" id="tabResTraps" onclick="switchResultTab('traps')">
+              <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+              Interview Traps
+            </button>
+            <button class="segment-tab-btn" id="tabResOutreach" onclick="switchResultTab('outreach')">
+              <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              Recruiter Outreach
+            </button>
           </div>
 
           <div id="atsResultWindow">
@@ -255,69 +295,90 @@
       </div>
     </div>
 
-    <!-- Core Capabilities Showcase -->
+    <!-- Core Capabilities Architecture (Asymmetrical Command Console & Matrix) -->
     <section class="showcase-section">
       <div class="section-header-center">
         <div class="section-badge-chip">Engineered for Results</div>
         <h2 class="section-title-lg">Everything you need to get hired, not ignored</h2>
-        <p class="section-subtext">Most candidates send resumes into a black hole. NexJob gives you the recruiter's perspective, fixes your gaps, and automates your follow-ups.</p>
+        <p class="section-subtext">Most candidates send resumes into a black hole. NexJob gives you the recruiter's perspective, fixes your gaps, and automates your pipeline.</p>
       </div>
 
-      <div class="features-grid-3">
-        <div class="feature-box">
-          <div class="feature-icon-badge">⏱️</div>
-          <h3 class="feature-title">6-Second Recruiter Scan</h3>
-          <p class="feature-desc">Recruiters skim before they read. See your instant Green Flags, Red Flags, and Skim Verdict before you submit your application.</p>
-          <div class="feature-highlight-pill">Direct Recruiter View</div>
+      <!-- Asymmetrical Command Console (Point 6 Fix: Zero Clichéd 3-in-a-Row Cards) -->
+      <div class="command-console-grid">
+        <div class="command-console-card card-spotlight">
+          <div>
+            <div class="console-card-header">
+              <span class="console-badge">DIAGNOSTIC ENGINE</span>
+              <span class="indicator-bullet pass"></span>
+            </div>
+            <h3 class="console-card-title">6-Second Recruiter Triage & Interview Trap Defense</h3>
+            <p class="console-card-desc">Recruiters skim before they read. We calculate your instant Green Flags, Red Flags, and Skim Verdict before you apply, then predict the 3 toughest interview questions based on your resume gaps, arming you with tested STAR frameworks.</p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span class="console-badge">Green & Red Flag Triage</span>
+            <span class="console-badge">STAR Counter-Framing</span>
+            <span class="console-badge">Verdict Flipper</span>
+          </div>
         </div>
 
-        <div class="feature-box">
-          <div class="feature-icon-badge">🎯</div>
-          <h3 class="feature-title">Missing Skill Gaps & Bullets</h3>
-          <p class="feature-desc">Pinpoint the exact tools and technologies missing from your resume, complete with suggested bullet points you can copy directly into your experience section.</p>
-          <div class="feature-highlight-pill">Copy-Ready Bullets</div>
+        <div class="command-console-card card-spotlight">
+          <div>
+            <div class="console-card-header">
+              <span class="console-badge">INFRASTRUCTURE LEDGER</span>
+              <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="telemetry-row">
+              <span class="telemetry-label">AI Processing Model</span>
+              <span class="telemetry-val">Enterprise Gemini (Zero-Retention)</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="telemetry-label">Data At-Rest Cipher</span>
+              <span class="telemetry-val" style="color: var(--accent-teal);">AES-256-GCM</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="telemetry-label">Network In-Transit</span>
+              <span class="telemetry-val">TLS 1.3 Strict HTTPS</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="telemetry-label">Data Resale Policy</span>
+              <span class="telemetry-val" style="color: var(--accent-success);">Strict Zero (GDPR Ready)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4-Column Capability Matrix -->
+      <div class="capabilities-matrix">
+        <div class="capability-card card-spotlight">
+          <div class="capability-icon-wrap">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+          </div>
+          <h4 class="capability-title">Skill Gaps & Bullets</h4>
+          <p class="capability-desc">Pinpoint missing technologies with ready-to-copy, quantified impact bullets for your resume.</p>
         </div>
 
-        <div class="feature-box">
-          <div class="feature-icon-badge">🛡️</div>
-          <h3 class="feature-title">Interview Trap Predictor</h3>
-          <p class="feature-desc">Interviewers always probe resume gaps. We predict the 3 toughest, most uncomfortable questions you will face and give you battle-tested answer frameworks.</p>
-          <div class="feature-highlight-pill">Counter-Framing Defense</div>
+        <div class="capability-card card-spotlight">
+          <div class="capability-icon-wrap">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <h4 class="capability-title">Anti-Ghosting Cadence</h4>
+          <p class="capability-desc">Timed outreach check-ins for Day 3, 7, and 14 to drastically increase recruiter reply rates.</p>
         </div>
 
-        <div class="feature-box">
-          <div class="feature-icon-badge">✉️</div>
-          <h3 class="feature-title">Anti-Ghosting Follow-Up Engine</h3>
-          <p class="feature-desc">Never wonder what to say when an application goes quiet. Get ready-to-send outreach notes and timed check-ins for Day 3, Day 7, and Day 14.</p>
-          <div class="feature-highlight-pill">High Response Cadence</div>
+        <div class="capability-card card-spotlight">
+          <div class="capability-icon-wrap">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          </div>
+          <h4 class="capability-title">Connected Portal Sync</h4>
+          <p class="capability-desc">Monitor Gmail, Outlook, LinkedIn, and Naukri to auto-update interview invites and status changes.</p>
         </div>
 
-        <div class="feature-box">
-          <div class="feature-icon-badge">⚡</div>
-          <h3 class="feature-title">Connected Email & Portal Sync</h3>
-          <p class="feature-desc">Connect Gmail, Outlook, LinkedIn, and Naukri. NexJob monitors incoming interview invites and status changes, syncing your board automatically.</p>
-          <div class="feature-highlight-pill">AES-256 Encrypted Sync</div>
-        </div>
-
-        <div class="feature-box">
-          <div class="feature-icon-badge">🚀</div>
-          <h3 class="feature-title">Instant Fit & 1-Click Apply</h3>
-          <p class="feature-desc">Discover verified roles matching your current resume strengths. Apply with 1 click and automatically track application progress on your board.</p>
-          <div class="feature-highlight-pill">Immediate Pipeline Sync</div>
-        </div>
-
-        <div class="feature-box">
-          <div class="feature-icon-badge">📋</div>
-          <h3 class="feature-title">Visual Application Board</h3>
-          <p class="feature-desc">Keep track of every role from first contact to offer. Automated reminders alert you when an application has been waiting for more than 5 days without a reply.</p>
-          <div class="feature-highlight-pill">Full Lifecycle View</div>
-        </div>
-
-        <div class="feature-box">
-          <div class="feature-icon-badge">🔒</div>
-          <h3 class="feature-title">100% Private & Secure</h3>
-          <p class="feature-desc">Your resume and job applications belong to you alone. We never sell your data to recruiters, headhunters, or third parties. Delete your data at any time.</p>
-          <div class="feature-highlight-pill">Zero Data Resale</div>
+        <div class="capability-card card-spotlight">
+          <div class="capability-icon-wrap">
+            <svg class="icon-svg-lg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h4 class="capability-title">Instant Fit & 1-Click Apply</h4>
+          <p class="capability-desc">Discover high-fit roles and submit directly into your live Kanban pipeline with one click.</p>
         </div>
       </div>
     </section>
@@ -384,12 +445,32 @@
     </section>
   </main>
 
+  <!-- Site Footer (Point 26 & 27: Official Legal, Privacy, System Telemetry) -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <div class="footer-brand">NexJob AI</div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Autonomous Career Intelligence & Precision Job Tracking.</p>
+        <div class="footer-status-pill">
+          <span class="indicator-bullet pass" style="width: 6px; height: 6px;"></span>
+          <span>Engine v2.4 Online • Zero-Retention Gemini API</span>
+        </div>
+      </div>
+      <div class="footer-nav">
+        <button class="footer-link-btn" onclick="openLegalModal('terms')">Terms of Service</button>
+        <button class="footer-link-btn" onclick="openLegalModal('privacy')">Privacy Policy</button>
+        <button class="footer-link-btn" onclick="openIntegrationsModal()">Connected Portals</button>
+        <a href="mailto:support@nexjob.ai" class="footer-link-btn">Support: support@nexjob.ai</a>
+      </div>
+    </div>
+  </footer>
+
   <!-- Side Navigation Drawer -->
   <div class="drawer-scrim" id="drawerScrim" onclick="toggleDrawer()"></div>
   <aside class="drawer" id="profileDrawer">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
       <h3 style="font-size: 1.1rem; font-weight: 800;">Account Menu</h3>
-      <button class="btn-ghost" style="padding: 4px 8px;" onclick="toggleDrawer()">✕</button>
+      <button class="btn-ghost" style="padding: 4px 8px;" onclick="toggleDrawer()">&times;</button>
     </div>
 
     <div id="drawerGuestActions" style="text-align: center; padding: 2rem 0;">
@@ -406,9 +487,18 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <button class="btn-ghost" style="text-align: left; width: 100%;" onclick="toggleDrawer(); openProfileModal();">⚙️ Career Profile Settings</button>
-        <button class="btn-ghost" style="text-align: left; width: 100%;" onclick="toggleDrawer(); logoutUser();">🚪 Sign Out</button>
-        <button class="btn-ghost" style="text-align: left; width: 100%; color: var(--accent-coral); border-color: rgba(244, 63, 94, 0.3);" onclick="deleteAccount()">🗑️ Delete Account</button>
+        <button class="btn-ghost" style="text-align: left; width: 100%; display: flex; align-items: center; gap: 8px;" onclick="toggleDrawer(); openProfileModal();">
+          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Career Profile Settings
+        </button>
+        <button class="btn-ghost" style="text-align: left; width: 100%; display: flex; align-items: center; gap: 8px;" onclick="toggleDrawer(); logoutUser();">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+        <button class="btn-ghost" style="text-align: left; width: 100%; display: flex; align-items: center; gap: 8px; color: var(--accent-coral); border-color: rgba(244, 63, 94, 0.3);" onclick="deleteAccount()">
+          <svg class="icon-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete Account
+        </button>
       </div>
     </div>
   </aside>
@@ -418,7 +508,7 @@
     <div class="modal-box">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <h3 id="authModalTitle" style="font-size: 1.2rem; font-weight: 800;">Sign In</h3>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeAuthModal()">✕</button>
+        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeAuthModal()">&times;</button>
       </div>
 
       <div id="authDiagnosticBox" class="diagnostic-error"></div>
@@ -531,7 +621,7 @@
     <div class="modal-box">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <h3 style="font-size: 1.2rem; font-weight: 800;">Log Application</h3>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeJobModal()">✕</button>
+        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeJobModal()">&times;</button>
       </div>
       <div class="form-group">
         <label class="form-label" for="modalCompany">Company Name</label>
@@ -573,7 +663,7 @@
     <div class="modal-box" style="max-width: 540px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <h3 style="font-size: 1.2rem; font-weight: 800;">Candidate Profile Settings</h3>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeProfileModal()">✕</button>
+        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeProfileModal()">&times;</button>
       </div>
       <div class="form-group">
         <label class="form-label" for="profFullName">Full Name</label>
@@ -626,7 +716,7 @@
           <h3 id="followupModalTitle" style="font-size: 1.2rem; font-weight: 800;">Anti-Ghosting Follow-Up Sequence</h3>
           <p id="followupModalSubtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Proven cadence for getting replies after applying.</p>
         </div>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeFollowupModal()">✕</button>
+        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeFollowupModal()">&times;</button>
       </div>
 
       <div class="ghosting-timeline-card" style="padding: 0; background: transparent; border: none;">
@@ -636,7 +726,10 @@
           <div class="timeline-step-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div class="timeline-step-title">Day 3: LinkedIn Connection Note</div>
-              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyFollowupNote('day3')">📋 Copy</button>
+              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day3')">
+                <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
             </div>
             <div class="timeline-step-desc">Under 300 characters. Send with your connection request to the recruiter or hiring manager.</div>
             <div id="followupDay3Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
@@ -649,7 +742,10 @@
           <div class="timeline-step-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div class="timeline-step-title">Day 7: Polite Status Check</div>
-              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyFollowupNote('day7')">📋 Copy</button>
+              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day7')">
+                <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
             </div>
             <div class="timeline-step-desc">Send via email or LinkedIn DM if you haven't received an update after one full week.</div>
             <div id="followupDay7Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
@@ -662,7 +758,10 @@
           <div class="timeline-step-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div class="timeline-step-title">Day 14: Value-Add Final Touch</div>
-              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyFollowupNote('day14')">📋 Copy</button>
+              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day14')">
+                <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
             </div>
             <div class="timeline-step-desc">Share a quick perspective or thoughtful observation about their product.</div>
             <div id="followupDay14Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
@@ -671,7 +770,10 @@
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 10px; flex-wrap: wrap;">
-        <button class="btn-primary" onclick="dispatchColdEmail(currentFollowupCompany, currentFollowupRole)">📧 Send to HR (1-Click)</button>
+        <button class="btn-primary" onclick="dispatchColdEmail(currentFollowupCompany, currentFollowupRole)">
+          <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send to HR (1-Click)
+        </button>
         <button class="btn-ghost" onclick="closeFollowupModal()">Close</button>
       </div>
     </div>
@@ -685,12 +787,12 @@
           <h3 style="font-size: 1.25rem; font-weight: 800;">Application Monitoring & Integrations</h3>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Connect your mailboxes and job platforms to automate status updates.</p>
         </div>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeIntegrationsModal()">✕</button>
+        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeIntegrationsModal()">&times;</button>
       </div>
 
       <!-- Security & Encryption Badge -->
       <div class="encryption-security-bar">
-        <span>🛡️</span>
+        <svg class="icon-svg-lg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <div>
           <strong>End-to-End Encrypted (AES-256-GCM / TLS 1.3)</strong>
           <div>Credentials and tokens are stored in isolated cryptographic vaults. Your messages are never sold, scraped, or retained.</div>
@@ -701,7 +803,9 @@
         <!-- Mail Listener -->
         <div class="integration-item">
           <div class="integration-meta">
-            <div class="integration-icon">📬</div>
+            <div class="integration-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
             <div>
               <div class="integration-name">Email Inbox Monitoring (Gmail / Outlook)</div>
               <div class="integration-desc">Detects interview invites, assessment links, and application status changes.</div>
@@ -715,7 +819,9 @@
         <!-- LinkedIn -->
         <div class="integration-item">
           <div class="integration-meta">
-            <div class="integration-icon">💼</div>
+            <div class="integration-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
             <div>
               <div class="integration-name">LinkedIn Jobs & InMail</div>
               <div class="integration-desc">Auto-sync Easy Apply submissions and recruiter messages.</div>
@@ -729,7 +835,9 @@
         <!-- Naukri -->
         <div class="integration-item">
           <div class="integration-meta">
-            <div class="integration-icon">🌐</div>
+            <div class="integration-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
             <div>
               <div class="integration-name">Naukri.com Portal</div>
               <div class="integration-desc">Sync active applications, recruiter view alerts, and interview calls.</div>
@@ -743,7 +851,9 @@
         <!-- Internshala -->
         <div class="integration-item">
           <div class="integration-meta">
-            <div class="integration-icon">🎓</div>
+            <div class="integration-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
             <div>
               <div class="integration-name">Internshala Careers</div>
               <div class="integration-desc">Monitor internships, assignment submissions, and shortlists.</div>
@@ -760,12 +870,18 @@
           <span style="font-weight: 600; color: #FFF;">Direct Email Forwarding: </span>
           <code id="syncEmailWebhook" style="color: var(--accent-teal); font-family: var(--font-mono);">tracker-sync@nexjob.ai</code>
         </div>
-        <button class="btn-ghost" style="padding: 2px 8px; font-size: 0.72rem;" onclick="copyToClipboard('tracker-sync@nexjob.ai', 'Sync address')">📋 Copy</button>
+        <button class="btn-ghost" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyToClipboard('tracker-sync@nexjob.ai', 'Sync address')">
+          <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
         <button class="btn-ghost" onclick="closeIntegrationsModal()">Close</button>
-        <button class="btn-primary" id="btnTriggerSync" onclick="triggerPlatformSync()">🔄 Sync Applications Now</button>
+        <button class="btn-primary" id="btnTriggerSync" onclick="triggerPlatformSync()">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Sync Applications Now
+        </button>
       </div>
     </div>
   </div>
@@ -778,7 +894,7 @@
           <h3 style="font-size: 1.3rem; font-weight: 800; color: #FFF;">Legal & Data Governance</h3>
           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Last updated: September 2026</p>
         </div>
-        <button class="close-btn" onclick="closeLegalModal()">✕</button>
+        <button class="close-btn" onclick="closeLegalModal()">&times;</button>
       </div>
 
       <div class="legal-tabs">

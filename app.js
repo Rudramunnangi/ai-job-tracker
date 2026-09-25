@@ -8,6 +8,22 @@ let activeForgotIdentifier = "";
 let signupCountdownInterval = null;
 let forgotCountdownInterval = null;
 
+// Bespoke Architectural SVG Icons Catalog (Zero Emojis, Zero Vibecoded Tells)
+const ICONS = {
+    check: `<svg class="icon-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
+    alert: `<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    info: `<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+    copy: `<svg class="icon-svg" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+    download: `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+    mail: `<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
+    send: `<svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`,
+    bolt: `<svg class="icon-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    sync: `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>`,
+    clock: `<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    target: `<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>`,
+    bulb: `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"/></svg>`
+};
+
 function getAuthHeaders() {
     return {
         "Content-Type": "application/json",
@@ -48,8 +64,8 @@ function showToast(message, type = 'info') {
     if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
-    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    const icon = type === 'success' ? ICONS.check : type === 'error' ? ICONS.alert : ICONS.info;
+    toast.innerHTML = `<span style="display:inline-flex; align-items:center;">${icon}</span><span>${message}</span>`;
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = '0';
@@ -906,7 +922,7 @@ function renderDashboard() {
                         Applied to <b>${escapeHtml(n.company)}</b> (${escapeHtml(n.role)}) 5+ days ago without response.
                     </div>
                     <div style="display:flex; gap:8px;">
-                        <button class="btn-ghost compact" onclick="openFollowupModal('${escapeHtml(n.company)}', '${escapeHtml(n.role)}', '${n.date}')">✉️ Follow-Up Note</button>
+                        <button class="btn-ghost compact" onclick="openFollowupModal('${escapeHtml(n.company)}', '${escapeHtml(n.role)}', '${n.date}')">${ICONS.mail} Follow-Up Note</button>
                         <button class="btn-primary compact" onclick="selectJobAndNudge('${n.id}', true)">Run ATS</button>
                     </div>
                 </div>
@@ -931,7 +947,7 @@ function renderDashboard() {
                 <div class="pipeline-card" onclick="selectJobAndNudge('${j.id}', false)" style="cursor: pointer;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
                         <div class="pipeline-role">${escapeHtml(j.role)}</div>
-                        <button class="btn-ghost" style="padding:2px 6px; font-size:0.72rem; border-radius:4px; line-height:1;" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.company)}', '${escapeHtml(j.role)}', '${j.date}')" title="View Anti-Ghosting Follow-up Sequence">✉️ Follow-up</button>
+                        <button class="btn-ghost" style="padding:2px 6px; font-size:0.72rem; border-radius:4px; line-height:1; display:inline-flex; align-items:center; gap:4px;" onclick="event.stopPropagation(); openFollowupModal('${escapeHtml(j.company)}', '${escapeHtml(j.role)}', '${j.date}')" title="View Anti-Ghosting Follow-up Sequence">${ICONS.mail} Follow-up</button>
                     </div>
                     <div class="pipeline-comp">${escapeHtml(j.company)}</div>
                     <div style="margin-bottom: 8px;">
@@ -1160,7 +1176,7 @@ async function triggerPlatformSync() {
         renderDashboard();
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = `🔄 Sync Applications Now`;
+            btn.innerHTML = `${ICONS.sync} Sync Applications Now`;
         }
         closeIntegrationsModal();
         showToast("Auto-sync complete: Connected applications updated!", "success");
@@ -1204,7 +1220,7 @@ async function oneClickAutoApply(role, company, fitScore, tags, btnEl) {
     } catch (e) {
         if (btnEl) {
             btnEl.disabled = false;
-            btnEl.innerHTML = `⚡ 1-Click Auto-Apply`;
+            btnEl.innerHTML = `${ICONS.bolt} 1-Click Auto-Apply`;
         }
         showToast("Auto-apply logged to your board.", "info");
     }
@@ -1332,8 +1348,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                 Report for <strong style="color:#FFF;">${escapeHtml(role)}</strong> at <strong style="color:#FFF;">${escapeHtml(company)}</strong>
             </div>
             <div style="display:flex; gap:8px;">
-                <button class="btn-ghost" onclick="downloadRoadmapPDF()">📥 Print / Save PDF</button>
-                <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultWindow').innerText, 'Full Report')">📋 Copy Full Report</button>
+                <button class="btn-ghost" onclick="downloadRoadmapPDF()">${ICONS.download} Print / Save PDF</button>
+                <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultWindow').innerText, 'Full Report')">${ICONS.copy} Copy Full Report</button>
             </div>
         </div>
 
@@ -1377,7 +1393,7 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                         return `
                             <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); padding:10px 14px; border-radius:var(--radius-xs); border:1px solid var(--border-subtle); gap:12px;">
                                 <span style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">• ${escapeHtml(bulletText)}</span>
-                                <button class="btn-ghost" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="copyToClipboard('${escapeHtml(bulletText)}', 'Resume bullet')">📋 Copy</button>
+                                <button class="btn-ghost" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(bulletText)}', 'Resume bullet')">${ICONS.copy} Copy</button>
                             </div>
                         `;
                     }).join('')}
@@ -1388,7 +1404,7 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
             <div class="instant-fit-section">
                 <div class="instant-fit-header">
                     <div>
-                        <h4 style="font-size:0.95rem; font-weight:800; color:#FFF;">⚡ Instant Fit Openings (1-Click Auto-Apply)</h4>
+                        <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; display:inline-flex; align-items:center; gap:6px;">${ICONS.bolt} Instant Fit Openings (1-Click Auto-Apply)</h4>
                         <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Pre-qualified openings matching your verified resume skills right now.</p>
                     </div>
                     <span class="fit-score-badge">Instant Sync Enabled</span>
@@ -1405,8 +1421,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                                 ${matchedSkills.slice(0, 3).map(s => `<span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">${escapeHtml(s)}</span>`).join('')}
                             </div>
                         </div>
-                        <button class="btn-primary compact" style="width:100%;" onclick="oneClickAutoApply('${escapeHtml(role)}', '${escapeHtml(company)}', ${score >= 80 ? score : 88}, ['Direct Match', 'Immediate'], this)">
-                            ⚡ 1-Click Auto-Apply
+                        <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="oneClickAutoApply('${escapeHtml(role)}', '${escapeHtml(company)}', ${score >= 80 ? score : 88}, ['Direct Match', 'Immediate'], this)">
+                            ${ICONS.bolt} 1-Click Auto-Apply
                         </button>
                     </div>
 
@@ -1422,8 +1438,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                                 <span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">API Design</span>
                             </div>
                         </div>
-                        <button class="btn-primary compact" style="width:100%;" onclick="oneClickAutoApply('Platform Software Engineer', 'Datadog', 92, ['Platform', 'Remote'], this)">
-                            ⚡ 1-Click Auto-Apply
+                        <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="oneClickAutoApply('Platform Software Engineer', 'Datadog', 92, ['Platform', 'Remote'], this)">
+                            ${ICONS.bolt} 1-Click Auto-Apply
                         </button>
                     </div>
 
@@ -1439,8 +1455,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                                 <span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">High Scale</span>
                             </div>
                         </div>
-                        <button class="btn-primary compact" style="width:100%;" onclick="oneClickAutoApply('Full Stack Systems Engineer', 'Cloudflare', 87, ['Cloud Edge', 'High Scale'], this)">
-                            ⚡ 1-Click Auto-Apply
+                        <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="oneClickAutoApply('Full Stack Systems Engineer', 'Cloudflare', 87, ['Cloud Edge', 'High Scale'], this)">
+                            ${ICONS.bolt} 1-Click Auto-Apply
                         </button>
                     </div>
                 </div>
@@ -1454,7 +1470,9 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
         <!-- Panel 2: 6-Second Recruiter Scan -->
         <div id="panelResScan" class="result-tab-panel" style="display:none;">
             <div class="recruiter-scan-card">
-                <div class="scan-header-badge">⏱️ 6-Second Recruiter Skim Simulation</div>
+                <div class="scan-header-badge" style="display:inline-flex; align-items:center; gap:6px;">
+                    ${ICONS.clock} 6-Second Recruiter Skim Simulation
+                </div>
                 
                 <div class="scan-verdict-banner">
                     <div>
@@ -1466,8 +1484,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
 
                 <div class="scan-grid">
                     <div class="scan-col">
-                        <div class="scan-col-title green">
-                            <span>🟢</span>
+                        <div class="scan-col-title green" style="display:flex; align-items:center; gap:6px;">
+                            <span class="indicator-bullet pass"></span>
                             <span>3 Instant Green Flags</span>
                         </div>
                         <ul class="scan-list">
@@ -1476,8 +1494,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                     </div>
 
                     <div class="scan-col">
-                        <div class="scan-col-title red">
-                            <span>🔴</span>
+                        <div class="scan-col-title red" style="display:flex; align-items:center; gap:6px;">
+                            <span class="indicator-bullet fail"></span>
                             <span>3 Instant Red Flags / Friction</span>
                         </div>
                         <ul class="scan-list">
@@ -1486,8 +1504,9 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                     </div>
                 </div>
 
-                <div style="margin-top:1.2rem; padding:1rem; background:var(--bg-elevated); border-radius:var(--radius-xs); border-left:3px solid var(--accent-primary); font-size:0.84rem; color:var(--text-secondary);">
-                    <strong>💡 How to flip this verdict:</strong> Ensure your top 3 projects prominently feature the target keywords (${missingSkills.slice(0, 3).join(', ')}) with quantified metrics in the top half of your resume.
+                <div style="margin-top:1.2rem; padding:1rem; background:var(--bg-elevated); border-radius:var(--radius-xs); border:1px solid var(--border-medium); font-size:0.84rem; color:var(--text-secondary); display:flex; align-items:flex-start; gap:8px;">
+                    <span style="color:var(--accent-warning); margin-top:2px;">${ICONS.bulb}</span>
+                    <div><strong>How to flip this verdict:</strong> Ensure your top 3 projects prominently feature the target keywords (${missingSkills.slice(0, 3).join(', ')}) with quantified metrics in the top half of your resume.</div>
                 </div>
             </div>
         </div>
@@ -1496,7 +1515,9 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
         <div id="panelResTraps" class="result-tab-panel" style="display:none;">
             <div class="interview-trap-card">
                 <div style="margin-bottom:1.2rem;">
-                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF;">🎯 Interview Trap Predictor</h3>
+                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF; display:flex; align-items:center; gap:8px;">
+                        ${ICONS.target} Interview Trap Predictor
+                    </h3>
                     <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px;">
                         Interviewers probe where your resume does not directly match the job description. Here are the 3 hardest questions you will face and how to defend each gap without getting trapped.
                     </p>
@@ -1515,7 +1536,9 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
         <div id="panelResOutreach" class="result-tab-panel" style="display:none;">
             <div class="ghosting-timeline-card">
                 <div style="margin-bottom:1.5rem;">
-                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF;">✉️ Recruiter Outreach & Anti-Ghosting Timeline</h3>
+                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF; display:flex; align-items:center; gap:8px;">
+                        ${ICONS.mail} Recruiter Outreach & Anti-Ghosting Timeline
+                    </h3>
                     <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px;">
                         A proven communication sequence to get responses from engineering managers and recruiters before and after applying.
                     </p>
@@ -1526,8 +1549,12 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:8px;">
                         <span style="font-size:0.88rem; font-weight:700; color:#FFF;">Ready-to-Send Cold Outreach Note (&lt;120 words)</span>
                         <div style="display:flex; gap:6px;">
-                            <button class="btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">📧 Send to HR (1-Click)</button>
-                            <button class="copy-btn" onclick="copyToClipboard(document.getElementById('coldOutreachBox').innerText, 'Cold outreach note')">📋 Copy</button>
+                            <button class="btn-primary" style="padding:4px 10px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">
+                                ${ICONS.send} Send to HR (1-Click)
+                            </button>
+                            <button class="copy-btn" onclick="copyToClipboard(document.getElementById('coldOutreachBox').innerText, 'Cold outreach note')">
+                                ${ICONS.copy} Copy
+                            </button>
                         </div>
                     </div>
                     <pre id="coldOutreachBox" style="white-space:pre-wrap; font-family:inherit; font-size:0.84rem; color:var(--text-secondary); line-height:1.5; margin:0;">${escapeHtml(coldOutreach)}</pre>
@@ -1539,7 +1566,7 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                     <div class="timeline-step-content">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div class="timeline-step-title">Day 3: LinkedIn Connection Note (&lt;300 chars)</div>
-                            <button class="copy-btn mini" onclick="copyFollowupNote('day3')">📋 Copy</button>
+                            <button class="copy-btn mini" onclick="copyFollowupNote('day3')">${ICONS.copy} Copy</button>
                         </div>
                         <div class="timeline-step-desc">Send with your LinkedIn connection request to the recruiter or team lead.</div>
                         <div style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-size:0.82rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
@@ -1554,8 +1581,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div class="timeline-step-title">Day 7: Polite Status Check</div>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">📧 Send</button>
-                                <button class="copy-btn mini" onclick="copyFollowupNote('day7')">📋 Copy</button>
+                                <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">${ICONS.send} Send</button>
+                                <button class="copy-btn mini" onclick="copyFollowupNote('day7')">${ICONS.copy} Copy</button>
                             </div>
                         </div>
                         <div class="timeline-step-desc">Send via email or LinkedIn DM if you haven't received an update after 1 week.</div>
@@ -1571,8 +1598,8 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div class="timeline-step-title">Day 14: Value-Add Final Touch</div>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">📧 Send</button>
-                                <button class="copy-btn mini" onclick="copyFollowupNote('day14')">📋 Copy</button>
+                                <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">${ICONS.send} Send</button>
+                                <button class="copy-btn mini" onclick="copyFollowupNote('day14')">${ICONS.copy} Copy</button>
                             </div>
                         </div>
                         <div class="timeline-step-desc">Share a quick observation about their product or engineering challenge.</div>
@@ -1662,11 +1689,166 @@ function initScrollAnimations() {
     document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
 }
 
+// --- Dynamic Atmospheric Background Mesh Canvas (Anti-Vibecode: Eliminates Plain Dark Void) ---
+let ambientMeshCanvas, ambientMeshCtx, ambientMeshAnimId;
+let ambientNodes = [];
+
+function initAmbientMeshBackground() {
+    ambientMeshCanvas = document.getElementById('ambientMeshCanvas');
+    if (!ambientMeshCanvas) return;
+    ambientMeshCtx = ambientMeshCanvas.getContext('2d');
+    if (!ambientMeshCtx) return;
+
+    function resize() {
+        ambientMeshCanvas.width = window.innerWidth;
+        ambientMeshCanvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // 4 Harmonic Atmospheric Lighting Nodes (Teal, Cobalt, Cyan, Deep Slate)
+    ambientNodes = [
+        { x: 0.22, y: 0.2, vx: 0.00014, vy: 0.00016, r: 0.55, color: 'rgba(13, 148, 136, 0.045)' },
+        { x: 0.78, y: 0.32, vx: -0.00016, vy: 0.00012, r: 0.5, color: 'rgba(2, 132, 199, 0.04)' },
+        { x: 0.28, y: 0.78, vx: 0.00011, vy: -0.00015, r: 0.45, color: 'rgba(56, 189, 248, 0.03)' },
+        { x: 0.72, y: 0.82, vx: -0.00013, vy: -0.00014, r: 0.5, color: 'rgba(14, 20, 32, 0.06)' }
+    ];
+
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        drawFrame();
+        return;
+    }
+
+    function drawFrame() {
+        const w = ambientMeshCanvas.width;
+        const h = ambientMeshCanvas.height;
+
+        ambientMeshCtx.fillStyle = '#080A0E';
+        ambientMeshCtx.fillRect(0, 0, w, h);
+
+        ambientNodes.forEach(node => {
+            node.x += node.vx;
+            node.y += node.vy;
+
+            if (node.x < 0.08 || node.x > 0.92) node.vx *= -1;
+            if (node.y < 0.08 || node.y > 0.92) node.vy *= -1;
+
+            const cx = node.x * w;
+            const cy = node.y * h;
+            const radius = Math.max(w, h) * node.r;
+
+            const grad = ambientMeshCtx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            grad.addColorStop(0, node.color);
+            grad.addColorStop(1, 'rgba(8, 10, 14, 0)');
+
+            ambientMeshCtx.fillStyle = grad;
+            ambientMeshCtx.fillRect(0, 0, w, h);
+        });
+    }
+
+    function loop() {
+        drawFrame();
+        ambientMeshAnimId = requestAnimationFrame(loop);
+    }
+    loop();
+}
+
+// --- Interactive Card Spotlight System (Linear/Raycast Precision Border Glow) ---
+function initCardSpotlight() {
+    const cards = document.querySelectorAll('.card-spotlight, .flow-step-card, .feature-box, .kpi-card, .dashboard-panel, .faq-card, .command-console-card, .capability-card');
+    cards.forEach(card => {
+        card.classList.add('card-spotlight');
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+}
+
+// --- Skeleton Shimmer Loader (Point 21: Real Engineering Skeleton States) ---
+function renderSkeletonLoader() {
+    const resultBox = document.getElementById('atsResultWindow');
+    if (!resultBox) return;
+    resultBox.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:1.2rem; padding:1.5rem 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="skeleton-shimmer-box" style="height:20px; width:40%;"></div>
+                <div class="skeleton-shimmer-box" style="height:32px; width:130px;"></div>
+            </div>
+            <div class="skeleton-shimmer-box" style="height:80px; width:100%;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="skeleton-shimmer-box" style="height:120px;"></div>
+                <div class="skeleton-shimmer-box" style="height:120px;"></div>
+            </div>
+            <div class="skeleton-shimmer-box" style="height:140px; width:100%;"></div>
+        </div>
+    `;
+}
+
+// --- Interactive Product Demo Presets (Point 18: Real 1-Click Interactive Demos) ---
+function loadInteractiveDemo(preset) {
+    const demos = {
+        stripe: {
+            company: "Stripe",
+            role: "Staff Distributed Systems Engineer",
+            jd: "Stripe is building global financial infrastructure. Requirements:\n• 6+ years building high-throughput distributed systems in Go, Rust, or Java.\n• Deep expertise in Raft/Paxos consensus, event-driven payment pipelines, and transactional consistency.\n• Experience with Cassandra, FoundationDB, or distributed SQL at scale.\n• Focus on low-latency microservices with 99.999% reliability guarantees.",
+            resume: "SENIOR DISTRIBUTED SYSTEMS ARCHITECT\nExperience:\n• Led engineering for payments infrastructure processing $4B+ annual GMV with 99.995% uptime.\n• Implemented custom Raft consensus state machine in Go, cutting cluster reconciliation latency by 42%.\n• Built high-throughput Kafka event streaming pipeline handling 180,000 events/second.\n• Architected Cassandra and Redis distributed cache clusters for real-time risk assessment.\nSkills: Go, Distributed Consensus, Kafka, Kubernetes, Cassandra, Redis, High-Throughput APIs, Systems Design."
+        },
+        vercel: {
+            company: "Vercel",
+            role: "Lead Frontend Platform Architect",
+            jd: "Vercel is the platform for the frontend cloud. Requirements:\n• Deep mastery of Next.js App Router, React Server Components (RSC), and Edge computing.\n• Proven track record optimizing Core Web Vitals (LCP, INP, CLS) for high-scale enterprise web applications.\n• Strong TypeScript, WebGL/Three.js interactive graphics, and micro-frontend orchestration.\n• Experience authoring developer tooling, CI bundle analyzers, and zero-runtime CSS architectures.",
+            resume: "LEAD FRONTEND ARCHITECT & PERFORMANCE SPECIALIST\nExperience:\n• Directed migration of enterprise multi-tenant portal to Next.js App Router and React Server Components.\n• Improved global Core Web Vitals across 8M monthly visitors, driving LCP down from 2.8s to 0.9s.\n• Designed and published design system component library in TypeScript used by 65 internal engineers.\n• Integrated WebGL visualization dashboards and automated CI bundle-splitting analyzers.\nSkills: TypeScript, Next.js, React 19, RSC, Performance Tuning, Core Web Vitals, WebGL, Tailwind, CI/CD."
+        },
+        anthropic: {
+            company: "Anthropic",
+            role: "AI/ML Infrastructure Engineer",
+            jd: "Anthropic is building reliable, beneficial AI systems. Requirements:\n• Strong background in PyTorch, distributed model training (Megatron-LM, DeepSpeed, FSDP), and GPU cluster optimization.\n• Low-level CUDA kernel profiling and Triton acceleration for transformer attention mechanisms.\n• Experience with Ray, SLURM, and large-scale Kubernetes orchestrations across 10,000+ GPUs.\n• Deep understanding of high-bandwidth interconnects (InfiniBand, RoCE, NVLink) and distributed checkpointing.",
+            resume: "SENIOR ML INFRASTRUCTURE & PLATFORM ENGINEER\nExperience:\n• Managed 2,048 H100 GPU cluster workloads utilizing SLURM, Ray, and Kubernetes.\n• Optimized distributed transformer training using DeepSpeed ZeRO-3 and PyTorch FSDP, boosting GPU utilization by 28%.\n• Diagnosed and resolved InfiniBand network bottlenecks and NCCL all-reduce latency degradation.\n• Automated fault-tolerant checkpoint resumption, cutting lost training wall-clock time by 65%.\nSkills: PyTorch, DeepSpeed, FSDP, CUDA Profiling, Triton, SLURM, Ray, Kubernetes, InfiniBand, Megatron-LM."
+        }
+    };
+
+    const data = demos[preset] || demos.stripe;
+
+    document.getElementById('targetJobCompany').value = data.company;
+    document.getElementById('targetJobRole').value = data.role;
+    document.getElementById('jobDesc').value = data.jd;
+    document.getElementById('userResume').value = data.resume;
+
+    goToStep(3);
+    renderSkeletonLoader();
+    const nav = document.getElementById('resultSegmentNav');
+    if (nav) nav.style.display = 'none';
+
+    setTimeout(() => {
+        runATSExecution();
+        showToast(`Loaded live interactive demo: ${data.role} @ ${data.company}!`, 'success');
+    }, 450);
+}
+
 // --- 3D Career Node Network (Three.js Hero) ---
 let heroNetworkScene, heroNetworkCamera, heroNetworkRenderer, heroNetworkGroup;
 let heroNetworkAnimFrame = null;
 let heroMouseX = 0, heroMouseY = 0;
 let heroTargetRotX = 0, heroTargetRotY = 0;
+
+function createSoftParticleTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.7)');
+    grad.addColorStop(0.65, 'rgba(255, 255, 255, 0.18)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(canvas);
+}
 
 function initHero3DNetwork() {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -1704,21 +1886,22 @@ function initHero3DNetwork() {
     heroNetworkScene.add(heroNetworkGroup);
 
     const isMobile = window.innerWidth < 768;
-    const particleCount = isMobile ? 32 : 64;
+    const particleCount = isMobile ? 36 : 72;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
     const particleVelocities = [];
 
+    // Disciplined Engineering Palette: Teal, Cobalt, Cyan, Titanium (Zero Neon Purple)
     const colorPalette = [
         new THREE.Color(0x0D9488),
-        new THREE.Color(0x5256D8),
-        new THREE.Color(0xE11D48),
+        new THREE.Color(0x0284C7),
+        new THREE.Color(0x38BDF8),
         new THREE.Color(0x8896AB)
     ];
 
-    const boundX = isMobile ? 90 : 160;
-    const boundY = 70;
-    const boundZ = 80;
+    const boundX = isMobile ? 95 : 170;
+    const boundY = 75;
+    const boundZ = 85;
 
     for (let i = 0; i < particleCount; i++) {
         const x = (Math.random() - 0.5) * boundX * 2;
@@ -1735,9 +1918,9 @@ function initHero3DNetwork() {
         particleColors[i * 3 + 2] = color.b;
 
         particleVelocities.push({
-            vx: (Math.random() - 0.5) * 0.2,
-            vy: (Math.random() - 0.5) * 0.2,
-            vz: (Math.random() - 0.5) * 0.16
+            vx: (Math.random() - 0.5) * 0.22,
+            vy: (Math.random() - 0.5) * 0.22,
+            vz: (Math.random() - 0.5) * 0.18
         });
     }
 
@@ -1746,10 +1929,13 @@ function initHero3DNetwork() {
     pointGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 
     const pointMaterial = new THREE.PointsMaterial({
-        size: isMobile ? 3.5 : 4.5,
+        size: isMobile ? 4.5 : 6.0,
+        map: createSoftParticleTexture(),
         vertexColors: true,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
     });
 
     const pointsMesh = new THREE.Points(pointGeometry, pointMaterial);
@@ -1766,7 +1952,7 @@ function initHero3DNetwork() {
     const lineMaterial = new THREE.LineBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.32,
+        opacity: 0.38,
         blending: THREE.AdditiveBlending
     });
 
@@ -1777,8 +1963,8 @@ function initHero3DNetwork() {
         const rect = heroSection.getBoundingClientRect();
         heroMouseX = (e.clientX - rect.left) / rect.width - 0.5;
         heroMouseY = (e.clientY - rect.top) / rect.height - 0.5;
-        heroTargetRotY = heroMouseX * 0.4;
-        heroTargetRotX = -heroMouseY * 0.3;
+        heroTargetRotY = heroMouseX * 0.45;
+        heroTargetRotX = -heroMouseY * 0.35;
     });
 
     heroSection.addEventListener('mouseleave', () => {
@@ -1806,7 +1992,7 @@ function initHero3DNetwork() {
     }, { threshold: 0.05 });
     observer.observe(heroSection);
 
-    const connectDist = isMobile ? 48 : 62;
+    const connectDist = isMobile ? 52 : 68;
 
     function animate() {
         if (!isHeroVisible) {
@@ -1816,9 +2002,9 @@ function initHero3DNetwork() {
 
         heroNetworkAnimFrame = requestAnimationFrame(animate);
 
-        heroNetworkGroup.rotation.y += (heroTargetRotY - heroNetworkGroup.rotation.y) * 0.035;
-        heroNetworkGroup.rotation.x += (heroTargetRotX - heroNetworkGroup.rotation.x) * 0.035;
-        heroNetworkGroup.rotation.z += 0.0003;
+        heroNetworkGroup.rotation.y += (heroTargetRotY - heroNetworkGroup.rotation.y) * 0.04;
+        heroNetworkGroup.rotation.x += (heroTargetRotX - heroNetworkGroup.rotation.x) * 0.04;
+        heroNetworkGroup.rotation.z += 0.00035;
 
         const posAttr = pointGeometry.attributes.position;
         const posArray = posAttr.array;
@@ -1894,9 +2080,11 @@ function initHero3DNetwork() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    initAmbientMeshBackground();
     await loadUserData();
     updateAuthUI();
     renderDashboard();
     initScrollAnimations();
     initHero3DNetwork();
+    initCardSpotlight();
 });
