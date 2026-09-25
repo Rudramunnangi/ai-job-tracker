@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-background: #07090F;
+    --color-surface: #0E1424;
+    --color-surface-elevated: #151D33;
+    --color-primary: #5B5FEF;
+    --color-success: #22D3C8;
+    --color-warning: #FF7A59;
+    --color-accent-alt: #F5A623;
+    --color-foreground: #E9EBF7;
+    --color-muted-foreground: #8D93B0;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-destructive: #DC2626;
+
+    --font-sora: 'Sora', sans-serif;
+    --font-ibm-plex-sans: 'IBM Plex Sans', sans-serif;
+    --font-ibm-plex-mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-ibm-plex-sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sora);
+    letter-spacing: -0.02em;
+  }
+
+  .font-mono, code, pre, .stat-value {
+    font-family: var(--font-ibm-plex-mono);
+  }
+}
+
+/* Dynamic color heading */
+.dynamic-heading {
+  background: linear-gradient(120deg, var(--color-success), var(--color-primary), var(--color-warning), var(--color-success));
+  background-size: 300% 100%;
+  animation: hue-drift 8s ease-in-out infinite;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dynamic-heading {
+    animation: none;
+    background: linear-gradient(120deg, var(--color-success), var(--color-primary));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Primary CTA glow - strictly reserved only for primary CTA and live score */
+.cta-glow {
+  box-shadow: 0 0 24px rgba(34, 211, 200, 0.22);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.cta-glow:hover {
+  box-shadow: 0 0 32px rgba(34, 211, 200, 0.35);
+}
+
+.score-glow {
+  box-shadow: 0 0 28px rgba(34, 211, 200, 0.25);
+}
+
+.score-glow-coral {
+  box-shadow: 0 0 28px rgba(255, 122, 89, 0.25);
+}
+
+/* Skeleton shimmer */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-elevated);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

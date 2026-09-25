@@ -8,52 +8,66 @@
    1. Design Tokens & CSS Variables (Desaturated Multi-Accent System)
    -------------------------------------------------------------------------- */
 :root {
-  /* Matte Obsidian Surfaces (Surface Lightness for Elevation) */
-  --bg-canvas: #080A0E;
-  --bg-surface: #0E121A;
-  --bg-elevated: #131824;
-  --bg-card: #171E2D;
-  --bg-card-hover: #1C2436;
-  --bg-input: #0B0E15;
-  --bg-glass: rgba(14, 18, 26, 0.95);
+  /* Master OLED AI-Native Design Tokens */
+  --color-background: #07090F;
+  --color-surface: #0E1424;
+  --color-surface-elevated: #151D33;
+  --color-primary: #5B5FEF;
+  --color-success: #22D3C8;
+  --color-warning: #FF7A59;
+  --color-accent-alt: #F5A623;
+  --color-foreground: #E9EBF7;
+  --color-muted-foreground: #8D93B0;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-destructive: #DC2626;
+
+  /* Surface Lightness Elevation Hierarchy */
+  --bg-canvas: var(--color-background);
+  --bg-surface: var(--color-surface);
+  --bg-elevated: var(--color-surface-elevated);
+  --bg-card: var(--color-surface);
+  --bg-card-hover: var(--color-surface-elevated);
+  --bg-input: #07090F;
+  --bg-glass: rgba(14, 20, 36, 0.95);
 
   /* Borders & Dividers */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.14);
-  --border-focus: #0284C7;
+  --border-subtle: var(--color-border);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-focus: var(--color-primary);
   --border-hover: rgba(255, 255, 255, 0.22);
 
-  /* Precision Engineering Accents (Cobalt, Teal, Coral - Zero Neon Purple) */
-  --accent-primary: #0284C7;
-  --accent-primary-hover: #0369A1;
-  --accent-primary-glow: rgba(2, 132, 199, 0.22);
+  /* Engineering Accents (Indigo, Teal, Coral, Amber - Calibrated & Desaturated) */
+  --accent-primary: var(--color-primary);
+  --accent-primary-hover: #4B4FD8;
+  --accent-primary-glow: rgba(91, 95, 239, 0.22);
 
-  --accent-teal: #0D9488;
-  --accent-teal-hover: #0F766E;
-  --accent-teal-bg: rgba(13, 148, 136, 0.12);
+  --accent-teal: var(--color-success);
+  --accent-teal-hover: #1AB8AE;
+  --accent-teal-bg: rgba(34, 211, 200, 0.12);
 
-  --accent-coral: #E11D48;
-  --accent-coral-hover: #BE123C;
-  --accent-coral-bg: rgba(225, 29, 72, 0.12);
+  --accent-coral: var(--color-warning);
+  --accent-coral-hover: #E86A4A;
+  --accent-coral-bg: rgba(255, 122, 89, 0.12);
 
-  --accent-warning: #D97706;
-  --accent-warning-bg: rgba(217, 119, 6, 0.12);
+  --accent-warning: var(--color-accent-alt);
+  --accent-warning-bg: rgba(245, 166, 35, 0.12);
 
-  --accent-success: #0D9488;
-  --accent-success-bg: rgba(13, 148, 136, 0.12);
+  --accent-success: var(--color-success);
+  --accent-success-bg: rgba(34, 211, 200, 0.12);
 
-  --accent-danger: #E11D48;
-  --accent-danger-bg: rgba(225, 29, 72, 0.12);
+  --accent-danger: var(--color-destructive);
+  --accent-danger-bg: rgba(220, 38, 38, 0.12);
 
   /* Typography */
-  --text-main: #F1F5F9;
+  --text-main: var(--color-foreground);
   --text-secondary: #CBD5E1;
-  --text-muted: #8896AB;
+  --text-muted: var(--color-muted-foreground);
   --text-dim: #4B5565;
 
-  /* Fonts */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Fonts: Sora (display/headings), IBM Plex Sans (body), IBM Plex Mono (scores/data) */
+  --font-display: 'Sora', sans-serif;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 
   /* Disciplined Engineering Radii (Tight, Crisp, Non-Vibecoded) */
   --radius-xs: 3px;
@@ -95,6 +109,55 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   position: relative;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.drawer-toggle-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  padding: 6px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.drawer-toggle-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-main);
+  border-color: var(--border-medium);
+}
+
+.guest-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.status-dot-amber {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-warning);
+}
+.status-dot-green {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  box-shadow: 0 0 6px rgba(34, 211, 200, 0.6);
 }
 
 /* Dynamic Atmospheric Background Mesh Canvas */

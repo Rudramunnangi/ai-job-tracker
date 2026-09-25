@@ -1891,12 +1891,12 @@ function initHero3DNetwork() {
     const particleColors = new Float32Array(particleCount * 3);
     const particleVelocities = [];
 
-    // Disciplined Engineering Palette: Teal, Cobalt, Cyan, Titanium (Zero Neon Purple)
+    // Master Tokens Palette: Teal (#22D3C8), Indigo (#5B5FEF), Coral (#FF7A59), Slate (#8D93B0)
     const colorPalette = [
-        new THREE.Color(0x0D9488),
-        new THREE.Color(0x0284C7),
-        new THREE.Color(0x38BDF8),
-        new THREE.Color(0x8896AB)
+        new THREE.Color(0x22D3C8),
+        new THREE.Color(0x5B5FEF),
+        new THREE.Color(0xFF7A59),
+        new THREE.Color(0x8D93B0)
     ];
 
     const boundX = isMobile ? 95 : 170;
