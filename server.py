@@ -166,10 +166,42 @@ class DBWrapper:
     def close(self):
         self.raw_conn.close()
 
+def get_postgres_params(url: str):
+    import re
+    import urllib.parse
+    m = re.match(r'^(?:postgresql|postgres)://([^:]+):(.*)@([^:/]+)(?::(\d+))?/(.+)$', url)
+    if m:
+        user, pwd, host, port, db_and_params = m.groups()
+        if '?' in db_and_params:
+            dbname, _ = db_and_params.split('?', 1)
+        else:
+            dbname = db_and_params
+        clean_pwd = urllib.parse.unquote(pwd)
+        return {
+            'user': user,
+            'password': clean_pwd,
+            'host': host,
+            'port': int(port or 5432),
+            'dbname': dbname,
+            'sslmode': 'require'
+        }
+    return None
+
+def create_postgres_conn():
+    params = get_postgres_params(DATABASE_URL)
+    if params:
+        return psycopg2.connect(**params)
+    return psycopg2.connect(DATABASE_URL)
+
 def get_db_connection():
-    if USE_POSTGRES:
-        conn = psycopg2.connect(DATABASE_URL)
-        return DBWrapper(conn, is_postgres=True)
+    global USE_POSTGRES
+    if USE_POSTGRES and DATABASE_URL:
+        try:
+            conn = create_postgres_conn()
+            return DBWrapper(conn, is_postgres=True)
+        except Exception as e:
+            print(f"[DATABASE WARNING] PostgreSQL connection failed: {e}. Falling back to SQLite.")
+            USE_POSTGRES = False
     conn = sqlite3.connect(DB_PATH)
     return DBWrapper(conn, is_postgres=False)
 
@@ -284,112 +316,115 @@ def log_activity(user_email: str, action_type: str, details: str = "", ip_addres
         print(f"[LOG ACTIVITY ERROR] {e}")
 
 def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    if USE_POSTGRES:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                email TEXT PRIMARY KEY,
-                username TEXT UNIQUE,
-                password TEXT NOT NULL,
-                token TEXT DEFAULT '',
-                full_name TEXT DEFAULT '',
-                target_role TEXT DEFAULT '',
-                skills TEXT DEFAULT '',
-                resume TEXT DEFAULT '',
-                linkedin_url TEXT DEFAULT '',
-                github_url TEXT DEFAULT '',
-                portfolio_url TEXT DEFAULT '',
-                auth_provider TEXT DEFAULT 'local',
-                last_active REAL DEFAULT 0,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS otps (
-                email TEXT PRIMARY KEY,
-                otp_hash TEXT NOT NULL,
-                purpose TEXT NOT NULL,
-                expires_at REAL NOT NULL,
-                attempts INTEGER DEFAULT 0
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS jobs (
-                id TEXT PRIMARY KEY,
-                user_email TEXT NOT NULL,
-                company TEXT NOT NULL,
-                role TEXT NOT NULL,
-                date TEXT NOT NULL,
-                status TEXT NOT NULL,
-                tags TEXT NOT NULL,
-                jd TEXT NOT NULL
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS activity_logs (
-                id SERIAL PRIMARY KEY,
-                user_email TEXT NOT NULL,
-                action_type TEXT NOT NULL,
-                details TEXT DEFAULT '',
-                ip_address TEXT DEFAULT '',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-    else:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                email TEXT PRIMARY KEY,
-                username TEXT UNIQUE,
-                password TEXT NOT NULL,
-                token TEXT DEFAULT '',
-                full_name TEXT DEFAULT '',
-                target_role TEXT DEFAULT '',
-                skills TEXT DEFAULT '',
-                resume TEXT DEFAULT '',
-                linkedin_url TEXT DEFAULT '',
-                github_url TEXT DEFAULT '',
-                portfolio_url TEXT DEFAULT '',
-                auth_provider TEXT DEFAULT 'local',
-                last_active REAL DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS otps (
-                email TEXT PRIMARY KEY,
-                otp_hash TEXT NOT NULL,
-                purpose TEXT NOT NULL,
-                expires_at REAL NOT NULL,
-                attempts INTEGER DEFAULT 0
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS jobs (
-                id TEXT PRIMARY KEY,
-                user_email TEXT NOT NULL,
-                company TEXT NOT NULL,
-                role TEXT NOT NULL,
-                date TEXT NOT NULL,
-                status TEXT NOT NULL,
-                tags TEXT NOT NULL,
-                jd TEXT NOT NULL,
-                FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS activity_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_email TEXT NOT NULL,
-                action_type TEXT NOT NULL,
-                details TEXT DEFAULT '',
-                ip_address TEXT DEFAULT '',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-    conn.commit()
-    conn.close()
-    restore_database_from_backup()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if conn.is_postgres:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    email TEXT PRIMARY KEY,
+                    username TEXT UNIQUE,
+                    password TEXT NOT NULL,
+                    token TEXT DEFAULT '',
+                    full_name TEXT DEFAULT '',
+                    target_role TEXT DEFAULT '',
+                    skills TEXT DEFAULT '',
+                    resume TEXT DEFAULT '',
+                    linkedin_url TEXT DEFAULT '',
+                    github_url TEXT DEFAULT '',
+                    portfolio_url TEXT DEFAULT '',
+                    auth_provider TEXT DEFAULT 'local',
+                    last_active REAL DEFAULT 0,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS otps (
+                    email TEXT PRIMARY KEY,
+                    otp_hash TEXT NOT NULL,
+                    purpose TEXT NOT NULL,
+                    expires_at REAL NOT NULL,
+                    attempts INTEGER DEFAULT 0
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS jobs (
+                    id TEXT PRIMARY KEY,
+                    user_email TEXT NOT NULL,
+                    company TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    tags TEXT NOT NULL,
+                    jd TEXT NOT NULL
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS activity_logs (
+                    id SERIAL PRIMARY KEY,
+                    user_email TEXT NOT NULL,
+                    action_type TEXT NOT NULL,
+                    details TEXT DEFAULT '',
+                    ip_address TEXT DEFAULT '',
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        else:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    email TEXT PRIMARY KEY,
+                    username TEXT UNIQUE,
+                    password TEXT NOT NULL,
+                    token TEXT DEFAULT '',
+                    full_name TEXT DEFAULT '',
+                    target_role TEXT DEFAULT '',
+                    skills TEXT DEFAULT '',
+                    resume TEXT DEFAULT '',
+                    linkedin_url TEXT DEFAULT '',
+                    github_url TEXT DEFAULT '',
+                    portfolio_url TEXT DEFAULT '',
+                    auth_provider TEXT DEFAULT 'local',
+                    last_active REAL DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS otps (
+                    email TEXT PRIMARY KEY,
+                    otp_hash TEXT NOT NULL,
+                    purpose TEXT NOT NULL,
+                    expires_at REAL NOT NULL,
+                    attempts INTEGER DEFAULT 0
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS jobs (
+                    id TEXT PRIMARY KEY,
+                    user_email TEXT NOT NULL,
+                    company TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    tags TEXT NOT NULL,
+                    jd TEXT NOT NULL,
+                    FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS activity_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_email TEXT NOT NULL,
+                    action_type TEXT NOT NULL,
+                    details TEXT DEFAULT '',
+                    ip_address TEXT DEFAULT '',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        conn.commit()
+        conn.close()
+        restore_database_from_backup()
+    except Exception as e:
+        print(f"[INIT DB ERROR] Failed to initialize database: {e}")
 
 init_db()
 
