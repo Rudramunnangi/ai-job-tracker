@@ -997,7 +997,7 @@ function renderDashboard() {
             `).join('');
 
             return `
-                <div class="pipeline-col">
+                <div class="pipeline-col" data-stage="${stage.key}">
                     <div class="pipeline-header" style="color: ${stage.color};">
                         <span>${stage.name}</span>
                         <span style="font-family:'JetBrains Mono',monospace;">${stageJobs.length}</span>
@@ -1006,7 +1006,25 @@ function renderDashboard() {
                 </div>
             `;
         }).join('');
+
+        if (currentMobileStage !== 'all') {
+            pipelineGrid.classList.add('mobile-filtered');
+            pipelineGrid.querySelectorAll('.pipeline-col').forEach(col => {
+                if (col.dataset.stage === currentMobileStage) {
+                    col.classList.add('mobile-active-stage');
+                } else {
+                    col.classList.remove('mobile-active-stage');
+                }
+            });
+        } else {
+            pipelineGrid.classList.remove('mobile-filtered');
+            pipelineGrid.querySelectorAll('.pipeline-col').forEach(col => {
+                col.classList.remove('mobile-active-stage');
+            });
+        }
     }
+
+    fetchStagedJobs();
 }
 
 function selectJobAndNudge(id, autoRun = false) {
@@ -1257,6 +1275,196 @@ async function oneClickAutoApply(role, company, fitScore, tags, btnEl) {
     }
 }
 
+// --- Mobile Stage Switcher & Filtering ---
+let currentMobileStage = 'all';
+
+function setMobileStage(stageKey, btnEl) {
+    currentMobileStage = stageKey;
+    const buttons = document.querySelectorAll('.mobile-stage-pill');
+    buttons.forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+
+    const grid = document.getElementById('pipelineGrid');
+    if (!grid) return;
+
+    if (stageKey === 'all') {
+        grid.classList.remove('mobile-filtered');
+        grid.querySelectorAll('.pipeline-col').forEach(col => col.classList.remove('mobile-active-stage'));
+    } else {
+        grid.classList.add('mobile-filtered');
+        grid.querySelectorAll('.pipeline-col').forEach(col => {
+            if (col.dataset.stage === stageKey) {
+                col.classList.add('mobile-active-stage');
+            } else {
+                col.classList.remove('mobile-active-stage');
+            }
+        });
+    }
+}
+
+// --- 100% Accuracy Staged Application Review Queue & Email Parsing ---
+async function fetchStagedJobs() {
+    const banner = document.getElementById('stagedReviewBanner');
+    if (!banner) return;
+    if (!currentUser || !authToken) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/sync/staged", {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+            banner.style.display = 'none';
+            return;
+        }
+        const data = await res.json();
+        const stagedList = data.staged || [];
+        if (stagedList.length === 0) {
+            banner.style.display = 'none';
+            banner.innerHTML = '';
+            return;
+        }
+
+        banner.style.display = 'flex';
+        banner.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="color:var(--accent-warning); display:inline-flex;">${ICONS.sparkles || '✦'}</span>
+                    <strong style="color:#FFF; font-size:0.92rem;">Pending Applications to Review (${stagedList.length})</strong>
+                </div>
+                <span style="font-size:0.78rem; color:var(--text-muted);">100% Accuracy Review Queue — verify or dismiss with 1 click</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                ${stagedList.map(item => `
+                    <div class="staged-item-card" id="staged-item-${item.id}">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <div style="font-weight:700; color:#FFF; font-size:0.88rem;">${escapeHtml(item.role)} <span style="font-weight:400; color:var(--text-muted);">at</span> ${escapeHtml(item.company)}</div>
+                            <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <span class="tag-chip" style="font-size:0.7rem; padding:1px 6px;">${escapeHtml(item.source)}</span>
+                                <span>Applied: ${item.applied_date || 'Today'}</span>
+                                <span style="color:var(--accent-teal);">Confidence: ${Math.round((item.confidence || 0.9) * 100)}%</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-primary compact" style="padding:4px 10px; font-size:0.75rem;" onclick="confirmStagedJob('${item.id}', '${escapeHtml(item.company)}', '${escapeHtml(item.role)}')">
+                                ${ICONS.check || '✓'} Confirm to Board
+                            </button>
+                            <button class="btn-ghost compact" style="padding:4px 10px; font-size:0.75rem; color:var(--accent-coral);" onclick="rejectStagedJob('${item.id}')">
+                                ${ICONS.trash || '✕'} Dismiss
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (e) {
+        banner.style.display = 'none';
+    }
+}
+
+async function confirmStagedJob(stagedId, company, role) {
+    if (!currentUser || !authToken) return;
+    try {
+        const res = await fetch("/api/sync/confirm-staged", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ staged_id: stagedId })
+        });
+        if (res.ok) {
+            showToast(`Added ${role} at ${company} to your board!`, "success");
+            await loadUserData();
+            renderDashboard();
+        } else {
+            const err = await res.json();
+            showToast(err.detail || "Failed to confirm application.", "error");
+        }
+    } catch (e) {
+        showToast("Network error confirming application.", "error");
+    }
+}
+
+async function rejectStagedJob(stagedId) {
+    if (!currentUser || !authToken) return;
+    try {
+        const res = await fetch("/api/sync/reject-staged", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ staged_id: stagedId })
+        });
+        if (res.ok) {
+            showToast("Application dismissed.", "info");
+            fetchStagedJobs();
+        } else {
+            const err = await res.json();
+            showToast(err.detail || "Failed to dismiss application.", "error");
+        }
+    } catch (e) {
+        showToast("Network error dismissing application.", "error");
+    }
+}
+
+async function parsePastedApplicationEmail() {
+    const textarea = document.getElementById('syncEmailPasteArea');
+    if (!textarea) return;
+    const emailRaw = textarea.value.trim();
+    if (!emailRaw) {
+        showToast("Please paste email content or confirmation text first.", "error");
+        return;
+    }
+
+    const btn = document.getElementById('btnParsePastedEmail');
+    const origHTML = btn ? btn.innerHTML : "Parse &amp; Sync Application";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${getBrandLoaderMiniSVG()} Parsing Email...</span>`;
+    }
+
+    try {
+        const res = await fetch("/api/sync/parse-email", {
+            method: "POST",
+            headers: currentUser && authToken ? getAuthHeaders() : { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                raw_email: emailRaw,
+                source_portal: "Direct Email Paste"
+            })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+            const parsed = data.parsed;
+            textarea.value = "";
+            
+            let msg = `Detected application: ${parsed.role} at ${parsed.company}`;
+            if (data.auto_committed) {
+                msg += " (Auto-synced with 100% confidence!)";
+            } else {
+                msg += " (Added to Staged Queue for your review)";
+            }
+            showToast(msg, "success");
+            
+            if (data.alert_dispatched) {
+                showToast(`Instant Alert: ${data.alert_type} notification sent!`, "info");
+            }
+            
+            if (currentUser && authToken) {
+                await loadUserData();
+                renderDashboard();
+            }
+            closeIntegrationsModal();
+        } else {
+            showToast(data.detail || "Could not detect application details from text.", "error");
+        }
+    } catch (e) {
+        showToast("Connection error while syncing email.", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+        }
+    }
+}
+
 // --- Segmented Result Tab Switcher ---
 function switchResultTab(tabKey) {
     const tabMap = {
@@ -1279,8 +1487,8 @@ function switchResultTab(tabKey) {
     });
 }
 
-// --- Killer Features: Render 4 Specialized Panels ---
-function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
+// --- Killer Features: Render 4 Specialized Panels with Gemini Structured Formatting ---
+function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData = null) {
     const resultBox = document.getElementById('atsResultWindow');
     const navEl = document.getElementById('resultSegmentNav');
     if (navEl) navEl.style.display = 'flex';
@@ -1289,10 +1497,17 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
     if (btnPdf) btnPdf.style.display = 'inline-flex';
 
     // 1. Extract Score
-    const scoreMatch = rawResult.match(/(?:ATS Match Score|Match Score|Score)[\s:]*(\d+)%/i) || rawResult.match(/(\d{1,3})%/);
-    let score = scoreMatch ? parseInt(scoreMatch[1], 10) : 76;
+    let score = 76;
+    if (aiData && typeof aiData.score === 'number') {
+        score = aiData.score;
+    } else {
+        const scoreMatch = (rawResult || '').match(/(?:ATS Match Score|Match Score|Score)[\s:]*(\d+)%/i) || (rawResult || '').match(/(\d{1,3})%/);
+        if (scoreMatch) score = parseInt(scoreMatch[1], 10);
+    }
     if (score > 100) score = 100;
     if (score < 10) score = 55;
+
+    let gaugeClass = score >= 75 ? "" : (score >= 50 ? "amber" : "coral");
 
     // 2. Determine 6-Second Skim Verdict
     let verdict = "MAYBE (Borderline)";
@@ -1306,6 +1521,12 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
         verdict = "REJECT (Screened Out)";
         verdictClass = "verdict-fail";
         verdictDesc = "High risk of immediate rejection during initial 6-second triage due to missing qualifications.";
+    }
+    if (aiData && aiData.verdict) {
+        verdict = aiData.verdict;
+    }
+    if (aiData && aiData.verdict_desc) {
+        verdictDesc = aiData.verdict_desc;
     }
 
     // 3. Extract or Synthesize Green Flags & Red Flags
@@ -1330,28 +1551,49 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
         'PyTorch', 'TensorFlow', 'LLMs', 'Prompt Engineering', 'Vector Databases'
     ];
 
-    const jdLower = jd.toLowerCase();
-    const resumeLower = resume.toLowerCase();
+    const jdLower = (jd || '').toLowerCase();
+    const resumeLower = (resume || '').toLowerCase();
 
-    const missingSkills = commonTechTerms.filter(tech => 
-        jdLower.includes(tech.toLowerCase()) && !resumeLower.includes(tech.toLowerCase())
-    ).slice(0, 5);
-
-    if (missingSkills.length === 0) {
-        missingSkills.push('System Design', 'CI/CD Automation', 'Performance Optimization');
-    }
-
-    const matchedSkills = commonTechTerms.filter(tech => 
-        jdLower.includes(tech.toLowerCase()) && resumeLower.includes(tech.toLowerCase())
-    ).slice(0, 6);
-
+    let matchedSkills = (aiData && Array.isArray(aiData.matched_skills) && aiData.matched_skills.length > 0)
+        ? aiData.matched_skills
+        : commonTechTerms.filter(tech => jdLower.includes(tech.toLowerCase()) && resumeLower.includes(tech.toLowerCase())).slice(0, 6);
     if (matchedSkills.length === 0) {
-        matchedSkills.push('Software Engineering', 'Problem Solving', 'API Integration');
+        matchedSkills = ['Software Engineering', 'Problem Solving', 'API Integration'];
     }
 
-    // 5. Build 3 Specific Interview Traps
+    let missingSkills = (aiData && Array.isArray(aiData.missing_skills) && aiData.missing_skills.length > 0)
+        ? aiData.missing_skills
+        : commonTechTerms.filter(tech => jdLower.includes(tech.toLowerCase()) && !resumeLower.includes(tech.toLowerCase())).slice(0, 5);
+    if (missingSkills.length === 0) {
+        missingSkills = ['System Design', 'CI/CD Automation', 'Performance Optimization'];
+    }
+
+    // 5. Suggested Resume Bullets
+    let resumeBullets = (aiData && Array.isArray(aiData.resume_impact_bullets) && aiData.resume_impact_bullets.length > 0)
+        ? aiData.resume_impact_bullets
+        : missingSkills.map(skill => `Architected and implemented ${skill} solutions, streamlining system workflows and improving reliability by 30%.`);
+
+    // 6. Roadmap Blueprint
+    let roadmapItems = (aiData && Array.isArray(aiData.roadmap) && aiData.roadmap.length > 0)
+        ? aiData.roadmap
+        : [
+            { week: "Week 1", focus: `Master fundamentals of ${missingSkills[0] || 'System Design'}`, action: "Build a hands-on proof-of-concept repository with automated testing." },
+            { week: "Week 2", focus: `Deep dive into ${missingSkills[1] || 'Distributed Caching'}`, action: "Benchmark latency and optimize throughput under concurrent workloads." },
+            { week: "Week 3", focus: "Interview mock defense", action: "Practice explaining trade-offs, architecture decisions, and edge case resilience." }
+        ];
+
+    // 7. Alternative Roles
+    let alternativeRoles = (aiData && Array.isArray(aiData.alternative_roles) && aiData.alternative_roles.length > 0)
+        ? aiData.alternative_roles
+        : [
+            { role: role, company: company, fit: score >= 80 ? score : 88 },
+            { role: "Platform Software Engineer", company: "Datadog", fit: 92 },
+            { role: "Full Stack Systems Engineer", company: "Cloudflare", fit: 87 }
+        ];
+
+    // 8. Build 3 Specific Interview Traps
     const trap1Skill = missingSkills[0] || "Distributed Systems";
-    const trapQuestions = [
+    let trapQuestions = [
         {
             q: `1. "We rely heavily on ${trap1Skill}. Your resume does not show production ownership of this. How will you ramp up on day one?"`,
             formula: `<strong>How to answer:</strong> Acknowledge the gap directly without being defensive ("While my recent work centered on [your strongest stack], the underlying architectural principles are identical"). Bridge to an adjacent tool you learned quickly, and cite a concrete example where you mastered a new stack in under 2 weeks.`
@@ -1365,12 +1607,24 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
             formula: `<strong>How to answer:</strong> Frame your trajectory as high velocity. Emphasize that you bring fresh perspectives, hunger, and adaptability. Mention a specific engineering challenge ${escapeHtml(company)} is currently solving and explain how your unique combination of skills tackles it.`
         }
     ];
+    if (aiData && Array.isArray(aiData.interview_traps) && aiData.interview_traps.length > 0) {
+        trapQuestions = aiData.interview_traps.map((t, idx) => ({
+            q: `${idx + 1}. "${escapeHtml(t.question || t.q || '')}"`,
+            formula: `<strong>How to answer:</strong> ${escapeHtml(t.formula || t.answer || t.strategy || '')}`
+        }));
+    }
 
-    // 6. Build Outreach & Follow-Up Templates
+    // 9. Build Outreach & Follow-Up Templates
     const candidateName = (userProfile && userProfile.fullName) || 'Candidate';
-    const coldOutreach = `Hi [Hiring Manager],\n\nI noticed the ${escapeHtml(role)} opening at ${escapeHtml(company)} and wanted to reach out directly. My background includes building robust systems with ${matchedSkills.slice(0, 2).join(' and ')}, and I've been following ${escapeHtml(company)}'s recent growth.\n\nGiven the team's focus on scalable architecture, I would love to contribute to your current roadmap. Would you be open to a brief 10-minute chat this week?\n\nBest,\n${candidateName}`;
+    let coldOutreach = (aiData && aiData.cold_outreach)
+        ? aiData.cold_outreach
+        : `Hi [Hiring Manager],\n\nI noticed the ${escapeHtml(role)} opening at ${escapeHtml(company)} and wanted to reach out directly. My background includes building robust systems with ${matchedSkills.slice(0, 2).join(' and ')}, and I've been following ${escapeHtml(company)}'s recent growth.\n\nGiven the team's focus on scalable architecture, I would love to contribute to your current roadmap. Would you be open to a brief 10-minute chat this week?\n\nBest,\n${candidateName}`;
 
-    const parsedRaw = typeof marked !== 'undefined' ? marked.parse(rawResult) : rawResult;
+    // Clean rawResult to prevent duplicate scorecards
+    let cleanedRaw = rawResult || '';
+    cleanedRaw = cleanedRaw.replace(/<div class="result-score-card">[\s\S]*?<\/div>/gi, '');
+    cleanedRaw = cleanedRaw.replace(/^#+\s*(?:ATS Match Score|Match Score)[\s\S]*?(?=\n#+|$)/gim, '');
+    const parsedRaw = typeof marked !== 'undefined' ? marked.parse(cleanedRaw) : cleanedRaw;
 
     // Construct the 4 HTML Panels
     resultBox.innerHTML = `
@@ -1386,15 +1640,24 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
 
         <!-- Panel 1: ATS Match & Missing Skills -->
         <div id="panelResMatch" class="result-tab-panel">
-            <div class="result-score-card">
-                <div class="score-badge">ATS Match Score: ${score}%</div>
-                <p><strong>Alignment Status:</strong> ${score >= 70 ? 'Strong Alignment' : 'Actionable Gaps Detected'}: ${escapeHtml(verdictDesc)}</p>
+            <div class="ats-master-score-card">
+                <div class="ats-score-hero">
+                    <div class="ats-score-gauge ${gaugeClass}">${score}%</div>
+                    <div>
+                        <div class="ats-verdict-title">${escapeHtml(verdict)}</div>
+                        <div class="ats-verdict-sub">${escapeHtml(verdictDesc)}</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <span class="tag-chip" style="background:var(--accent-teal-bg); color:var(--accent-teal); border-color:rgba(13,148,136,0.3); font-weight:700;">${matchedSkills.length} Matched</span>
+                    <span class="tag-chip" style="background:var(--accent-warning-bg); color:var(--accent-warning); border-color:rgba(217,119,6,0.3); font-weight:700;">${missingSkills.length} Gaps</span>
+                </div>
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.2rem 0;">
                 <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem;">
                     <div style="font-size:0.85rem; font-weight:700; color:var(--accent-teal); margin-bottom:0.75rem;">
-                        Matched Skills & Core Strengths
+                        Matched Skills &amp; Core Strengths
                     </div>
                     <div style="display:flex; flex-wrap:wrap; gap:6px;">
                         ${matchedSkills.map(s => `<span class="tag-chip" style="background:var(--accent-teal-bg); color:var(--accent-teal); border-color:rgba(13,148,136,0.3);">${escapeHtml(s)}</span>`).join('')}
@@ -1419,83 +1682,75 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
                     If you have experience with these tools, add these verified impact bullets into your resume's experience section:
                 </p>
                 <div style="display:flex; flex-direction:column; gap:0.75rem;">
-                    ${missingSkills.map(skill => {
-                        const bulletText = `Architected and implemented ${skill} solutions, streamlining system workflows and improving reliability by 30%.`;
-                        return `
-                            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); padding:10px 14px; border-radius:var(--radius-xs); border:1px solid var(--border-subtle); gap:12px;">
-                                <span style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">• ${escapeHtml(bulletText)}</span>
-                                <button class="btn-ghost" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(bulletText)}', 'Resume bullet')">${ICONS.copy} Copy</button>
-                            </div>
-                        `;
-                    }).join('')}
+                    ${resumeBullets.map(bulletText => `
+                        <div class="resume-bullet-row">
+                            <span class="resume-bullet-text">• ${escapeHtml(bulletText)}</span>
+                            <button class="btn-ghost" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(bulletText)}', 'Resume bullet')">${ICONS.copy} Copy</button>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
 
-            <!-- Instant Fit & 1-Click Auto-Apply -->
+            <!-- Targeted 3-Week Upskilling Roadmap Blueprint -->
+            <div class="ats-section-box" style="margin-bottom:1.5rem;">
+                <div class="ats-section-header">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span>Targeted Upskilling Blueprint (Bridge All Keyword Gaps)</span>
+                </div>
+                <div class="roadmap-blueprint-card">
+                    ${roadmapItems.map(item => `
+                        <div class="roadmap-blueprint-row">
+                            <div class="roadmap-blueprint-label">${escapeHtml(item.week || item.label || 'Phase')}: ${escapeHtml(item.focus || '')}</div>
+                            <div class="roadmap-blueprint-desc">${escapeHtml(item.action || item.description || '')}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Instant Fit & 1-Click Auto-Apply with Verified Job Portals -->
             <div class="instant-fit-section">
                 <div class="instant-fit-header">
                     <div>
-                        <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; display:inline-flex; align-items:center; gap:6px;">${ICONS.bolt} Instant Fit Openings (1-Click Auto-Apply)</h4>
+                        <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; display:inline-flex; align-items:center; gap:6px;">${ICONS.bolt} Instant Fit Openings &amp; Verified Portals</h4>
                         <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Pre-qualified openings matching your verified resume skills right now.</p>
                     </div>
                     <span class="fit-score-badge">Instant Sync Enabled</span>
                 </div>
-                <div class="instant-fit-grid">
-                    <div class="instant-fit-card">
-                        <div>
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                                <div style="font-weight:700; color:#FFF; font-size:0.92rem;">${escapeHtml(role)}</div>
-                                <span class="fit-score-badge">${score >= 80 ? score : 88}% Fit</span>
+                <div class="verified-roles-grid">
+                    ${alternativeRoles.map(alt => `
+                        <div class="verified-role-card">
+                            <div>
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                                    <div style="font-weight:700; color:#FFF; font-size:0.92rem;">${escapeHtml(alt.role)}</div>
+                                    <span class="fit-score-badge">${alt.fit || 88}% Fit</span>
+                                </div>
+                                <div style="font-size:0.82rem; color:var(--accent-teal); margin-bottom:8px;">${escapeHtml(alt.company)}</div>
+                                <div class="role-search-links">
+                                    <a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(alt.role)}" target="_blank" rel="noopener noreferrer" class="verified-job-link">LinkedIn</a>
+                                    <a href="https://www.indeed.com/jobs?q=${encodeURIComponent(alt.role)}" target="_blank" rel="noopener noreferrer" class="verified-job-link">Indeed</a>
+                                    <a href="https://www.google.com/search?q=${encodeURIComponent(alt.role + ' jobs')}&ibp=htl;jobs" target="_blank" rel="noopener noreferrer" class="verified-job-link">Google Jobs</a>
+                                </div>
                             </div>
-                            <div style="font-size:0.82rem; color:var(--accent-teal); margin-bottom:8px;">${escapeHtml(company)}</div>
-                            <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;">
-                                ${matchedSkills.slice(0, 3).map(s => `<span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">${escapeHtml(s)}</span>`).join('')}
-                            </div>
+                            <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px; margin-top:8px;" onclick="oneClickAutoApply('${escapeHtml(alt.role)}', '${escapeHtml(alt.company)}', ${alt.fit || 88}, ['Direct Match', 'Immediate'], this)">
+                                ${ICONS.bolt} 1-Click Auto-Apply
+                            </button>
                         </div>
-                        <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="oneClickAutoApply('${escapeHtml(role)}', '${escapeHtml(company)}', ${score >= 80 ? score : 88}, ['Direct Match', 'Immediate'], this)">
-                            ${ICONS.bolt} 1-Click Auto-Apply
-                        </button>
-                    </div>
-
-                    <div class="instant-fit-card">
-                        <div>
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                                <div style="font-weight:700; color:#FFF; font-size:0.92rem;">Platform Software Engineer</div>
-                                <span class="fit-score-badge">92% Fit</span>
-                            </div>
-                            <div style="font-size:0.82rem; color:var(--accent-teal); margin-bottom:8px;">Datadog (Remote)</div>
-                            <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;">
-                                <span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">Distributed Systems</span>
-                                <span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">API Design</span>
-                            </div>
-                        </div>
-                        <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="oneClickAutoApply('Platform Software Engineer', 'Datadog', 92, ['Platform', 'Remote'], this)">
-                            ${ICONS.bolt} 1-Click Auto-Apply
-                        </button>
-                    </div>
-
-                    <div class="instant-fit-card">
-                        <div>
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                                <div style="font-weight:700; color:#FFF; font-size:0.92rem;">Full Stack Systems Engineer</div>
-                                <span class="fit-score-badge">87% Fit</span>
-                            </div>
-                            <div style="font-size:0.82rem; color:var(--accent-teal); margin-bottom:8px;">Cloudflare</div>
-                            <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;">
-                                <span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">Cloud Edge</span>
-                                <span class="tag-chip" style="font-size:0.7rem; padding:2px 6px;">High Scale</span>
-                            </div>
-                        </div>
-                        <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px;" onclick="oneClickAutoApply('Full Stack Systems Engineer', 'Cloudflare', 87, ['Cloud Edge', 'High Scale'], this)">
-                            ${ICONS.bolt} 1-Click Auto-Apply
-                        </button>
-                    </div>
+                    `).join('')}
                 </div>
             </div>
 
-            <div id="atsResultContent">
-                ${parsedRaw}
-            </div>
+            <!-- Detailed ATS Analysis Breakdown (Sanitized, No Duplicate Scorecards) -->
+            ${parsedRaw.trim() ? `
+                <div class="ats-section-box" style="margin-top:1.5rem;">
+                    <div class="ats-section-header">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        <span>Detailed ATS Analysis Breakdown</span>
+                    </div>
+                    <div id="atsResultContent">
+                        ${parsedRaw}
+                    </div>
+                </div>
+            ` : ''}
         </div>
 
         <!-- Panel 2: 6-Second Recruiter Scan -->
@@ -1568,7 +1823,7 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest) {
             <div class="ghosting-timeline-card">
                 <div style="margin-bottom:1.5rem;">
                     <h3 style="font-size:1.1rem; font-weight:800; color:#FFF; display:flex; align-items:center; gap:8px;">
-                        ${ICONS.mail} Recruiter Outreach & Anti-Ghosting Timeline
+                        ${ICONS.mail} Recruiter Outreach &amp; Anti-Ghosting Timeline
                     </h3>
                     <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px;">
                         A proven communication sequence to get responses from engineering managers and recruiters before and after applying.
@@ -1693,7 +1948,7 @@ async function runATSExecution() {
         });
         const data = await res.json();
         if (res.ok) {
-            renderATSResult(data.result, role, company, jd, resume, isGuest);
+            renderATSResult(data.result, role, company, jd, resume, isGuest, data.data);
             updateDynamicJobLinks(role);
             showToast("Match report and recruiter scan ready!", "success");
         } else {

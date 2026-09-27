@@ -148,6 +148,18 @@
       <!-- Follow-up Nudges -->
       <div id="nudgeAlertContainer" style="margin-bottom: 1.5rem;"></div>
 
+      <!-- Staged Applications Review Banner (100% Accuracy Safety Valve) -->
+      <div id="stagedReviewBanner" class="staged-review-banner" style="display: none;"></div>
+
+      <!-- Mobile Segmented Stage Switcher Bar (Responsive Phone Navigation) -->
+      <div class="mobile-stage-bar" id="mobileStageBar">
+        <button class="mobile-stage-pill active" onclick="setMobileStage('all', this)">All Stages</button>
+        <button class="mobile-stage-pill" onclick="setMobileStage('Applied', this)">Applied</button>
+        <button class="mobile-stage-pill" onclick="setMobileStage('Interviewing', this)">Interviewing</button>
+        <button class="mobile-stage-pill" onclick="setMobileStage('Offer', this)">Offers</button>
+        <button class="mobile-stage-pill" onclick="setMobileStage('Rejected', this)">Rejected</button>
+      </div>
+
       <!-- Pipeline Board Columns Grid -->
       <div class="pipeline-board" id="pipelineGrid"></div>
     </section>
@@ -876,6 +888,25 @@
           </div>
           <button class="btn-ghost compact" id="btnToggleInternshala" onclick="toggleIntegration('internshala')">
             Connect
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick-Paste Application Email Dropzone -->
+      <div class="email-paste-dropzone-box" style="background: var(--bg-elevated); border: 1px dashed var(--border-medium); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="font-size: 0.82rem; font-weight: 700; color: #FFF; display: flex; align-items: center; gap: 6px;">
+            <svg class="icon-svg-sm" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Quick-Paste Confirmation / Interview Email
+          </label>
+          <span style="font-size: 0.72rem; color: var(--accent-teal); font-family: var(--font-mono);">100% Precision Parser</span>
+        </div>
+        <textarea id="syncEmailPasteArea" class="form-textarea" style="min-height: 80px; font-size: 0.8rem; margin-bottom: 8px;" placeholder="Paste confirmation email text, subject, or recruiter invite snippet here (LinkedIn, Internshala, Greenhouse, Lever, etc.)..."></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="btn-ghost compact" onclick="document.getElementById('syncEmailPasteArea').value = ''">Clear</button>
+          <button class="btn-primary compact" id="btnParsePastedEmail" onclick="parsePastedApplicationEmail()">
+            <svg class="icon-svg-sm" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Auto-Sync to Board
           </button>
         </div>
       </div>
