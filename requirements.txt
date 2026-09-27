@@ -8,3 +8,4 @@ aiofiles
 python-multipart
 pypdf
 requests
+psycopg2-binary

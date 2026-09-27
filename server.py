@@ -9,7 +9,7 @@ import hashlib
 import secrets
 import urllib.request
 import urllib.error
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, Response
@@ -35,6 +35,143 @@ app.add_middleware(
 )
 
 DB_PATH = "nexjob.db"
+BACKUP_FILE = "nexjob_backup.json"
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+
+USE_POSTGRES = False
+try:
+    import psycopg2
+    import psycopg2.extras
+    if DATABASE_URL:
+        USE_POSTGRES = True
+        print(f"[DATABASE] Using Cloud PostgreSQL/Supabase Database.")
+    else:
+        print("[DATABASE] No DATABASE_URL set. Using local SQLite database (nexjob.db).")
+except ImportError:
+    if DATABASE_URL:
+        print("[DATABASE WARNING] DATABASE_URL is set but psycopg2 is not installed. Falling back to SQLite.")
+    else:
+        print("[DATABASE] Using local SQLite database (nexjob.db).")
+    USE_POSTGRES = False
+
+IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+def parse_to_ist(val):
+    if not val:
+        return "N/A"
+    try:
+        if isinstance(val, (int, float)):
+            dt = datetime.datetime.fromtimestamp(val, tz=datetime.timezone.utc)
+        elif isinstance(val, datetime.datetime):
+            dt = val
+        else:
+            s = str(val).replace("Z", "+00:00")
+            dt = datetime.datetime.fromisoformat(s)
+        ist_dt = dt.astimezone(IST)
+        return ist_dt.strftime("%d %b %Y, %I:%M %p IST")
+    except Exception:
+        return str(val)
+
+def parse_to_ist_date(val):
+    if not val:
+        return "N/A"
+    try:
+        if isinstance(val, (int, float)):
+            dt = datetime.datetime.fromtimestamp(val, tz=datetime.timezone.utc)
+        elif isinstance(val, datetime.datetime):
+            dt = val
+        else:
+            s = str(val).replace("Z", "+00:00")
+            dt = datetime.datetime.fromisoformat(s)
+        ist_dt = dt.astimezone(IST)
+        return ist_dt.strftime("%Y-%m-%d")
+    except Exception:
+        return str(val)[:10]
+
+import re
+
+def adapt_sql_for_postgres(sql: str) -> str:
+    s = sql.strip()
+    if "INSERT OR REPLACE INTO otps" in s:
+        s = re.sub(
+            r"INSERT\s+OR\s+REPLACE\s+INTO\s+otps\s*\((.*?)\)\s*VALUES\s*\((.*?)\)",
+            r"INSERT INTO otps (\1) VALUES (\2) ON CONFLICT (email) DO UPDATE SET otp_hash = EXCLUDED.otp_hash, purpose = EXCLUDED.purpose, expires_at = EXCLUDED.expires_at, attempts = 0",
+            s, flags=re.IGNORECASE | re.DOTALL
+        )
+    elif "INSERT OR REPLACE INTO jobs" in s:
+        s = re.sub(
+            r"INSERT\s+OR\s+REPLACE\s+INTO\s+jobs\s*\((.*?)\)\s*VALUES\s*\((.*?)\)",
+            r"INSERT INTO jobs (\1) VALUES (\2) ON CONFLICT (id) DO UPDATE SET user_email=EXCLUDED.user_email, company=EXCLUDED.company, role=EXCLUDED.role, date=EXCLUDED.date, status=EXCLUDED.status, tags=EXCLUDED.tags, jd=EXCLUDED.jd",
+            s, flags=re.IGNORECASE | re.DOTALL
+        )
+    elif "INSERT OR REPLACE INTO users" in s:
+        s = re.sub(
+            r"INSERT\s+OR\s+REPLACE\s+INTO\s+users\s*\((.*?)\)\s*VALUES\s*\((.*?)\)",
+            r"INSERT INTO users (\1) VALUES (\2) ON CONFLICT (email) DO UPDATE SET username=EXCLUDED.username, password=EXCLUDED.password, token=EXCLUDED.token, full_name=EXCLUDED.full_name, target_role=EXCLUDED.target_role, skills=EXCLUDED.skills, resume=EXCLUDED.resume, linkedin_url=EXCLUDED.linkedin_url, github_url=EXCLUDED.github_url, portfolio_url=EXCLUDED.portfolio_url, auth_provider=EXCLUDED.auth_provider, last_active=EXCLUDED.last_active, created_at=EXCLUDED.created_at",
+            s, flags=re.IGNORECASE | re.DOTALL
+        )
+    elif "INSERT OR IGNORE INTO activity_logs" in s:
+        s = re.sub(
+            r"INSERT\s+OR\s+IGNORE\s+INTO\s+activity_logs\s*\((.*?)\)\s*VALUES\s*\((.*?)\)",
+            r"INSERT INTO activity_logs (\1) VALUES (\2) ON CONFLICT DO NOTHING",
+            s, flags=re.IGNORECASE | re.DOTALL
+        )
+    return s.replace("?", "%s")
+
+class AdaptedCursor:
+    def __init__(self, raw_cursor, is_postgres: bool):
+        self.raw_cursor = raw_cursor
+        self.is_postgres = is_postgres
+
+    def execute(self, sql, params=()):
+        if self.is_postgres:
+            adapted_sql = adapt_sql_for_postgres(sql)
+            return self.raw_cursor.execute(adapted_sql, params)
+        return self.raw_cursor.execute(sql, params)
+
+    def fetchone(self):
+        return self.raw_cursor.fetchone()
+
+    def fetchall(self):
+        return self.raw_cursor.fetchall()
+
+    def __iter__(self):
+        return iter(self.raw_cursor)
+
+    def __getattr__(self, name):
+        return getattr(self.raw_cursor, name)
+
+class DBWrapper:
+    def __init__(self, raw_conn, is_postgres: bool):
+        self.raw_conn = raw_conn
+        self.is_postgres = is_postgres
+        if not is_postgres:
+            self.raw_conn.row_factory = sqlite3.Row
+
+    def cursor(self):
+        if self.is_postgres:
+            raw_cur = self.raw_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            return AdaptedCursor(raw_cur, is_postgres=True)
+        return AdaptedCursor(self.raw_conn.cursor(), is_postgres=False)
+
+    def commit(self):
+        self.raw_conn.commit()
+
+    def rollback(self):
+        self.raw_conn.rollback()
+
+    def close(self):
+        self.raw_conn.close()
+
+def get_db_connection():
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+        return DBWrapper(conn, is_postgres=True)
+    conn = sqlite3.connect(DB_PATH)
+    return DBWrapper(conn, is_postgres=False)
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
@@ -42,51 +179,217 @@ def hash_password(password: str) -> str:
 def hash_otp(otp: str) -> str:
     return hashlib.sha256(otp.encode("utf-8")).hexdigest()
 
+def sync_backup_to_disk():
+    """Serializes all users, jobs, and recent activity logs into a persistent JSON backup file."""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        c.execute("SELECT * FROM users")
+        users = [dict(r) for r in c.fetchall()]
+        
+        c.execute("SELECT * FROM jobs")
+        jobs = [dict(r) for r in c.fetchall()]
+        
+        c.execute("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 500")
+        logs = [dict(r) for r in c.fetchall()]
+        
+        conn.close()
+        
+        data = {
+            "version": 1,
+            "saved_at": time.time(),
+            "users": users,
+            "jobs": jobs,
+            "activity_logs": logs
+        }
+        with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"[BACKUP SYNC ERROR] {e}")
+
+def restore_database_from_backup():
+    """Restores database from nexjob_backup.json if database is newly initialized or empty."""
+    if not os.path.exists(BACKUP_FILE):
+        return
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM users")
+        row = c.fetchone()
+        user_count = row[0] if row else 0
+        
+        if user_count == 0:
+            with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            for u in data.get("users", []):
+                c.execute("""
+                    INSERT OR REPLACE INTO users (
+                        email, username, password, token, full_name, target_role,
+                        skills, resume, linkedin_url, github_url, portfolio_url,
+                        auth_provider, last_active, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    u.get("email"), u.get("username"), u.get("password"), u.get("token", ""),
+                    u.get("full_name", ""), u.get("target_role", ""), u.get("skills", ""),
+                    u.get("resume", ""), u.get("linkedin_url", ""), u.get("github_url", ""),
+                    u.get("portfolio_url", ""), u.get("auth_provider", "local"),
+                    u.get("last_active", 0), u.get("created_at", datetime.datetime.now(datetime.timezone.utc).isoformat())
+                ))
+            
+            for j in data.get("jobs", []):
+                c.execute("""
+                    INSERT OR REPLACE INTO jobs (id, user_email, company, role, date, status, tags, jd)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    j.get("id"), j.get("user_email"), j.get("company"), j.get("role"),
+                    j.get("date"), j.get("status"), j.get("tags", "[]"), j.get("jd", "")
+                ))
+            
+            for l in data.get("activity_logs", []):
+                c.execute("""
+                    INSERT OR IGNORE INTO activity_logs (id, user_email, action_type, details, ip_address, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    l.get("id"), l.get("user_email"), l.get("action_type"),
+                    l.get("details", ""), l.get("ip_address", ""), l.get("created_at")
+                ))
+            
+            conn.commit()
+            print(f"[RESTORE COMPLETE] Restored {len(data.get('users', []))} users and {len(data.get('jobs', []))} jobs from {BACKUP_FILE}.")
+        conn.close()
+    except Exception as e:
+        print(f"[RESTORE ERROR] {e}")
+
+def get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+def log_activity(user_email: str, action_type: str, details: str = "", ip_address: str = ""):
+    """Logs user login, registration, and session activity with timestamp."""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO activity_logs (user_email, action_type, details, ip_address)
+            VALUES (?, ?, ?, ?)
+        """, (user_email, action_type, details, ip_address))
+        conn.commit()
+        conn.close()
+        sync_backup_to_disk()
+    except Exception as e:
+        print(f"[LOG ACTIVITY ERROR] {e}")
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            email TEXT PRIMARY KEY,
-            username TEXT UNIQUE,
-            password TEXT NOT NULL,
-            token TEXT DEFAULT '',
-            full_name TEXT DEFAULT '',
-            target_role TEXT DEFAULT '',
-            skills TEXT DEFAULT '',
-            resume TEXT DEFAULT '',
-            linkedin_url TEXT DEFAULT '',
-            github_url TEXT DEFAULT '',
-            portfolio_url TEXT DEFAULT '',
-            auth_provider TEXT DEFAULT 'local',
-            last_active REAL DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS otps (
-            email TEXT PRIMARY KEY,
-            otp_hash TEXT NOT NULL,
-            purpose TEXT NOT NULL,
-            expires_at REAL NOT NULL,
-            attempts INTEGER DEFAULT 0
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS jobs (
-            id TEXT PRIMARY KEY,
-            user_email TEXT NOT NULL,
-            company TEXT NOT NULL,
-            role TEXT NOT NULL,
-            date TEXT NOT NULL,
-            status TEXT NOT NULL,
-            tags TEXT NOT NULL,
-            jd TEXT NOT NULL,
-            FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
-        )
-    """)
+    if USE_POSTGRES:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                email TEXT PRIMARY KEY,
+                username TEXT UNIQUE,
+                password TEXT NOT NULL,
+                token TEXT DEFAULT '',
+                full_name TEXT DEFAULT '',
+                target_role TEXT DEFAULT '',
+                skills TEXT DEFAULT '',
+                resume TEXT DEFAULT '',
+                linkedin_url TEXT DEFAULT '',
+                github_url TEXT DEFAULT '',
+                portfolio_url TEXT DEFAULT '',
+                auth_provider TEXT DEFAULT 'local',
+                last_active REAL DEFAULT 0,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS otps (
+                email TEXT PRIMARY KEY,
+                otp_hash TEXT NOT NULL,
+                purpose TEXT NOT NULL,
+                expires_at REAL NOT NULL,
+                attempts INTEGER DEFAULT 0
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                company TEXT NOT NULL,
+                role TEXT NOT NULL,
+                date TEXT NOT NULL,
+                status TEXT NOT NULL,
+                tags TEXT NOT NULL,
+                jd TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id SERIAL PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                action_type TEXT NOT NULL,
+                details TEXT DEFAULT '',
+                ip_address TEXT DEFAULT '',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                email TEXT PRIMARY KEY,
+                username TEXT UNIQUE,
+                password TEXT NOT NULL,
+                token TEXT DEFAULT '',
+                full_name TEXT DEFAULT '',
+                target_role TEXT DEFAULT '',
+                skills TEXT DEFAULT '',
+                resume TEXT DEFAULT '',
+                linkedin_url TEXT DEFAULT '',
+                github_url TEXT DEFAULT '',
+                portfolio_url TEXT DEFAULT '',
+                auth_provider TEXT DEFAULT 'local',
+                last_active REAL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS otps (
+                email TEXT PRIMARY KEY,
+                otp_hash TEXT NOT NULL,
+                purpose TEXT NOT NULL,
+                expires_at REAL NOT NULL,
+                attempts INTEGER DEFAULT 0
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY,
+                user_email TEXT NOT NULL,
+                company TEXT NOT NULL,
+                role TEXT NOT NULL,
+                date TEXT NOT NULL,
+                status TEXT NOT NULL,
+                tags TEXT NOT NULL,
+                jd TEXT NOT NULL,
+                FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email TEXT NOT NULL,
+                action_type TEXT NOT NULL,
+                details TEXT DEFAULT '',
+                ip_address TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     conn.commit()
     conn.close()
+    restore_database_from_backup()
 
 init_db()
 
@@ -148,7 +451,7 @@ def get_current_user_email(authorization: str = Header(None)) -> str:
     if not token:
         raise HTTPException(status_code=401, detail="Invalid token.")
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT email FROM users WHERE token=?", (token,))
     row = cursor.fetchone()
@@ -225,7 +528,7 @@ async def send_otp(payload: SendOTPRequest):
     if not email_clean or "@" not in email_clean:
         raise HTTPException(status_code=400, detail="Please enter a valid email address.")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT email FROM users WHERE LOWER(email)=?", (email_clean,))
     user_exists = cursor.fetchone()
@@ -253,7 +556,7 @@ async def send_otp(payload: SendOTPRequest):
     return {"status": "success", "message": f"Verification code sent to {email_clean}."}
 
 @app.post("/api/auth/signup-verify")
-async def signup_verify(payload: SignupVerifyRequest):
+async def signup_verify(payload: SignupVerifyRequest, request: Request):
     if not payload.terms_accepted:
         raise HTTPException(status_code=400, detail="You must agree to the Terms of Service and Privacy Policy.")
         
@@ -265,7 +568,7 @@ async def signup_verify(payload: SignupVerifyRequest):
     if len(payload.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE email=?", (email_clean,))
     otp_record = cursor.fetchone()
@@ -293,11 +596,16 @@ async def signup_verify(payload: SignupVerifyRequest):
         """, (email_clean, username_clean, hashed_pwd, new_token, payload.full_name or username_clean, now))
         cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
         conn.commit()
-    except sqlite3.IntegrityError:
+    except Exception as e:
         conn.close()
-        raise HTTPException(status_code=400, detail="Username or email is already registered.")
+        if "unique" in str(e).lower() or "duplicate" in str(e).lower() or "integrity" in str(e).lower():
+            raise HTTPException(status_code=400, detail="Username or email is already registered.")
+        raise HTTPException(status_code=400, detail=f"Registration error: {str(e)}")
     
     conn.close()
+    client_ip = get_client_ip(request)
+    log_activity(email_clean, "signup", f"Candidate registered with Email OTP (@{username_clean})", client_ip)
+
     return {
         "status": "success",
         "token": new_token,
@@ -306,7 +614,7 @@ async def signup_verify(payload: SignupVerifyRequest):
     }
 
 @app.post("/api/auth/reset-password")
-async def reset_password(payload: ResetPasswordRequest):
+async def reset_password(payload: ResetPasswordRequest, request: Request):
     raw_email = payload.email or payload.identifier or ""
     email_clean = raw_email.strip().lower()
     otp = payload.otp.strip()
@@ -314,7 +622,7 @@ async def reset_password(payload: ResetPasswordRequest):
     if len(payload.new_password) < 6:
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT otp_hash, expires_at, attempts, purpose FROM otps WHERE email=?", (email_clean,))
     otp_record = cursor.fetchone()
@@ -330,16 +638,19 @@ async def reset_password(payload: ResetPasswordRequest):
     cursor.execute("DELETE FROM otps WHERE email=?", (email_clean,))
     conn.commit()
     conn.close()
+
+    client_ip = get_client_ip(request)
+    log_activity(email_clean, "reset_password", "Password reset successfully via OTP", client_ip)
     return {"status": "success", "message": "Password updated successfully."}
 
 @app.post("/api/auth/login")
-async def login(payload: LoginRequest):
+async def login(payload: LoginRequest, request: Request):
     identifier = payload.identifier.strip().lower()
     hashed_pwd = hash_password(payload.password)
     new_token = secrets.token_hex(24)
     now = time.time()
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url 
@@ -357,6 +668,9 @@ async def login(payload: LoginRequest):
     conn.commit()
     conn.close()
 
+    client_ip = get_client_ip(request)
+    log_activity(user_email, "login", "Candidate logged in via Email & Password", client_ip)
+
     return {
         "token": new_token,
         "email": user_email,
@@ -367,7 +681,7 @@ async def login(payload: LoginRequest):
     }
 
 @app.post("/api/auth/google")
-async def google_auth(payload: GoogleAuthRequest):
+async def google_auth(payload: GoogleAuthRequest, request: Request):
     google_client_id = os.getenv("GOOGLE_CLIENT_ID")
     try:
         idinfo = id_token.verify_oauth2_token(
@@ -385,7 +699,7 @@ async def google_auth(payload: GoogleAuthRequest):
         new_token = secrets.token_hex(24)
         now = time.time()
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT email, full_name, target_role, skills, resume, linkedin_url, github_url, portfolio_url FROM users WHERE email=?", (email_clean,))
         user = cursor.fetchone()
@@ -407,18 +721,37 @@ async def google_auth(payload: GoogleAuthRequest):
             }
         conn.commit()
         conn.close()
+
+        client_ip = get_client_ip(request)
+        action = "signup_google" if not user else "login_google"
+        desc = f"New candidate registered via Google OAuth ({name})" if not user else f"Candidate logged in via Google OAuth ({name})"
+        log_activity(email_clean, action, desc, client_ip)
+
         return {"status": "success", "token": new_token, "email": email_clean, "profile": user_profile}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Google Login Error: {str(e)}")
 
 @app.post("/api/auth/logout")
-async def logout(user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
+async def logout(request: Request, user_email: str = Depends(get_current_user_email)):
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET token='' WHERE email=?", (user_email,))
     conn.commit()
     conn.close()
+
+    client_ip = get_client_ip(request)
+    log_activity(user_email, "logout", "Candidate logged out of session", client_ip)
     return {"status": "success"}
+
+@app.post("/api/auth/ping")
+async def ping_auth(user_email: str = Depends(get_current_user_email)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = time.time()
+    cursor.execute("UPDATE users SET last_active=? WHERE email=?", (now, user_email))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "last_active": now, "email": user_email}
 
 # --- Member Features ---
 @app.post("/api/resume/upload-pdf")
@@ -436,18 +769,21 @@ async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Depe
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract readable text from this PDF.")
         
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET resume=?, last_active=? WHERE email=?", (extracted_text.strip(), time.time(), user_email))
         conn.commit()
         conn.close()
+
+        log_activity(user_email, "resume_upload", f"Uploaded resume PDF: {file.filename}")
+        sync_backup_to_disk()
         return {"extracted_text": extracted_text.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
 
 @app.get("/api/jobs")
 async def get_jobs(user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id, company, role, date, status, tags, jd FROM jobs WHERE user_email=?", (user_email,))
     rows = cursor.fetchall()
@@ -457,7 +793,7 @@ async def get_jobs(user_email: str = Depends(get_current_user_email)):
 
 @app.post("/api/jobs/save")
 async def save_job(payload: JobPayload, user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT OR REPLACE INTO jobs (id, user_email, company, role, date, status, tags, jd)
@@ -465,20 +801,23 @@ async def save_job(payload: JobPayload, user_email: str = Depends(get_current_us
     """, (payload.id, user_email, payload.company, payload.role, payload.date, payload.status, json.dumps(payload.tags), payload.jd))
     conn.commit()
     conn.close()
+    log_activity(user_email, "job_saved", f"Saved application: {payload.company} - {payload.role}")
+    sync_backup_to_disk()
     return {"status": "success"}
 
 @app.post("/api/jobs/update_status")
 async def update_job_status(data: dict, user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE jobs SET status=? WHERE id=? AND user_email=?", (data.get("status"), data.get("id"), user_email))
     conn.commit()
     conn.close()
+    sync_backup_to_disk()
     return {"status": "success"}
 
 @app.post("/api/profile/save")
 async def save_profile(payload: ProfileRequest, user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE users 
@@ -487,16 +826,20 @@ async def save_profile(payload: ProfileRequest, user_email: str = Depends(get_cu
     """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.linkedin_url, payload.github_url, payload.portfolio_url, time.time(), user_email))
     conn.commit()
     conn.close()
+    log_activity(user_email, "profile_update", "Updated profile settings")
+    sync_backup_to_disk()
     return {"status": "success"}
 
 @app.delete("/api/account/delete")
 async def delete_account(user_email: str = Depends(get_current_user_email)):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM jobs WHERE user_email=?", (user_email,))
     cursor.execute("DELETE FROM users WHERE email=?", (user_email,))
+    cursor.execute("DELETE FROM activity_logs WHERE user_email=?", (user_email,))
     conn.commit()
     conn.close()
+    sync_backup_to_disk()
     return {"status": "success", "message": "Account permanently deleted."}
 
 # --- AI Decision Engine ---
@@ -631,7 +974,7 @@ Replace [URL_ENCODED_ROLE_X] with the URL-encoded string of each role (e.g. AI%2
         detail=f"AI model generation temporarily rate-limited. Please retry shortly. ({str(last_error)})"
     )
 
-# --- Admin Cockpit with IST Timestamps & Active Dots ---
+# --- Admin Cockpit with IST Timestamps, Login Stream & Active Dots ---
 @app.post("/admin/delete-user")
 async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
@@ -643,13 +986,49 @@ async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depe
     if not email:
         raise HTTPException(status_code=400, detail="Invalid email provided.")
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM jobs WHERE user_email=?", (email,))
     cursor.execute("DELETE FROM users WHERE email=?", (email,))
+    cursor.execute("DELETE FROM activity_logs WHERE user_email=?", (email,))
     conn.commit()
     conn.close()
+    sync_backup_to_disk()
     return {"status": "success", "message": f"User {email} successfully deleted."}
+
+@app.get("/admin/backup/download")
+async def admin_download_backup(credentials: HTTPBasicCredentials = Depends(security)):
+    admin_user = os.getenv("ADMIN_USER", "admin")
+    admin_pass = os.getenv("ADMIN_PASS", "adminsecret")
+    if credentials.username != admin_user or credentials.password != admin_pass:
+        raise HTTPException(status_code=401, detail="Unauthorized Admin Access")
+    sync_backup_to_disk()
+    if os.path.exists(BACKUP_FILE):
+        return FileResponse(BACKUP_FILE, media_type="application/json", filename="nexjob_backup.json")
+    return {"status": "error", "message": "No backup file found."}
+
+@app.post("/admin/backup/restore")
+async def admin_restore_backup(data: dict, credentials: HTTPBasicCredentials = Depends(security)):
+    admin_user = os.getenv("ADMIN_USER", "admin")
+    admin_pass = os.getenv("ADMIN_PASS", "adminsecret")
+    if credentials.username != admin_user or credentials.password != admin_pass:
+        raise HTTPException(status_code=401, detail="Unauthorized Admin Access")
+    raw_backup = data.get("backup_json")
+    if raw_backup:
+        with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+            if isinstance(raw_backup, str):
+                f.write(raw_backup)
+            else:
+                json.dump(raw_backup, f, indent=2)
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM users")
+    c.execute("DELETE FROM jobs")
+    c.execute("DELETE FROM activity_logs")
+    conn.commit()
+    conn.close()
+    restore_database_from_backup()
+    return {"status": "success", "message": "Database successfully restored from backup."}
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
@@ -658,8 +1037,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     if credentials.username != admin_user or credentials.password != admin_pass:
         raise HTTPException(status_code=401, detail="Unauthorized Admin Access")
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # 1. Fetch complete user records with joined applications count
@@ -676,18 +1054,22 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             u.portfolio_url,
             u.auth_provider,
             u.created_at,
-            datetime(u.created_at, '+5 hours', '+30 minutes') as ist_created_at, 
-            date(u.created_at, '+5 hours', '+30 minutes') as ist_created_date,
             u.token, 
             u.last_active, 
-            datetime(u.last_active, 'unixepoch', '+5 hours', '+30 minutes') as ist_last_active,
             COUNT(j.id) as job_count
         FROM users u
         LEFT JOIN jobs j ON u.email = j.user_email
-        GROUP BY u.email
+        GROUP BY u.email, u.username, u.full_name, u.target_role, u.skills, u.resume, u.linkedin_url, u.github_url, u.portfolio_url, u.auth_provider, u.created_at, u.token, u.last_active
         ORDER BY u.created_at DESC
     """)
-    user_rows = cursor.fetchall()
+    raw_user_rows = cursor.fetchall()
+    user_rows = []
+    for r in raw_user_rows:
+        u_dict = dict(r)
+        u_dict["ist_created_at"] = parse_to_ist(u_dict.get("created_at"))
+        u_dict["ist_created_date"] = parse_to_ist_date(u_dict.get("created_at"))
+        u_dict["ist_last_active"] = parse_to_ist(u_dict.get("last_active"))
+        user_rows.append(u_dict)
 
     # 2. Fetch all tracked job applications
     cursor.execute("""
@@ -695,23 +1077,41 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         FROM jobs
         ORDER BY date DESC
     """)
-    job_rows = cursor.fetchall()
+    job_rows = [dict(r) for r in cursor.fetchall()]
 
-    # 3. Daily customer registration breakdown (Past 14 Days)
+    # 3. Fetch recent activity & login events (Past 250 logs)
     cursor.execute("""
         SELECT 
-            date(created_at, '+5 hours', '+30 minutes') as signup_date,
-            COUNT(*) as new_signups
-        FROM users
-        GROUP BY signup_date
-        ORDER BY signup_date DESC
-        LIMIT 14
+            l.id,
+            l.user_email,
+            l.action_type,
+            l.details,
+            l.ip_address,
+            l.created_at,
+            COALESCE(u.full_name, '') as user_name
+        FROM activity_logs l
+        LEFT JOIN users u ON l.user_email = u.email
+        ORDER BY l.id DESC
+        LIMIT 250
     """)
-    daily_rows = cursor.fetchall()
+    activity_rows = []
+    for r in cursor.fetchall():
+        l_dict = dict(r)
+        l_dict["ist_created_at"] = parse_to_ist(l_dict.get("created_at"))
+        activity_rows.append(l_dict)
 
     cursor.execute("SELECT COUNT(*) FROM jobs")
-    total_jobs_count = cursor.fetchone()[0] or 0
+    job_cnt_res = cursor.fetchone()
+    total_jobs_count = job_cnt_res[0] if job_cnt_res else 0
     conn.close()
+
+    # 4. Daily customer registration breakdown (Past 14 Days)
+    daily_counts = {}
+    for u in user_rows:
+        d = u.get("ist_created_date", "Unknown")
+        daily_counts[d] = daily_counts.get(d, 0) + 1
+
+    daily_rows = [{"signup_date": k, "new_signups": v} for k, v in sorted(daily_counts.items(), reverse=True)[:14]]
 
     total_users_count = len(user_rows)
     now = time.time()
@@ -748,7 +1148,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         job_cnt = u["job_count"] or 0
         auth_prov = u["auth_provider"] or "local"
 
-        is_online = bool(u["token"] and u["token"].strip() and (now - last_act < 7200))
+        is_online = bool(u["token"] and u["token"].strip() and (now - last_act < 900))
         if is_online:
             active_now_count += 1
 
@@ -763,6 +1163,19 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         if auth_prov == "google":
             google_auth_count += 1
 
+        if last_act > 0:
+            diff_sec = int(now - last_act)
+            if diff_sec < 60:
+                last_seen_str = "Just now"
+            elif diff_sec < 3600:
+                last_seen_str = f"{diff_sec // 60}m ago"
+            elif diff_sec < 86400:
+                last_seen_str = f"{diff_sec // 3600}h ago"
+            else:
+                last_seen_str = f"{diff_sec // 86400}d ago"
+        else:
+            last_seen_str = "Never"
+
         customers_list.append({
             "email": email,
             "username": u["username"] or "",
@@ -776,6 +1189,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             "auth_provider": auth_prov,
             "ist_created_at": u["ist_created_at"] or "N/A",
             "ist_last_active": u["ist_last_active"] if last_act > 0 else "Never",
+            "last_seen_str": last_seen_str,
             "is_online": is_online,
             "job_count": job_cnt,
             "is_new_today": is_new_today,
@@ -783,11 +1197,30 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             "jobs": user_jobs_map.get(email, [])
         })
 
+    activities_list = []
+    for r in activity_rows:
+        activities_list.append({
+            "id": r["id"],
+            "user_email": r["user_email"],
+            "user_name": r["user_name"] or r["user_email"].split("@")[0],
+            "action_type": r["action_type"],
+            "details": r["details"] or "",
+            "ip_address": r["ip_address"] or "-",
+            "ist_created_at": r["ist_created_at"] or "N/A"
+        })
+
+    offline_users_count = max(0, total_users_count - active_now_count)
+    email_auth_count = max(0, total_users_count - google_auth_count)
+    total_activities_count = len(activities_list)
     avg_jobs_per_user = round(total_jobs_count / max(1, total_users_count), 1)
 
     daily_signups_data = [{"date": r["signup_date"] or "N/A", "count": r["new_signups"]} for r in daily_rows]
     customers_json = json.dumps(customers_list).replace("</script>", "<\\/script>")
     daily_json = json.dumps(daily_signups_data).replace("</script>", "<\\/script>")
+    activities_json = json.dumps(activities_list).replace("</script>", "<\\/script>")
+
+    db_status_text = "Database: Supabase Cloud PostgreSQL" if USE_POSTGRES else "Database: Local SQLite (nexjob.db)"
+    db_badge_class = "badge-teal" if USE_POSTGRES else "badge-amber"
 
     return f"""
     <!DOCTYPE html>
@@ -1022,7 +1455,8 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 border-radius: 4px;
                 font-weight: 700;
                 font-family: 'JetBrains Mono', monospace;
-                font-size: 0.75rem;
+                font-size: 0.74rem;
+                display: inline-block;
             }}
             .badge-teal {{
                 background: rgba(34, 211, 200, 0.15);
@@ -1032,6 +1466,63 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 background: rgba(245, 166, 35, 0.15);
                 color: var(--amber);
             }}
+            .badge-indigo {{
+                background: rgba(91, 95, 239, 0.15);
+                color: #A5B4FC;
+            }}
+            .badge-gray {{
+                background: rgba(148, 163, 184, 0.15);
+                color: #94A3B8;
+            }}
+            .avatar-bubble {{
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: var(--elevated);
+                border: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 800;
+                font-size: 0.82rem;
+                color: var(--teal);
+                flex-shrink: 0;
+            }}
+            .cockpit-tabs {{
+                display: flex;
+                gap: 8px;
+                border-bottom: 1px solid var(--border);
+                margin-bottom: 1.5rem;
+                overflow-x: auto;
+            }}
+            .cockpit-tab {{
+                background: transparent;
+                border: none;
+                color: var(--muted);
+                font-family: inherit;
+                font-size: 0.9rem;
+                font-weight: 700;
+                padding: 10px 18px;
+                border-radius: 8px 8px 0 0;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.15s ease;
+                border-bottom: 2px solid transparent;
+                white-space: nowrap;
+            }}
+            .cockpit-tab:hover {{
+                color: #FFF;
+                background: rgba(255, 255, 255, 0.03);
+            }}
+            .cockpit-tab.active {{
+                color: #FFF;
+                border-bottom: 2px solid var(--indigo);
+                background: rgba(91, 95, 239, 0.12);
+            }}
+            .tab-content {{ display: none; }}
+            .tab-content.active {{ display: block; }}
             .btn-sm-del {{
                 background: rgba(220, 38, 38, 0.15);
                 border: 1px solid rgba(220, 38, 38, 0.35);
@@ -1145,12 +1636,20 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         <div class="header">
             <div>
                 <h1>NexJob AI Owner Central Cockpit</h1>
-                <p>Real-time customer analytics, candidate profiles, daily signups & system activity (IST Timezone).</p>
+                <p>Complete candidate directory, real-time login audit stream, active sessions, and database persistence (IST Timezone). • <span class="badge {db_badge_class}">{db_status_text}</span></p>
             </div>
             <div class="btn-group">
+                <a href="/admin/backup/download" class="btn" title="Download SQLite + JSON snapshot">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download Backup (JSON)
+                </a>
+                <button class="btn" onclick="openRestoreModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Restore Backup
+                </button>
                 <button class="btn" onclick="exportToCSV()">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Export Customers CSV
+                    Export Candidates CSV
                 </button>
                 <a href="/" target="_blank" class="btn btn-primary">← View Public Web App</a>
             </div>
@@ -1159,63 +1658,84 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
         <!-- 6 Key Performance Indicators -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-title">Total Customers</div>
+                <div class="stat-title">Total Registered Candidates</div>
                 <div class="stat-value" style="color:var(--indigo);">{total_users_count}</div>
-                <div class="stat-sub">{google_auth_count} Google • {total_users_count - google_auth_count} Email</div>
+                <div class="stat-sub">{google_auth_count} Google • {email_auth_count} Email Accounts</div>
             </div>
             <div class="stat-card">
-                <div class="stat-title">New Today (Last 24h)</div>
-                <div class="stat-value" style="color:var(--teal);">{new_today_count}</div>
-                <div class="stat-sub">Joined on {today_ist_str}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Regular Customers</div>
-                <div class="stat-value" style="color:#A855F7;">{regular_users_count}</div>
-                <div class="stat-sub">Active / Tracking Apps</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Live Right Now</div>
+                <div class="stat-title">Online Right Now</div>
                 <div class="stat-value" style="color:var(--teal);">{active_now_count}</div>
-                <div class="stat-sub">Active in past 2 hours</div>
+                <div class="stat-sub">Active in past 15 minutes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Registered & Offline</div>
+                <div class="stat-value" style="color:#94A3B8;">{offline_users_count}</div>
+                <div class="stat-sub">Permanent in database</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">New Signups Today</div>
+                <div class="stat-value" style="color:var(--teal);">{new_today_count}</div>
+                <div class="stat-sub">Joined on {today_ist_str} (IST)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Login Events Recorded</div>
+                <div class="stat-value" style="color:var(--amber);">{total_activities_count}</div>
+                <div class="stat-sub">Live audit trail stream</div>
             </div>
             <div class="stat-card">
                 <div class="stat-title">Tracked Applications</div>
-                <div class="stat-value" style="color:var(--amber);">{total_jobs_count}</div>
-                <div class="stat-sub">Candidate job pipelines</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Avg Apps / User</div>
-                <div class="stat-value" style="color:var(--coral);">{avg_jobs_per_user}</div>
-                <div class="stat-sub">Average application volume</div>
+                <div class="stat-value" style="color:var(--coral);">{total_jobs_count}</div>
+                <div class="stat-sub">Avg {avg_jobs_per_user} apps per user</div>
             </div>
         </div>
 
-        <!-- Main Workspace Grid: Customer Directory + Daily Growth Breakdown -->
-        <div class="main-grid">
-            <!-- Left: Customer Directory Table -->
+        <!-- Main Workspace Tabs -->
+        <div class="cockpit-tabs">
+            <button class="cockpit-tab active" id="tabBtnUsers" onclick="switchCockpitTab('users')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Registered Candidates Directory ({total_users_count})
+            </button>
+            <button class="cockpit-tab" id="tabBtnActivity" onclick="switchCockpitTab('activity')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Logins & Activity Audit Stream ({total_activities_count})
+            </button>
+            <button class="cockpit-tab" id="tabBtnGrowth" onclick="switchCockpitTab('growth')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Daily Signups Breakdown (14 Days)
+            </button>
+        </div>
+
+        <!-- Tab 1: All Registered Users -->
+        <div class="tab-content active" id="tabContentUsers">
             <div class="panel">
                 <div class="panel-header">
                     <div>
-                        <div class="panel-title">Customer Directory</div>
-                        <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Click any candidate's name to view their complete profile, resume, and tracked jobs.</div>
+                        <div class="panel-title">All Registered Candidates Directory</div>
+                        <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Permanent database records of every candidate registered on your platform. Click any candidate to view their complete dossier.</div>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--teal); font-family:'JetBrains Mono', monospace; display:flex; align-items:center; gap:6px;">
+                        <span style="width:7px; height:7px; border-radius:50%; background:var(--teal); box-shadow:0 0 6px var(--teal);"></span>
+                        Persistent in SQLite & JSON Snapshot
                     </div>
                 </div>
 
                 <div class="filter-bar">
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search by name, email, target role..." oninput="filterCustomers()">
-                    <button class="filter-chip active" id="chipAll" onclick="setFilter('all')">All ({total_users_count})</button>
-                    <button class="filter-chip" id="chipOnline" onclick="setFilter('online')">Online ({active_now_count})</button>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by candidate name, email, target role..." oninput="filterCustomers()">
+                    <button class="filter-chip active" id="chipAll" onclick="setFilter('all')">All Registered ({total_users_count})</button>
+                    <button class="filter-chip" id="chipOnline" onclick="setFilter('online')">Online Now ({active_now_count})</button>
+                    <button class="filter-chip" id="chipOffline" onclick="setFilter('offline')">Offline ({offline_users_count})</button>
                     <button class="filter-chip" id="chipNew" onclick="setFilter('new')">New Today ({new_today_count})</button>
-                    <button class="filter-chip" id="chipRegular" onclick="setFilter('regular')">Regular ({regular_users_count})</button>
-                    <button class="filter-chip" id="chipGoogle" onclick="setFilter('google')">Google ({google_auth_count})</button>
+                    <button class="filter-chip" id="chipGoogle" onclick="setFilter('google')">Google OAuth ({google_auth_count})</button>
+                    <button class="filter-chip" id="chipEmail" onclick="setFilter('email')">Email Auth ({email_auth_count})</button>
                 </div>
 
                 <div style="overflow-x:auto;">
                     <table>
                         <thead>
                             <tr>
-                                <th>Candidate (Click Name)</th>
-                                <th>Status</th>
+                                <th>Candidate</th>
+                                <th>Session Status</th>
+                                <th>Auth Method</th>
                                 <th>Target Role</th>
                                 <th>Applications</th>
                                 <th>Joined (IST)</th>
@@ -1228,11 +1748,46 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                     </table>
                 </div>
             </div>
+        </div>
 
-            <!-- Right: Daily Customer Signups Trend -->
+        <!-- Tab 2: Logins & Activity Audit Stream -->
+        <div class="tab-content" id="tabContentActivity">
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">Daily Signups</div>
+                    <div>
+                        <div class="panel-title">Real-Time Login History & Customer Audit Log</div>
+                        <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Chronological timeline of all logins, registrations, and actions performed on NexJob AI.</div>
+                    </div>
+                    <input type="text" id="logSearchInput" class="search-input" style="max-width:320px;" placeholder="Filter audit stream by email or action..." oninput="filterActivityLogs()">
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp (IST)</th>
+                                <th>Candidate</th>
+                                <th>Event Type</th>
+                                <th>Action Details</th>
+                                <th>Client IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityTableBody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Daily Growth Breakdown -->
+        <div class="tab-content" id="tabContentGrowth">
+            <div class="panel" style="max-width:800px;">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title">Daily Customer Registrations</div>
+                        <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">New accounts registered per calendar day in IST timezone.</div>
+                    </div>
                     <span class="badge badge-teal">Past 14 Days</span>
                 </div>
                 <div id="dailySignupsList">
@@ -1294,6 +1849,11 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                     <div id="mJobsTable" style="max-height:160px; overflow-y:auto;"></div>
                 </div>
 
+                <div class="detail-section">
+                    <div class="detail-label">Recent Activity for this Candidate</div>
+                    <div id="mUserActivityLogs" style="max-height:140px; overflow-y:auto; font-size:0.78rem;"></div>
+                </div>
+
                 <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:1rem; margin-top:0.5rem;">
                     <a id="mMailToBtn" href="#" class="btn btn-primary" style="font-size:0.82rem;">Email Candidate</a>
                     <button id="mDeleteBtn" class="btn-sm-del" style="padding:8px 14px; font-size:0.82rem;" onclick="deleteFromModal()">Delete Customer Account</button>
@@ -1301,41 +1861,129 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
             </div>
         </div>
 
+        <!-- Restore Backup Modal -->
+        <div class="modal-backdrop" id="restoreModal" onclick="if(event.target===this) closeRestoreModal()">
+            <div class="modal-box" style="max-width:520px;">
+                <div class="modal-header">
+                    <div>
+                        <h2 style="font-size:1.25rem; font-weight:800; color:#FFF;">Restore Database from Backup</h2>
+                        <div style="color:var(--muted); font-size:0.82rem; margin-top:2px;">Upload or paste your `nexjob_backup.json` to restore all users and jobs.</div>
+                    </div>
+                    <button class="btn" style="padding:4px 10px;" onclick="closeRestoreModal()">&times; Close</button>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-label">Upload JSON File</div>
+                    <input type="file" id="backupFileInput" accept=".json" style="color:var(--muted); font-size:0.85rem; margin-top:6px;" onchange="handleBackupFileUpload(event)">
+                </div>
+                <div class="detail-section">
+                    <div class="detail-label">Or Paste JSON Data</div>
+                    <textarea id="backupTextarea" style="width:100%; height:120px; background:var(--elevated); border:1px solid var(--border); color:#CBD5E1; font-family:monospace; font-size:0.75rem; border-radius:6px; padding:8px; margin-top:6px;" placeholder='{{"users": [...], "jobs": [...]}}'></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button class="btn" onclick="closeRestoreModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitRestoreBackup()">Execute Restore</button>
+                </div>
+            </div>
+        </div>
+
         <script>
             const CUSTOMERS = {customers_json};
             const DAILY_DATA = {daily_json};
+            const ACTIVITIES = {activities_json};
             let currentFilter = 'all';
             let currentCustomerEmail = null;
 
-            // Render Table
+            // Tab Switching
+            function switchCockpitTab(tabKey) {{
+                ['users', 'activity', 'growth'].forEach(k => {{
+                    const btn = document.getElementById('tabBtn' + k.charAt(0).toUpperCase() + k.slice(1));
+                    const content = document.getElementById('tabContent' + k.charAt(0).toUpperCase() + k.slice(1));
+                    if (btn && content) {{
+                        if (k === tabKey) {{
+                            btn.classList.add('active');
+                            content.classList.add('active');
+                        }} else {{
+                            btn.classList.remove('active');
+                            content.classList.remove('active');
+                        }}
+                    }}
+                }});
+            }}
+
+            // Render Candidates Table
             function renderTable(data) {{
                 const tbody = document.getElementById('customersTableBody');
                 if (!data || data.length === 0) {{
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--muted);">No candidates match your search.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--muted);">No candidates match your search filter.</td></tr>';
                     return;
                 }}
 
                 tbody.innerHTML = data.map((c, idx) => {{
-                    const dot = c.is_online ? '<span class="dot-online">Online</span>' : '<span class="dot-offline">Offline</span>';
-                    const nameDisplay = c.full_name || 'Candidate (No name set)';
+                    const dot = c.is_online 
+                        ? '<span class="dot-online">Online Now</span>' 
+                        : `<span class="dot-offline">Offline</span> <span style="font-size:0.72rem; color:var(--muted); margin-left:4px;">(${c.last_seen_str})</span>`;
+                    
+                    const authBadge = c.auth_provider === 'google' 
+                        ? '<span class="badge badge-amber">Google OAuth</span>' 
+                        : '<span class="badge badge-indigo">Email Auth</span>';
+
+                    const nameDisplay = c.full_name || c.username || 'Candidate';
+                    const initial = (nameDisplay.charAt(0) || 'C').toUpperCase();
+
                     return `
                     <tr id="row-${{idx}}">
                         <td>
                             <button class="customer-btn" onclick="openCustomerModal('${{encodeURIComponent(c.email)}}')">
-                                <span class="c-name">${{nameDisplay}}</span>
-                                <span class="c-email">${{c.email}}</span>
+                                <div class="avatar-bubble">${{initial}}</div>
+                                <div>
+                                    <span class="c-name">${{nameDisplay}}</span>
+                                    <div class="c-email">${{c.email}}</div>
+                                </div>
                             </button>
                         </td>
                         <td>${{dot}}</td>
+                        <td>${{authBadge}}</td>
                         <td style="color:#CBD5E1;">${{c.target_role || '<span style="color:var(--dim);">Not specified</span>'}}</td>
                         <td><span class="badge badge-teal">${{c.job_count}} apps</span></td>
                         <td style="font-family:'JetBrains Mono', monospace; font-size:0.78rem; color:var(--muted);">${{c.ist_created_at}}</td>
                         <td>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn" style="padding:3px 8px; font-size:0.72rem;" onclick="openCustomerModal('${{encodeURIComponent(c.email)}}')">Details</button>
+                                <button class="btn" style="padding:3px 8px; font-size:0.72rem;" onclick="openCustomerModal('${{encodeURIComponent(c.email)}}')">Dossier</button>
                                 <button class="btn-sm-del" onclick="deleteUserRow('${{c.email}}', 'row-${{idx}}')">Delete</button>
                             </div>
                         </td>
+                    </tr>
+                    `;
+                }}).join('');
+            }}
+
+            // Render Logins & Activity Stream
+            function renderActivity(data) {{
+                const tbody = document.getElementById('activityTableBody');
+                if (!data || data.length === 0) {{
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--muted);">No login or candidate activity recorded yet.</td></tr>';
+                    return;
+                }}
+
+                tbody.innerHTML = data.map(a => {{
+                    let badgeClass = 'badge';
+                    let label = (a.action_type || 'activity').toUpperCase();
+                    if (a.action_type.includes('login')) {{ badgeClass = 'badge badge-teal'; label = 'LOGIN'; }}
+                    else if (a.action_type.includes('signup')) {{ badgeClass = 'badge badge-indigo'; label = 'NEW SIGNUP'; }}
+                    else if (a.action_type === 'logout') {{ badgeClass = 'badge badge-gray'; label = 'LOGOUT'; }}
+                    else if (a.action_type.includes('resume')) {{ badgeClass = 'badge badge-amber'; label = 'RESUME'; }}
+                    else if (a.action_type.includes('job')) {{ badgeClass = 'badge badge-teal'; label = 'JOB TRACKED'; }}
+
+                    return `
+                    <tr>
+                        <td style="font-family:'JetBrains Mono', monospace; font-size:0.76rem; color:var(--muted);">${{a.ist_created_at}}</td>
+                        <td>
+                            <div style="font-weight:700; color:#FFF; font-size:0.84rem;">${{a.user_name}}</div>
+                            <div style="font-size:0.72rem; color:var(--muted);">${{a.user_email}}</div>
+                        </td>
+                        <td><span class="${{badgeClass}}">${{label}}</span></td>
+                        <td style="color:#CBD5E1; font-size:0.82rem;">${{a.details || '-'}}</td>
+                        <td style="font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:var(--muted);">${{a.ip_address}}</td>
                     </tr>
                     `;
                 }}).join('');
@@ -1353,7 +2001,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                     const pct = Math.min(100, Math.round((d.count / maxCount) * 100));
                     return `
                     <div class="daily-row">
-                        <span style="font-family:'JetBrains Mono', monospace; color:#CBD5E1;">${{d.date}}</span>
+                        <span style="font-family:'JetBrains Mono', monospace; color:#CBD5E1; min-width:110px;">${{d.date}}</span>
                         <div class="daily-bar-wrap">
                             <div class="daily-bar" style="width:${{pct}}%;"></div>
                         </div>
@@ -1370,11 +2018,15 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 if (!c) return;
 
                 currentCustomerEmail = email;
-                document.getElementById('mName').textContent = c.full_name || 'Candidate Account';
+                document.getElementById('mName').textContent = c.full_name || c.username || 'Candidate Account';
                 document.getElementById('mEmail').textContent = c.email + (c.username ? ' (@' + c.username + ')' : '');
                 
-                const dotHtml = c.is_online ? '<span class="dot-online">Online Session Active</span>' : '<span class="dot-offline">Offline</span>';
-                const authBadge = c.auth_provider === 'google' ? '<span class="badge badge-amber" style="margin-left:6px;">Google OAuth</span>' : '<span class="badge" style="margin-left:6px;">Email & Password</span>';
+                const dotHtml = c.is_online 
+                    ? '<span class="dot-online">Online Session Active</span>' 
+                    : `<span class="dot-offline">Offline</span> <span style="font-size:0.75rem; color:var(--muted); margin-left:6px;">(${c.last_seen_str})</span>`;
+                const authBadge = c.auth_provider === 'google' 
+                    ? '<span class="badge badge-amber" style="margin-left:6px;">Google OAuth</span>' 
+                    : '<span class="badge badge-indigo" style="margin-left:6px;">Email & Password</span>';
                 document.getElementById('mStatusBadge').innerHTML = dotHtml + authBadge;
 
                 document.getElementById('mJoined').textContent = c.ist_created_at;
@@ -1422,6 +2074,20 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                     `;
                 }} else {{
                     jobsDiv.innerHTML = '<div style="color:var(--dim); font-size:0.82rem; padding:6px 0;">No job applications tracked yet.</div>';
+                }}
+
+                // Candidate's specific activity stream
+                const userLogs = ACTIVITIES.filter(a => a.user_email === email);
+                const logsDiv = document.getElementById('mUserActivityLogs');
+                if (userLogs.length > 0) {{
+                    logsDiv.innerHTML = userLogs.slice(0, 10).map(l => `
+                        <div style="display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px solid var(--border);">
+                            <span style="color:#FFF;"><strong>${{l.action_type.toUpperCase()}}:</strong> ${{l.details || '-'}}</span>
+                            <span style="color:var(--muted); font-family:monospace;">${{l.ist_created_at}}</span>
+                        </div>
+                    `).join('');
+                }} else {{
+                    logsDiv.innerHTML = '<div style="color:var(--dim);">No recent activity recorded for this candidate.</div>';
                 }}
 
                 document.getElementById('mMailToBtn').href = `mailto:${{c.email}}?subject=NexJob%20AI%20Candidate%20Update`;
@@ -1479,9 +2145,10 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 let filtered = CUSTOMERS;
 
                 if (currentFilter === 'online') filtered = filtered.filter(c => c.is_online);
+                else if (currentFilter === 'offline') filtered = filtered.filter(c => !c.is_online);
                 else if (currentFilter === 'new') filtered = filtered.filter(c => c.is_new_today);
-                else if (currentFilter === 'regular') filtered = filtered.filter(c => c.is_regular);
                 else if (currentFilter === 'google') filtered = filtered.filter(c => c.auth_provider === 'google');
+                else if (currentFilter === 'email') filtered = filtered.filter(c => c.auth_provider !== 'google');
 
                 if (q) {{
                     filtered = filtered.filter(c => 
@@ -1493,6 +2160,61 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 }}
 
                 renderTable(filtered);
+            }}
+
+            function filterActivityLogs() {{
+                const q = (document.getElementById('logSearchInput').value || '').trim().toLowerCase();
+                if (!q) {{
+                    renderActivity(ACTIVITIES);
+                    return;
+                }}
+                const filtered = ACTIVITIES.filter(a => 
+                    a.user_email.toLowerCase().includes(q) ||
+                    a.user_name.toLowerCase().includes(q) ||
+                    a.action_type.toLowerCase().includes(q) ||
+                    a.details.toLowerCase().includes(q)
+                );
+                renderActivity(filtered);
+            }}
+
+            // Backup Restore Modal
+            function openRestoreModal() {{
+                document.getElementById('restoreModal').style.display = 'flex';
+            }}
+            function closeRestoreModal() {{
+                document.getElementById('restoreModal').style.display = 'none';
+            }}
+            function handleBackupFileUpload(e) {{
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {{
+                    document.getElementById('backupTextarea').value = evt.target.result;
+                }};
+                reader.readAsText(file);
+            }}
+            async function submitRestoreBackup() {{
+                const raw = document.getElementById('backupTextarea').value.trim();
+                if (!raw) {{
+                    alert('Please select a JSON file or paste backup JSON data.');
+                    return;
+                }}
+                try {{
+                    const parsed = JSON.parse(raw);
+                    const res = await fetch('/admin/backup/restore', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{ backup_json: parsed }})
+                    }});
+                    if (res.ok) {{
+                        alert('Backup successfully restored! The page will now reload.');
+                        location.reload();
+                    }} else {{
+                        alert('Restore failed. Please verify the JSON format.');
+                    }}
+                }} catch (e) {{
+                    alert('Invalid JSON: ' + e.message);
+                }}
             }}
 
             // Export to CSV
@@ -1519,6 +2241,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
 
             // Init
             renderTable(CUSTOMERS);
+            renderActivity(ACTIVITIES);
             renderDaily();
         </script>
     </body>

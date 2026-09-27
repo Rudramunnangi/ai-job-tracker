@@ -302,59 +302,98 @@
         <p class="section-subtext">Simple, proven tools that help you stand out to hiring managers and take control of your career search.</p>
       </div>
 
-      <div class="features-grid-cards">
-        <!-- Feature 1: Recruiter Review -->
-        <div class="feature-card card-spotlight">
-          <div class="feature-icon-box" style="background: rgba(91, 95, 239, 0.12); color: var(--accent-primary);">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          </div>
-          <h3 class="feature-card-title">Instant 6-Second Recruiter Review</h3>
-          <p class="feature-card-desc">Recruiters take less than 6 seconds to decide whether to interview you. NexJob shows you exactly what they notice first, highlights any red flags, and prepares you for the hardest interview questions before you apply.</p>
+      <!-- Vertical Connected Journey Rail with Dynamic Line & Glowing Scroll Marker -->
+      <div class="capabilities-journey-rail" id="capabilitiesJourneyRail">
+        <div class="rail-spine">
+          <div class="rail-dotted-line"></div>
+          <div class="rail-progress-line" id="railProgressLine"></div>
+          <div class="rail-glowing-marker" id="railGlowingMarker"></div>
         </div>
 
-        <!-- Feature 2: Data Privacy -->
-        <div class="feature-card card-spotlight">
-          <div class="feature-icon-box" style="background: rgba(34, 211, 200, 0.12); color: var(--accent-teal);">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <!-- Stop 1: Recruiter Review -->
+        <div class="rail-stop-item card-spotlight">
+          <div class="rail-stop-node">
+            <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
           </div>
-          <h3 class="feature-card-title">100% Private &amp; Confidential</h3>
-          <p class="feature-card-desc">Your resume and personal details are strictly protected. We never sell your data, never share your files with third parties, and never train public models on your information. You can delete your account and data at any time.</p>
+          <div class="rail-stop-card">
+            <div class="console-card-header">
+              <span class="console-badge" style="background: rgba(91, 95, 239, 0.15); color: var(--accent-primary);">6-SECOND RECRUITER TRIAGE</span>
+              <span class="indicator-bullet pass"></span>
+            </div>
+            <h3 class="console-card-title">Instant 6-Second Recruiter Review</h3>
+            <p class="console-card-desc">Recruiters take less than 6 seconds to decide whether to interview you. NexJob shows you exactly what they notice first, highlights any red flags, and prepares you for the hardest interview questions before you apply.</p>
+          </div>
         </div>
 
-        <!-- Feature 3: Missing Skills -->
-        <div class="feature-card card-spotlight">
-          <div class="feature-icon-box" style="background: rgba(255, 122, 89, 0.12); color: var(--accent-coral);">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        <!-- Stop 2: 100% Private -->
+        <div class="rail-stop-item card-spotlight">
+          <div class="rail-stop-node">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <h3 class="feature-card-title">Missing Skills &amp; Ready-to-Copy Bullets</h3>
-          <p class="feature-card-desc">Never guess why you didn't get a call. See the exact skills and keywords the employer wants that your resume is missing, with ready-made, quantified accomplishment bullets you can copy directly into your resume.</p>
+          <div class="rail-stop-card">
+            <div class="console-card-header">
+              <span class="console-badge" style="background: rgba(34, 211, 200, 0.15); color: var(--accent-teal);">DATA PRIVACY</span>
+              <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="console-card-title">100% Private &amp; Strictly Confidential</h3>
+            <p class="console-card-desc">Your resume and personal details are strictly protected. We never sell your data, never share your files with third parties, and never train public models on your information. You can delete your account and data at any time.</p>
+          </div>
         </div>
 
-        <!-- Feature 4: Follow-ups -->
-        <div class="feature-card card-spotlight">
-          <div class="feature-icon-box" style="background: rgba(91, 95, 239, 0.12); color: var(--accent-primary);">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <!-- Stop 3: Missing Skills -->
+        <div class="rail-stop-item card-spotlight">
+          <div class="rail-stop-node">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
           </div>
-          <h3 class="feature-card-title">No More Ghosting: Follow-Up Templates</h3>
-          <p class="feature-card-desc">Tired of applying and waiting in total silence? Get friendly, professional follow-up messages timed for Day 3, Day 7, and Day 14 after applying to help you get real responses from recruiters.</p>
+          <div class="rail-stop-card">
+            <div class="console-card-header">
+              <span class="console-badge" style="background: rgba(255, 122, 89, 0.15); color: var(--accent-coral);">SKILLS &amp; BULLETS</span>
+            </div>
+            <h3 class="console-card-title">Missing Skills &amp; Ready-to-Copy Bullets</h3>
+            <p class="console-card-desc">Never guess why you didn't get a call. See the exact skills and keywords the employer wants that your resume is missing, with ready-made, quantified accomplishment bullets you can copy directly into your resume.</p>
+          </div>
         </div>
 
-        <!-- Feature 5: Connected Portals -->
-        <div class="feature-card card-spotlight">
-          <div class="feature-icon-box" style="background: rgba(34, 211, 200, 0.12); color: var(--accent-teal);">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <!-- Stop 4: Follow-ups -->
+        <div class="rail-stop-item card-spotlight">
+          <div class="rail-stop-node">
+            <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           </div>
-          <h3 class="feature-card-title">Sync All Your Applications in One Place</h3>
-          <p class="feature-card-desc">Keep your entire job search organized without messy spreadsheets. Connect your email or job platforms like LinkedIn, Indeed, and Naukri to automatically log applications and track interview invites as soon as they land.</p>
+          <div class="rail-stop-card">
+            <div class="console-card-header">
+              <span class="console-badge" style="background: rgba(91, 95, 239, 0.15); color: var(--accent-primary);">OUTREACH CADENCE</span>
+            </div>
+            <h3 class="console-card-title">No More Ghosting: Follow-Up Templates</h3>
+            <p class="console-card-desc">Tired of applying and waiting in total silence? Get friendly, professional follow-up messages timed for Day 3, Day 7, and Day 14 after applying to help you get real responses from recruiters.</p>
+          </div>
         </div>
 
-        <!-- Feature 6: Instant Job Matching -->
-        <div class="feature-card card-spotlight">
-          <div class="feature-icon-box" style="background: rgba(245, 166, 35, 0.12); color: var(--accent-warning);">
-            <svg class="icon-svg-lg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <!-- Stop 5: Connected Portals -->
+        <div class="rail-stop-item card-spotlight">
+          <div class="rail-stop-node">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           </div>
-          <h3 class="feature-card-title">Instant Job Matches with 1-Click Tracking</h3>
-          <p class="feature-card-desc">Find live open roles that fit your actual experience and strengths. See your real match score before applying and save jobs directly into your personal tracking board with a single click.</p>
+          <div class="rail-stop-card">
+            <div class="console-card-header">
+              <span class="console-badge" style="background: rgba(34, 211, 200, 0.15); color: var(--accent-teal);">PORTAL SYNC</span>
+            </div>
+            <h3 class="console-card-title">Sync All Your Applications in One Place</h3>
+            <p class="console-card-desc">Keep your entire job search organized without messy spreadsheets. Connect your email or job platforms like LinkedIn, Indeed, and Naukri to automatically log applications and track interview invites as soon as they land.</p>
+          </div>
+        </div>
+
+        <!-- Stop 6: Instant Fit -->
+        <div class="rail-stop-item card-spotlight">
+          <div class="rail-stop-node">
+            <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="rail-stop-card">
+            <div class="console-card-header">
+              <span class="console-badge" style="background: rgba(245, 166, 35, 0.15); color: var(--accent-warning);">INSTANT FIT</span>
+            </div>
+            <h3 class="console-card-title">Instant Job Matches with 1-Click Tracking</h3>
+            <p class="console-card-desc">Find live open roles that fit your actual experience and strengths. See your real match score before applying and save jobs directly into your personal tracking board with a single click.</p>
+          </div>
         </div>
       </div>
     </section>

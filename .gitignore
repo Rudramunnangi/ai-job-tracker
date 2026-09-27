@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+nexjob.db
+nexjob_backup.json
+.env
+.agents/
+node_modules/
+.venv/
+.DS_Store

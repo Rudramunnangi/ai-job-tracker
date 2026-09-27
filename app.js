@@ -602,8 +602,20 @@ async function logoutUser() {
     renderDashboard();
 }
 
+async function pingSessionHeartbeat() {
+    if (currentUser && authToken) {
+        try {
+            await fetch("/api/auth/ping", { method: "POST", headers: getAuthHeaders() });
+        } catch (e) {}
+    }
+}
+
+// Active session keepalive heartbeat every 60 seconds
+setInterval(pingSessionHeartbeat, 60000);
+
 async function loadUserData() {
     if (currentUser && authToken) {
+        await pingSessionHeartbeat();
         try {
             const res = await fetch("/api/jobs", { headers: getAuthHeaders() });
             if (res.status === 401) {
