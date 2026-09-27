@@ -1956,7 +1956,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 tbody.innerHTML = data.map((c, idx) => {{
                     const dot = c.is_online 
                         ? '<span class="dot-online">Online Now</span>' 
-                        : `<span class="dot-offline">Offline</span> <span style="font-size:0.72rem; color:var(--muted); margin-left:4px;">(${c.last_seen_str})</span>`;
+                        : `<span class="dot-offline">Offline</span> <span style="font-size:0.72rem; color:var(--muted); margin-left:4px;">(${{c.last_seen_str}})</span>`;
                     
                     const authBadge = c.auth_provider === 'google' 
                         ? '<span class="badge badge-amber">Google OAuth</span>' 
@@ -2058,7 +2058,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
                 
                 const dotHtml = c.is_online 
                     ? '<span class="dot-online">Online Session Active</span>' 
-                    : `<span class="dot-offline">Offline</span> <span style="font-size:0.75rem; color:var(--muted); margin-left:6px;">(${c.last_seen_str})</span>`;
+                    : `<span class="dot-offline">Offline</span> <span style="font-size:0.75rem; color:var(--muted); margin-left:6px;">(${{c.last_seen_str}})</span>`;
                 const authBadge = c.auth_provider === 'google' 
                     ? '<span class="badge badge-amber" style="margin-left:6px;">Google OAuth</span>' 
                     : '<span class="badge badge-indigo" style="margin-left:6px;">Email & Password</span>';
