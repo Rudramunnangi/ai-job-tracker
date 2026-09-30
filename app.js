@@ -1125,6 +1125,14 @@ function dispatchColdEmail(company, role) {
     showToast(`Email draft dispatched to ${targetEmail}!`, "success");
 }
 
+// 1-Click Viral Scorecard Share to LinkedIn
+function shareScorecardLinkedIn(score, role) {
+    const roleTitle = role || "Target Role";
+    const text = encodeURIComponent(`Tested my resume against ${roleTitle} on NexJob AI — scored ${score}% ATS match with their 6-second recruiter skim simulator! Check your resume match for free: https://ai-job-tracker-9a3m.onrender.com`);
+    const shareUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${text}`;
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+}
+
 // Download Executive Career Roadmap Guide as Clean PDF
 function downloadRoadmapPDF() {
     const reportPanel = document.getElementById('atsResultWindow');
@@ -1632,7 +1640,11 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
             <div style="font-size:0.85rem; color:var(--text-muted);">
                 Report for <strong style="color:#FFF;">${escapeHtml(role)}</strong> at <strong style="color:#FFF;">${escapeHtml(company)}</strong>
             </div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn-ghost" onclick="shareScorecardLinkedIn(${score}, this.dataset.role)" data-role="${escapeHtml(role)}" title="Share scorecard on LinkedIn">
+                    <svg class="icon-svg" viewBox="0 0 24 24" style="margin-right:4px;"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                    Share Result
+                </button>
                 <button class="btn-ghost" onclick="downloadRoadmapPDF()">${ICONS.download} Print / Save PDF</button>
                 <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultWindow').innerText, 'Full Report')">${ICONS.copy} Copy Full Report</button>
             </div>
