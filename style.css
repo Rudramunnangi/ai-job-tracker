@@ -1357,6 +1357,32 @@ kbd {
   color: #FFF;
 }
 
+.modal-close-icon-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.modal-close-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #FFF;
+  transform: scale(1.08);
+}
+
+.modal-close-icon-btn:active {
+  transform: scale(0.95);
+}
+
 .diagnostic-error {
   background: var(--accent-danger-bg);
   border: 1px solid rgba(244, 63, 94, 0.4);
@@ -1666,22 +1692,39 @@ kbd {
   left: 0;
   width: 2px;
   height: 0%;
-  background: linear-gradient(180deg, var(--accent-teal), var(--accent-primary));
-  box-shadow: 0 0 10px rgba(34, 211, 200, 0.5);
-  transition: height 0.3s ease;
+  background: linear-gradient(180deg, #00F0FF, var(--accent-primary));
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.7);
+  will-change: height;
+  pointer-events: none;
 }
 
 .rail-glowing-marker {
   position: absolute;
-  top: 0%;
-  left: -5px;
-  width: 12px;
-  height: 12px;
+  top: 0;
+  left: -6px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--accent-teal);
-  box-shadow: 0 0 14px rgba(34, 211, 200, 0.9), 0 0 24px rgba(34, 211, 200, 0.5);
-  transition: top 0.3s ease;
+  background: #00F0FF;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.95), 0 0 28px rgba(0, 240, 255, 0.6);
   pointer-events: none;
+  will-change: transform;
+}
+
+.rail-glowing-marker::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 240, 255, 0.8);
+  opacity: 0.6;
+  animation: markerBeaconPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes markerBeaconPulse {
+  0% { transform: scale(0.7); opacity: 0.85; }
+  50% { transform: scale(1.6); opacity: 0.3; }
+  100% { transform: scale(2.3); opacity: 0; }
 }
 
 .rail-stop-item {
@@ -2717,3 +2760,76 @@ kbd {
     display: none;
   }
 }
+
+/* --- Real-Time Selection & Offer Celebration Styles --- */
+.selection-celebration-box {
+  background: radial-gradient(circle at 50% 0%, rgba(34, 211, 200, 0.15), var(--bg-surface) 70%) !important;
+  animation: celebrationPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes celebrationPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.selection-badge-trophy {
+  animation: trophyFloat 3s ease-in-out infinite alternate;
+}
+
+@keyframes trophyFloat {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(3deg); }
+  100% { transform: translateY(0px) rotate(-3deg); }
+}
+
+/* Interactive 3D Card Hover & Glass Sheen */
+.interactive-tilt {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  will-change: transform;
+}
+.interactive-tilt:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 211, 200, 0.12);
+  border-color: rgba(34, 211, 200, 0.4) !important;
+}
+
+/* Animated Shimmer on Status Updates */
+.live-sync-banner {
+  background: linear-gradient(90deg, rgba(34, 211, 200, 0.12), rgba(82, 86, 216, 0.12), rgba(34, 211, 200, 0.12));
+  background-size: 200% 100%;
+  animation: shimmerSweep 4s ease infinite;
+  border: 1px solid rgba(34, 211, 200, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@keyframes shimmerSweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.connected-handle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 211, 200, 0.08);
+  border: 1px solid rgba(34, 211, 200, 0.25);
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  color: var(--accent-teal);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+

@@ -1154,9 +1154,19 @@ const integrationState = {
     internshala: false
 };
 
+let connectedPlatforms = JSON.parse(localStorage.getItem('nexjob_connected_platforms')) || {
+    linkedin: null,
+    naukri: null,
+    internshala: null
+};
+let activeConnectingPlatform = null;
+
 function openIntegrationsModal() {
     const modal = document.getElementById('integrationsModal');
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+        modal.style.display = 'flex';
+        renderConnectedPlatformUI();
+    }
 }
 
 function closeIntegrationsModal() {
@@ -1164,28 +1174,263 @@ function closeIntegrationsModal() {
     if (modal) modal.style.display = 'none';
 }
 
-function toggleIntegration(platform) {
-    integrationState[platform] = !integrationState[platform];
-    const btnMap = {
-        'email_monitor': 'btnToggleEmailSync',
-        'linkedin': 'btnToggleLinkedIn',
-        'naukri': 'btnToggleNaukri',
-        'internshala': 'btnToggleInternshala'
-    };
-    const btn = document.getElementById(btnMap[platform]);
-    if (btn) {
-        if (integrationState[platform]) {
-            btn.innerHTML = platform === 'email_monitor' ? `<span class="pulse-indicator"></span> Active` : `Connected`;
-            btn.style.borderColor = 'var(--accent-teal)';
-            btn.style.color = 'var(--accent-teal)';
-            showToast(`${platform.replace('_', ' ').toUpperCase()} sync connected!`, "success");
+function renderConnectedPlatformUI() {
+    const platforms = ['linkedin', 'naukri', 'internshala'];
+    platforms.forEach(p => {
+        const handle = connectedPlatforms[p];
+        const btnMap = {
+            linkedin: 'btnToggleLinkedIn',
+            naukri: 'btnToggleNaukri',
+            internshala: 'btnToggleInternshala'
+        };
+        const handleDisplayMap = {
+            linkedin: 'linkedinHandleDisplay',
+            naukri: 'naukriHandleDisplay',
+            internshala: 'internshalaHandleDisplay'
+        };
+        const btn = document.getElementById(btnMap[p]);
+        const chip = document.getElementById(handleDisplayMap[p]);
+
+        if (handle) {
+            if (btn) {
+                btn.innerHTML = `<span class="pulse-indicator"></span> Connected`;
+                btn.style.borderColor = 'var(--accent-teal)';
+                btn.style.color = 'var(--accent-teal)';
+            }
+            if (chip) {
+                chip.style.display = 'inline-flex';
+                chip.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:var(--accent-teal);"></span> Monitored: ${escapeHtml(handle)} <span onclick="disconnectPlatform('${p}', event)" style="margin-left:6px; cursor:pointer; font-weight:700; opacity:0.8;" title="Disconnect">&times;</span>`;
+            }
         } else {
-            btn.innerHTML = `Connect`;
-            btn.style.borderColor = 'var(--border-subtle)';
-            btn.style.color = 'var(--text-muted)';
-            showToast(`${platform.replace('_', ' ').toUpperCase()} disconnected.`, "info");
+            if (btn) {
+                btn.innerHTML = `Connect`;
+                btn.style.borderColor = 'var(--border-subtle)';
+                btn.style.color = 'var(--text-muted)';
+            }
+            if (chip) {
+                chip.style.display = 'none';
+                chip.innerHTML = '';
+            }
+        }
+    });
+}
+
+function openPlatformConnectModal(platform) {
+    activeConnectingPlatform = platform;
+    const modal = document.getElementById('platformConnectModal');
+    const titleEl = document.getElementById('connectPlatformTitle');
+    const subEl = document.getElementById('connectPlatformSubtitle');
+    const inputEl = document.getElementById('connectHandleInput');
+    const iconEl = document.getElementById('connectPlatformIcon');
+    const labelEl = document.getElementById('connectInputLabel');
+
+    const config = {
+        linkedin: {
+            title: "Connect LinkedIn Jobs & InMail",
+            sub: "Link your LinkedIn profile URL to monitor Easy Apply submissions and InMail updates.",
+            label: "LinkedIn Profile URL or Public Handle",
+            placeholder: "e.g. https://www.linkedin.com/in/username",
+            icon: `<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
+        },
+        naukri: {
+            title: "Connect Naukri.com Candidate Portal",
+            sub: "Link your Naukri candidate profile or registered email to monitor employer views and shortlists.",
+            label: "Naukri Registered Email or Profile ID",
+            placeholder: "e.g. yourname@example.com or naukri.com/profile/id",
+            icon: `<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>`
+        },
+        internshala: {
+            title: "Connect Internshala Careers",
+            sub: "Link your Internshala student account to monitor assignment reviews and selection offers.",
+            label: "Internshala Registered Email or Student URL",
+            placeholder: "e.g. internshala.com/student/profile or email",
+            icon: `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`
+        }
+    };
+
+    const cfg = config[platform] || config.linkedin;
+    if (titleEl) titleEl.innerText = cfg.title;
+    if (subEl) subEl.innerText = cfg.sub;
+    if (labelEl) labelEl.innerText = cfg.label;
+    if (iconEl) iconEl.innerHTML = cfg.icon;
+    if (inputEl) {
+        inputEl.placeholder = cfg.placeholder;
+        inputEl.value = connectedPlatforms[platform] || '';
+    }
+
+    if (modal) modal.style.display = 'flex';
+}
+
+function closePlatformConnectModal() {
+    const modal = document.getElementById('platformConnectModal');
+    if (modal) modal.style.display = 'none';
+    activeConnectingPlatform = null;
+}
+
+function confirmPlatformConnection() {
+    const inputEl = document.getElementById('connectHandleInput');
+    const handle = inputEl ? inputEl.value.trim() : '';
+    if (!handle) {
+        showToast("Please enter your profile URL or username to connect.", "error");
+        return;
+    }
+    if (!activeConnectingPlatform) return;
+
+    connectedPlatforms[activeConnectingPlatform] = handle;
+    localStorage.setItem('nexjob_connected_platforms', JSON.stringify(connectedPlatforms));
+    renderConnectedPlatformUI();
+    closePlatformConnectModal();
+    showToast(`Successfully linked ${activeConnectingPlatform.toUpperCase()}! Active monitoring enabled for ${handle}.`, "success");
+}
+
+function disconnectPlatform(platform, e) {
+    if (e) e.stopPropagation();
+    if (confirm(`Disconnect monitoring for ${platform.toUpperCase()}?`)) {
+        connectedPlatforms[platform] = null;
+        localStorage.setItem('nexjob_connected_platforms', JSON.stringify(connectedPlatforms));
+        renderConnectedPlatformUI();
+        showToast(`Disconnected ${platform.toUpperCase()} monitoring.`, "info");
+    }
+}
+
+function toggleIntegration(platform) {
+    if (platform === 'email_monitor') {
+        integrationState[platform] = !integrationState[platform];
+        const btn = document.getElementById('btnToggleEmailSync');
+        if (btn) {
+            btn.innerHTML = integrationState[platform] ? `<span class="pulse-indicator"></span> Active` : `Connect`;
+            btn.style.borderColor = integrationState[platform] ? 'var(--accent-teal)' : 'var(--border-subtle)';
+            btn.style.color = integrationState[platform] ? 'var(--accent-teal)' : 'var(--text-muted)';
+        }
+        showToast(`Email inbox monitoring ${integrationState[platform] ? 'activated' : 'paused'}.`, "info");
+    } else {
+        openPlatformConnectModal(platform);
+    }
+}
+
+// Celebration Sound Chime (Synthesized Web Audio API, Zero Audio File Lag)
+function playCelebrationChime() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const chord = [523.25, 659.25, 783.99, 1046.50]; // Triumphant major chord (C5, E5, G5, C6)
+        chord.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            const startTime = ctx.currentTime + idx * 0.08;
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.18, startTime + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.85);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + 0.9);
+        });
+    } catch (e) {}
+}
+
+// Celebration Confetti Cannon
+function launchCelebrationConfetti() {
+    const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+    const colors = ['#00F0FF', '#22D3C8', '#5256D8', '#F59E0B', '#10B981', '#EC4899', '#FFFFFF'];
+    for (let i = 0; i < 90; i++) {
+        particles.push({
+            x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+            y: canvas.height * 0.45 + (Math.random() - 0.5) * 100,
+            vx: (Math.random() - 0.5) * 14,
+            vy: -Math.random() * 11 - 5,
+            size: Math.random() * 8 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rot: Math.random() * 360,
+            vRot: (Math.random() - 0.5) * 12,
+            alpha: 1
+        });
+    }
+
+    let frames = 0;
+    function loopConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.3; // Gravity
+            p.vx *= 0.98;
+            p.rot += p.vRot;
+            p.alpha -= 0.009;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rot * Math.PI) / 180);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = Math.max(0, p.alpha);
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+            ctx.restore();
+        });
+
+        frames++;
+        if (frames < 140) {
+            requestAnimationFrame(loopConfetti);
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
     }
+    requestAnimationFrame(loopConfetti);
+}
+
+// Trigger Selection Celebration Modal & Alert
+function triggerSelectionCelebration(company, role, contextQuote) {
+    const modal = document.getElementById('selectionAlertModal');
+    const compRoleEl = document.getElementById('selectionCompanyRole');
+    const quoteEl = document.getElementById('selectionContextQuote');
+
+    if (compRoleEl) compRoleEl.innerText = `${role || "Senior Engineer"} at ${company || "Target Company"}`;
+    if (quoteEl && contextQuote) {
+        quoteEl.innerText = `"${contextQuote.substring(0, 220)}..."`;
+    }
+
+    if (modal) modal.style.display = 'flex';
+    playCelebrationChime();
+    launchCelebrationConfetti();
+    showToast(`CONGRATULATIONS: Selected for ${role} at ${company}!`, "success");
+}
+
+function closeSelectionModal() {
+    const modal = document.getElementById('selectionAlertModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Simulated Selection Update (Demonstrates live context detection)
+function simulateSelectionUpdate() {
+    closeIntegrationsModal();
+    const demoJob = {
+        id: "job_offer_" + Date.now(),
+        company: "Stripe",
+        role: "Senior Full-Stack Engineer",
+        date: new Date().toISOString().split('T')[0],
+        status: "Offered",
+        tags: ["LinkedIn Sync", "Selected / Offer"],
+        jd: "Official selection letter: Compensation package and signing bonus confirmed following technical rounds."
+    };
+
+    const existing = jobs.find(j => j.company.toLowerCase() === 'stripe');
+    if (existing) {
+        existing.status = 'Offered';
+    } else {
+        jobs.unshift(demoJob);
+    }
+    renderDashboard();
+
+    const sampleQuote = "Pleased to inform you that our hiring committee has officially approved your selection for the Senior Full-Stack Engineer position. We were thoroughly impressed with your technical architecture round and look forward to welcoming you to the Stripe team!";
+    triggerSelectionCelebration("Stripe", "Senior Full-Stack Engineer", sampleQuote);
 }
 
 async function triggerPlatformSync() {
@@ -1211,11 +1456,11 @@ async function triggerPlatformSync() {
         } else {
             const syncedJob = {
                 id: "job_" + Date.now(),
-                company: "Stripe",
-                role: "Platform Engineer",
+                company: "Google",
+                role: "Software Engineer III",
                 date: new Date().toISOString().split('T')[0],
                 status: "Interviewing",
-                tags: ["LinkedIn Sync", "Interview Scheduled"],
+                tags: ["Portal Sync", "Recruiter Screen"],
                 jd: "Auto-synced from recruiter interview invitation email."
             };
             jobs.unshift(syncedJob);
@@ -1451,7 +1696,11 @@ async function parsePastedApplicationEmail() {
             }
             showToast(msg, "success");
             
-            if (data.alert_dispatched) {
+            // Check context for selection / offer
+            const isOfferContext = parsed.status === "Offered" || (data.alert_type && data.alert_type.includes("Offer")) || /congratulations|offer letter|formal offer|selected for/i.test(emailRaw);
+            if (isOfferContext) {
+                triggerSelectionCelebration(parsed.company, parsed.role, emailRaw);
+            } else if (data.alert_dispatched) {
                 showToast(`Instant Alert: ${data.alert_type} notification sent!`, "info");
             }
             
@@ -2411,29 +2660,91 @@ function initCapabilitiesJourneyRail() {
 
     stopItems.forEach(item => stopObserver.observe(item));
 
-    // 2. Scroll listener to calculate progress and move glowing marker smoothly down the dotted line
-    function updateRailProgress() {
-        const rect = rail.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        
-        const startY = windowHeight * 0.75;
-        const totalHeight = rect.height;
-        
-        const currentY = startY - rect.top;
-        let progress = currentY / totalHeight;
-        progress = Math.max(0, Math.min(1, progress));
+    // 2. Hardware-Accelerated RAF Lerp Loop for Buttery Smooth Blue Dot Motion
+    let targetRailProgress = 0;
+    let currentRailProgress = 0;
+    let railAnimFrameId = null;
 
-        const percent = (progress * 100).toFixed(1);
+    function renderSmoothRail() {
+        // Continuous damping lerp: eliminates stuttering & lag
+        currentRailProgress += (targetRailProgress - currentRailProgress) * 0.12;
+        if (Math.abs(targetRailProgress - currentRailProgress) < 0.0005) {
+            currentRailProgress = targetRailProgress;
+        }
+
+        const percent = (currentRailProgress * 100).toFixed(2);
         if (progressLine) {
             progressLine.style.height = `${percent}%`;
         }
-        if (glowingMarker) {
-            glowingMarker.style.top = `${percent}%`;
+        if (glowingMarker && rail) {
+            const railHeight = rail.offsetHeight;
+            const markerY = (currentRailProgress * railHeight).toFixed(1);
+            glowingMarker.style.transform = `translate3d(0, ${markerY}px, 0)`;
+        }
+
+        if (Math.abs(targetRailProgress - currentRailProgress) > 0.0001) {
+            railAnimFrameId = requestAnimationFrame(renderSmoothRail);
+        } else {
+            railAnimFrameId = null;
         }
     }
 
-    window.addEventListener('scroll', updateRailProgress, { passive: true });
-    updateRailProgress();
+    function onScrollUpdateRail() {
+        const rect = rail.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        const startY = windowHeight * 0.70;
+        const totalHeight = rect.height;
+        const currentY = startY - rect.top;
+        let progress = currentY / totalHeight;
+        targetRailProgress = Math.max(0, Math.min(1, progress));
+
+        if (!railAnimFrameId) {
+            railAnimFrameId = requestAnimationFrame(renderSmoothRail);
+        }
+    }
+
+    window.addEventListener('scroll', onScrollUpdateRail, { passive: true });
+    window.addEventListener('resize', onScrollUpdateRail, { passive: true });
+    onScrollUpdateRail();
+}
+
+// Global Modal Backdrop Dismissal & Escape Key Handler
+function initModalBackdropDismissal() {
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                backdrop.style.display = 'none';
+            }
+        });
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-backdrop').forEach(b => {
+                b.style.display = 'none';
+            });
+        }
+    });
+}
+
+// Fancy 3D Interactive Card Tilts & Subtle Sheen
+function initFancyCardInteractions() {
+    const cards = document.querySelectorAll('.pipeline-card, .metric-card, .ats-section-box, .roadmap-blueprint-card, .interactive-tilt');
+    cards.forEach(card => {
+        card.classList.add('interactive-tilt');
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -3;
+            const rotateY = ((x - centerX) / centerX) * 3;
+            card.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-2px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = '';
+        });
+    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2445,4 +2756,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initHero3DNetwork();
     initCapabilitiesJourneyRail();
     initCardSpotlight();
+    initModalBackdropDismissal();
+    initFancyCardInteractions();
 });

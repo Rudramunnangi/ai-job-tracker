@@ -698,7 +698,9 @@
     <div class="modal-box">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <h3 style="font-size: 1.2rem; font-weight: 800;">Log Application</h3>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeJobModal()">&times;</button>
+        <button class="modal-close-icon-btn" onclick="closeJobModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <div class="form-group">
         <label class="form-label" for="modalCompany">Company Name</label>
@@ -740,7 +742,9 @@
     <div class="modal-box" style="max-width: 540px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <h3 style="font-size: 1.2rem; font-weight: 800;">Candidate Profile Settings</h3>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeProfileModal()">&times;</button>
+        <button class="modal-close-icon-btn" onclick="closeProfileModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <div class="form-group">
         <label class="form-label" for="profFullName">Full Name</label>
@@ -780,7 +784,9 @@
           <h3 id="followupModalTitle" style="font-size: 1.2rem; font-weight: 800;">Anti-Ghosting Follow-Up Sequence</h3>
           <p id="followupModalSubtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Proven cadence for getting replies after applying.</p>
         </div>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeFollowupModal()">&times;</button>
+        <button class="modal-close-icon-btn" onclick="closeFollowupModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
 
       <div class="ghosting-timeline-card" style="padding: 0; background: transparent; border: none;">
@@ -849,9 +855,11 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <div>
           <h3 style="font-size: 1.25rem; font-weight: 800;">Application Monitoring & Integrations</h3>
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Connect your mailboxes and job platforms to automate status updates.</p>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Connect your profile handles and mailboxes to monitor applications & selection status.</p>
         </div>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeIntegrationsModal()">&times;</button>
+        <button class="modal-close-icon-btn" onclick="closeIntegrationsModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
 
       <!-- Security & Encryption Badge -->
@@ -859,7 +867,7 @@
         <svg class="icon-svg-lg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <div>
           <strong>End-to-End Encrypted (AES-256-GCM / TLS 1.3)</strong>
-          <div>Credentials and tokens are stored in isolated cryptographic vaults. Your messages are never sold, scraped, or retained.</div>
+          <div>Candidate profile links and monitoring webhooks are securely isolated. Your credentials are never scraped or shared.</div>
         </div>
       </div>
 
@@ -872,7 +880,8 @@
             </div>
             <div>
               <div class="integration-name">Email Inbox Monitoring (Gmail / Outlook)</div>
-              <div class="integration-desc">Detects interview invites, assessment links, and application status changes.</div>
+              <div class="integration-desc">Detects interview invites, selection confirmations, and application status changes.</div>
+              <div id="emailMonitorHandle" class="connected-handle-chip" style="display:none;"></div>
             </div>
           </div>
           <button class="btn-ghost compact" id="btnToggleEmailSync" onclick="toggleIntegration('email_monitor')">
@@ -887,12 +896,13 @@
               <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
             </div>
             <div>
-              <div class="integration-name">LinkedIn Jobs & InMail</div>
-              <div class="integration-desc">Auto-sync Easy Apply submissions and recruiter messages.</div>
+              <div class="integration-name">LinkedIn Jobs &amp; InMail</div>
+              <div class="integration-desc">Sync Easy Apply submissions, recruiter views, and interview invites.</div>
+              <div id="linkedinHandleDisplay" class="connected-handle-chip" style="display:none;"></div>
             </div>
           </div>
-          <button class="btn-ghost compact" id="btnToggleLinkedIn" onclick="toggleIntegration('linkedin')">
-            Connected
+          <button class="btn-ghost compact" id="btnToggleLinkedIn" onclick="openPlatformConnectModal('linkedin')">
+            Connect
           </button>
         </div>
 
@@ -905,9 +915,10 @@
             <div>
               <div class="integration-name">Naukri.com Portal</div>
               <div class="integration-desc">Sync active applications, recruiter view alerts, and interview calls.</div>
+              <div id="naukriHandleDisplay" class="connected-handle-chip" style="display:none;"></div>
             </div>
           </div>
-          <button class="btn-ghost compact" id="btnToggleNaukri" onclick="toggleIntegration('naukri')">
+          <button class="btn-ghost compact" id="btnToggleNaukri" onclick="openPlatformConnectModal('naukri')">
             Connect
           </button>
         </div>
@@ -920,10 +931,11 @@
             </div>
             <div>
               <div class="integration-name">Internshala Careers</div>
-              <div class="integration-desc">Monitor internships, assignment submissions, and shortlists.</div>
+              <div class="integration-desc">Monitor internships, assignment submissions, shortlists, and selection letters.</div>
+              <div id="internshalaHandleDisplay" class="connected-handle-chip" style="display:none;"></div>
             </div>
           </div>
-          <button class="btn-ghost compact" id="btnToggleInternshala" onclick="toggleIntegration('internshala')">
+          <button class="btn-ghost compact" id="btnToggleInternshala" onclick="openPlatformConnectModal('internshala')">
             Connect
           </button>
         </div>
@@ -934,7 +946,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <label style="font-size: 0.82rem; font-weight: 700; color: #FFF; display: flex; align-items: center; gap: 6px;">
             <svg class="icon-svg-sm" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            Quick-Paste Confirmation / Interview Email
+            Quick-Paste Confirmation / Interview / Selection Email
           </label>
           <span style="font-size: 0.72rem; color: var(--accent-teal); font-family: var(--font-mono);">100% Precision Parser</span>
         </div>
@@ -959,11 +971,110 @@
         </button>
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-        <button class="btn-ghost" onclick="closeIntegrationsModal()">Close</button>
-        <button class="btn-primary" id="btnTriggerSync" onclick="triggerPlatformSync()">
-          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          Sync Applications Now
+      <!-- Action Footer with Live Test Simulator -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-ghost" onclick="simulateSelectionUpdate()" style="border-color: rgba(34,211,200,0.3); color: var(--accent-teal);" title="Test how NexJob detects when you get selected for a job">
+          <svg class="icon-svg-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          Test Selection Alert
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-ghost" onclick="closeIntegrationsModal()">Close</button>
+          <button class="btn-primary" id="btnTriggerSync" onclick="triggerPlatformSync()">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            Sync Applications Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform Credentials & Profile Linking Modal -->
+  <div class="modal-backdrop" id="platformConnectModal" style="display: none; z-index: 9999;">
+    <div class="modal-box" style="max-width: 520px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div id="connectPlatformIcon" class="integration-icon" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: var(--bg-elevated); border-radius: var(--radius-xs);"></div>
+          <div>
+            <h3 id="connectPlatformTitle" style="font-size: 1.2rem; font-weight: 800; color: #FFF;">Connect Platform</h3>
+            <p id="connectPlatformSubtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Link your profile to monitor applications and selection status.</p>
+          </div>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closePlatformConnectModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" id="connectInputLabel" for="connectHandleInput">Profile URL or Registered Username</label>
+        <input type="text" id="connectHandleInput" class="form-input" placeholder="e.g. https://www.linkedin.com/in/username">
+        <span style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; display: block;">
+          NexJob links your profile handle to track recruiter views, interview invites, and selection decisions without compromising passwords.
+        </span>
+      </div>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.9rem; margin-bottom: 1.25rem;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: #FFF; margin-bottom: 8px;">Monitoring Scope:</div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Auto-detect application submissions &amp; confirmations</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Track recruiter interview invitations &amp; scheduling</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--accent-teal); font-weight: 700;">
+            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Instant celebration alert when Selected / Job Offer received</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn-ghost" onclick="closePlatformConnectModal()">Cancel</button>
+        <button class="btn-primary" id="btnConfirmPlatformConnect" onclick="confirmPlatformConnection()">
+          Connect &amp; Start Monitoring
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-Time Selection & Offer Celebration Modal -->
+  <div class="modal-backdrop" id="selectionAlertModal" style="display: none; z-index: 10000;">
+    <canvas id="confettiCanvas" style="position: fixed; inset: 0; pointer-events: none; width: 100vw; height: 100vh; z-index: 10001;"></canvas>
+    <div class="modal-box selection-celebration-box" style="max-width: 540px; text-align: center; border: 2px solid rgba(34, 211, 200, 0.6); box-shadow: 0 0 40px rgba(34, 211, 200, 0.35); position: relative; z-index: 10002;">
+      <button class="modal-close-icon-btn" style="position: absolute; top: 14px; right: 14px;" onclick="closeSelectionModal()" aria-label="Close" title="Return to webpage">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+
+      <div class="selection-badge-trophy" style="width: 72px; height: 72px; margin: 0.5rem auto 1rem; border-radius: 50%; background: linear-gradient(135deg, rgba(34,211,200,0.25), rgba(82,86,216,0.35)); display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent-teal); box-shadow: 0 0 24px rgba(34,211,200,0.6);">
+        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#00F0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      </div>
+
+      <div style="font-size: 0.82rem; font-weight: 800; letter-spacing: 0.1em; color: var(--accent-teal); text-transform: uppercase; margin-bottom: 6px;">
+        Selection Status Update
+      </div>
+      <h2 style="font-size: 1.65rem; font-weight: 800; color: #FFF; margin-bottom: 0.5rem;">
+        Congratulations! You Got Selected!
+      </h2>
+      <p id="selectionOfferDetails" style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+        Recruiter context confirmed: Your application has been moved to the Offer Stage!
+      </p>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.1rem; text-align: left; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+          <strong id="selectionCompanyRole" style="color: #FFF; font-size: 1rem;">Software Engineer at Stripe</strong>
+          <span class="tag-chip" style="background: rgba(34,211,200,0.15); color: var(--accent-teal); border-color: rgba(34,211,200,0.4); font-weight: 700;">Selected / Offer Stage</span>
+        </div>
+        <div id="selectionContextQuote" style="font-size: 0.85rem; color: var(--text-muted); font-style: italic; line-height: 1.4;">
+          "Pleased to inform you that following your interview rounds, we would like to formally extend an offer for this position..."
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button class="btn-primary" onclick="closeSelectionModal(); openMemberPipeline();">
+          <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          View On Pipeline Board
+        </button>
+        <button class="btn-ghost" onclick="closeSelectionModal()">
+          Dismiss
         </button>
       </div>
     </div>
@@ -974,10 +1085,12 @@
     <div class="modal-box legal-modal">
       <div class="legal-modal-header">
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #FFF;">Legal & Data Governance</h3>
+          <h3 style="font-size: 1.3rem; font-weight: 800; color: #FFF;">Legal &amp; Data Governance</h3>
           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Last updated: September 2026</p>
         </div>
-        <button class="close-btn" onclick="closeLegalModal()">&times;</button>
+        <button class="modal-close-icon-btn" onclick="closeLegalModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
 
       <div class="legal-tabs">
