@@ -2660,26 +2660,32 @@ function initCapabilitiesJourneyRail() {
 
     stopItems.forEach(item => stopObserver.observe(item));
 
-    // 2. Hardware-Accelerated RAF Lerp Loop for Buttery Smooth Blue Dot Motion
+    const spine = document.getElementById('railSpine') || rail.querySelector('.rail-spine');
+    if (!spine) return;
+
+    // 2. 100% Mathematically Synchronized & Butter-Smooth RAF Lerp Loop
     let targetRailProgress = 0;
     let currentRailProgress = 0;
     let railAnimFrameId = null;
 
     function renderSmoothRail() {
-        // Continuous damping lerp: eliminates stuttering & lag
-        currentRailProgress += (targetRailProgress - currentRailProgress) * 0.12;
-        if (Math.abs(targetRailProgress - currentRailProgress) < 0.0005) {
+        // Continuous smooth damping lerp (0.10 factor ensures buttery fluid movement without jitter)
+        currentRailProgress += (targetRailProgress - currentRailProgress) * 0.10;
+        if (Math.abs(targetRailProgress - currentRailProgress) < 0.0002) {
             currentRailProgress = targetRailProgress;
         }
 
-        const percent = (currentRailProgress * 100).toFixed(2);
+        const spineHeight = spine.offsetHeight;
+        // Exact pixel distance from the top of the spine
+        const currentPixelY = Math.max(0, Math.min(spineHeight, currentRailProgress * spineHeight));
+
+        // 100% Flawless Coordination: Both line height and dot position share the exact same pixel
         if (progressLine) {
-            progressLine.style.height = `${percent}%`;
+            progressLine.style.height = `${currentPixelY.toFixed(1)}px`;
         }
-        if (glowingMarker && rail) {
-            const railHeight = rail.offsetHeight;
-            const markerY = (currentRailProgress * railHeight).toFixed(1);
-            glowingMarker.style.transform = `translate3d(0, ${markerY}px, 0)`;
+        if (glowingMarker) {
+            // Margin-top: -7px in CSS centers the 14px circle directly at the tip of the line
+            glowingMarker.style.transform = `translate3d(0, ${currentPixelY.toFixed(1)}px, 0)`;
         }
 
         if (Math.abs(targetRailProgress - currentRailProgress) > 0.0001) {
@@ -2690,12 +2696,16 @@ function initCapabilitiesJourneyRail() {
     }
 
     function onScrollUpdateRail() {
-        const rect = rail.getBoundingClientRect();
+        const spineRect = spine.getBoundingClientRect();
         const windowHeight = window.innerHeight;
-        const startY = windowHeight * 0.70;
-        const totalHeight = rect.height;
-        const currentY = startY - rect.top;
-        let progress = currentY / totalHeight;
+        
+        // Trigger point: When the spine passes 60% down the viewport
+        const triggerY = windowHeight * 0.60;
+        const spineHeight = spine.offsetHeight;
+        if (spineHeight <= 0) return;
+
+        const distancePastTrigger = triggerY - spineRect.top;
+        let progress = distancePastTrigger / spineHeight;
         targetRailProgress = Math.max(0, Math.min(1, progress));
 
         if (!railAnimFrameId) {

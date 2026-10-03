@@ -353,7 +353,7 @@
 
       <!-- Vertical Connected Journey Rail with Dynamic Line & Glowing Scroll Marker -->
       <div class="capabilities-journey-rail" id="capabilitiesJourneyRail">
-        <div class="rail-spine">
+        <div class="rail-spine" id="railSpine">
           <div class="rail-dotted-line"></div>
           <div class="rail-progress-line" id="railProgressLine"></div>
           <div class="rail-glowing-marker" id="railGlowingMarker"></div>
@@ -850,15 +850,15 @@
   </div>
 
   <!-- Application Monitoring & Integrations Hub Modal -->
-  <div class="modal-backdrop" id="integrationsModal" style="display: none;">
+  <div class="modal-backdrop" id="integrationsModal" style="display: none;" onclick="if(event.target === this) closeIntegrationsModal()">
     <div class="modal-box" style="max-width: 620px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <div class="modal-header-sticky">
         <div>
-          <h3 style="font-size: 1.25rem; font-weight: 800;">Application Monitoring & Integrations</h3>
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Connect your profile handles and mailboxes to monitor applications & selection status.</p>
+          <h3 style="font-size: 1.25rem; font-weight: 800; color: #FFF;">Application Monitoring &amp; Integrations</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Connect your profile handles and mailboxes to monitor applications &amp; selection status.</p>
         </div>
-        <button class="modal-close-icon-btn" onclick="closeIntegrationsModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <button class="modal-floating-close-btn" onclick="closeIntegrationsModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
@@ -989,7 +989,7 @@
   </div>
 
   <!-- Platform Credentials & Profile Linking Modal -->
-  <div class="modal-backdrop" id="platformConnectModal" style="display: none; z-index: 9999;">
+  <div class="modal-backdrop" id="platformConnectModal" style="display: none; z-index: 9999;" onclick="if(event.target === this) closePlatformConnectModal()">
     <div class="modal-box" style="max-width: 520px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -1037,7 +1037,7 @@
   </div>
 
   <!-- Real-Time Selection & Offer Celebration Modal -->
-  <div class="modal-backdrop" id="selectionAlertModal" style="display: none; z-index: 10000;">
+  <div class="modal-backdrop" id="selectionAlertModal" style="display: none; z-index: 10000;" onclick="if(event.target === this) closeSelectionModal()">
     <canvas id="confettiCanvas" style="position: fixed; inset: 0; pointer-events: none; width: 100vw; height: 100vh; z-index: 10001;"></canvas>
     <div class="modal-box selection-celebration-box" style="max-width: 540px; text-align: center; border: 2px solid rgba(34, 211, 200, 0.6); box-shadow: 0 0 40px rgba(34, 211, 200, 0.35); position: relative; z-index: 10002;">
       <button class="modal-close-icon-btn" style="position: absolute; top: 14px; right: 14px;" onclick="closeSelectionModal()" aria-label="Close" title="Return to webpage">
