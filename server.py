@@ -9,8 +9,11 @@ import hashlib
 import secrets
 import urllib.request
 import urllib.error
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request
+import threading
+from typing import List, Optional, Union, Dict, Any
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -33,6 +36,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Automatically gzip-compress all JSON, HTML, and API responses over 500 bytes
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 DB_PATH = "nexjob.db"
 BACKUP_FILE = "nexjob_backup.json"
@@ -138,6 +143,14 @@ class AdaptedCursor:
             return self.raw_cursor.execute(adapted_sql, params)
         return self.raw_cursor.execute(sql, params)
 
+    def executemany(self, sql, seq_of_params):
+        if not seq_of_params:
+            return
+        if self.is_postgres:
+            adapted_sql = adapt_sql_for_postgres(sql)
+            return self.raw_cursor.executemany(adapted_sql, seq_of_params)
+        return self.raw_cursor.executemany(sql, seq_of_params)
+
     def fetchone(self):
         return self.raw_cursor.fetchone()
 
@@ -208,7 +221,10 @@ def get_db_connection():
         except Exception as e:
             print(f"[DATABASE WARNING] PostgreSQL connection failed: {e}. Falling back to SQLite.")
             USE_POSTGRES = False
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15.0)
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    conn.execute("PRAGMA busy_timeout = 5000")
     return DBWrapper(conn, is_postgres=False)
 
 def hash_password(password: str) -> str:
@@ -216,6 +232,14 @@ def hash_password(password: str) -> str:
 
 def hash_otp(otp: str) -> str:
     return hashlib.sha256(otp.encode("utf-8")).hexdigest()
+
+_last_backup_time = 0.0
+_backup_lock = threading.Lock()
+_admin_cache = {"html": None, "time": 0.0, "etag": ""}
+
+def invalidate_admin_cache():
+    global _admin_cache
+    _admin_cache = {"html": None, "time": 0.0, "etag": ""}
 
 def sync_backup_to_disk():
     """Serializes all users, jobs, and recent activity logs into a persistent JSON backup file."""
@@ -241,13 +265,33 @@ def sync_backup_to_disk():
             "jobs": jobs,
             "activity_logs": logs
         }
-        with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+        tmp_file = f"{BACKUP_FILE}.tmp"
+        with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+        os.replace(tmp_file, BACKUP_FILE)
+        invalidate_admin_cache()
     except Exception as e:
         print(f"[BACKUP SYNC ERROR] {e}")
 
+def _run_disk_backup_throttled():
+    global _last_backup_time
+    now = time.time()
+    with _backup_lock:
+        if now - _last_backup_time < 3.0:
+            return
+        _last_backup_time = now
+    sync_backup_to_disk()
+
+def schedule_disk_backup(background_tasks: BackgroundTasks = None):
+    """Schedules persistent disk backup asynchronously in background to eliminate request blocking."""
+    if background_tasks is not None:
+        background_tasks.add_task(_run_disk_backup_throttled)
+    else:
+        t = threading.Thread(target=_run_disk_backup_throttled, daemon=True)
+        t.start()
+
 def restore_database_from_backup():
-    """Restores database from nexjob_backup.json if database is newly initialized or empty."""
+    """Restores database from nexjob_backup.json using batched multi-row inserts."""
     if not os.path.exists(BACKUP_FILE):
         return
     try:
@@ -261,41 +305,55 @@ def restore_database_from_backup():
             with open(BACKUP_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
-            for u in data.get("users", []):
-                c.execute("""
-                    INSERT OR REPLACE INTO users (
-                        email, username, password, token, full_name, target_role,
-                        skills, resume, linkedin_url, github_url, portfolio_url,
-                        auth_provider, last_active, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+            user_tuples = [
+                (
                     u.get("email"), u.get("username"), u.get("password"), u.get("token", ""),
                     u.get("full_name", ""), u.get("target_role", ""), u.get("skills", ""),
                     u.get("resume", ""), u.get("linkedin_url", ""), u.get("github_url", ""),
                     u.get("portfolio_url", ""), u.get("auth_provider", "local"),
                     u.get("last_active", 0), u.get("created_at", datetime.datetime.now(datetime.timezone.utc).isoformat())
-                ))
+                )
+                for u in data.get("users", [])
+            ]
+            if user_tuples:
+                c.executemany("""
+                    INSERT OR REPLACE INTO users (
+                        email, username, password, token, full_name, target_role,
+                        skills, resume, linkedin_url, github_url, portfolio_url,
+                        auth_provider, last_active, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, user_tuples)
             
-            for j in data.get("jobs", []):
-                c.execute("""
+            job_tuples = [
+                (
+                    j.get("id"), j.get("user_email"), j.get("company"), j.get("role"),
+                    j.get("date"), j.get("status"),
+                    j.get("tags") if isinstance(j.get("tags"), str) else json.dumps(j.get("tags", [])),
+                    j.get("jd", "")
+                )
+                for j in data.get("jobs", [])
+            ]
+            if job_tuples:
+                c.executemany("""
                     INSERT OR REPLACE INTO jobs (id, user_email, company, role, date, status, tags, jd)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    j.get("id"), j.get("user_email"), j.get("company"), j.get("role"),
-                    j.get("date"), j.get("status"), j.get("tags", "[]"), j.get("jd", "")
-                ))
+                """, job_tuples)
             
-            for l in data.get("activity_logs", []):
-                c.execute("""
-                    INSERT OR IGNORE INTO activity_logs (id, user_email, action_type, details, ip_address, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (
+            log_tuples = [
+                (
                     l.get("id"), l.get("user_email"), l.get("action_type"),
                     l.get("details", ""), l.get("ip_address", ""), l.get("created_at")
-                ))
+                )
+                for l in data.get("activity_logs", [])
+            ]
+            if log_tuples:
+                c.executemany("""
+                    INSERT OR IGNORE INTO activity_logs (id, user_email, action_type, details, ip_address, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, log_tuples)
             
             conn.commit()
-            print(f"[RESTORE COMPLETE] Restored {len(data.get('users', []))} users and {len(data.get('jobs', []))} jobs from {BACKUP_FILE}.")
+            print(f"[RESTORE COMPLETE] Batch-restored {len(user_tuples)} users and {len(job_tuples)} jobs from {BACKUP_FILE}.")
         conn.close()
     except Exception as e:
         print(f"[RESTORE ERROR] {e}")
@@ -317,7 +375,6 @@ def log_activity(user_email: str, action_type: str, details: str = "", ip_addres
         """, (user_email, action_type, details, ip_address))
         conn.commit()
         conn.close()
-        sync_backup_to_disk()
     except Exception as e:
         print(f"[LOG ACTIVITY ERROR] {e}")
 
@@ -478,6 +535,13 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+        # High-performance query indexes
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_token ON users(token)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_email ON jobs(user_email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_email_comp ON jobs(user_email, company)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_staged_jobs_user_email ON staged_jobs(user_email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_logs_user_email ON activity_logs(user_email)")
+
         conn.commit()
         conn.close()
         restore_database_from_backup()
@@ -533,7 +597,7 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str):
         method="POST"
     )
     try:
-        urllib.request.urlopen(req)
+        urllib.request.urlopen(req, timeout=5.0)
     except Exception as e:
         print(f"[BREVO DISPATCH ERROR]: {e}")
 
@@ -618,7 +682,7 @@ def dispatch_career_alert_email(recipient_email: str, alert_type: str, company: 
         method="POST"
     )
     try:
-        urllib.request.urlopen(req)
+        urllib.request.urlopen(req, timeout=5.0)
         try:
             print(f"[BREVO ALERT SUCCESS] Dispatched alert to {recipient_email}")
         except Exception:
@@ -837,11 +901,14 @@ def get_current_user_email(authorization: str = Header(None)) -> str:
     
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT email FROM users WHERE token=?", (token,))
+    cursor.execute("SELECT email, last_active FROM users WHERE token=?", (token,))
     row = cursor.fetchone()
     if row:
-        cursor.execute("UPDATE users SET last_active=? WHERE email=?", (time.time(), row[0]))
-        conn.commit()
+        now = time.time()
+        last_active = row[1] or 0
+        if now - last_active > 60.0:
+            cursor.execute("UPDATE users SET last_active=? WHERE email=?", (now, row[0]))
+            conn.commit()
     conn.close()
     
     if not row:
@@ -889,10 +956,10 @@ class JobPayload(BaseModel):
     id: str
     company: str
     role: str
-    date: str
-    status: str
-    tags: list[str]
-    jd: str
+    date: str | None = None
+    status: str = "Applied"
+    tags: list[str] = []
+    jd: str = ""
 
 class DecisionRequest(BaseModel):
     role: str | None = "Target Role"
@@ -917,6 +984,7 @@ class ConfirmStagedRequest(BaseModel):
     role: str | None = None
     status: str | None = "Applied"
     tags: list[str] = []
+    job_id: str | None = None
 
 class RejectStagedRequest(BaseModel):
     staged_id: str
@@ -967,7 +1035,7 @@ async def send_otp(payload: SendOTPRequest):
     return {"status": "success", "message": f"Verification code sent to {email_clean}."}
 
 @app.post("/api/auth/signup-verify")
-async def signup_verify(payload: SignupVerifyRequest, request: Request):
+async def signup_verify(payload: SignupVerifyRequest, request: Request, background_tasks: BackgroundTasks):
     if not payload.terms_accepted:
         raise HTTPException(status_code=400, detail="You must agree to the Terms of Service and Privacy Policy.")
         
@@ -1015,7 +1083,7 @@ async def signup_verify(payload: SignupVerifyRequest, request: Request):
     
     conn.close()
     client_ip = get_client_ip(request)
-    log_activity(email_clean, "signup", f"Candidate registered with Email OTP (@{username_clean})", client_ip)
+    background_tasks.add_task(log_activity, email_clean, "signup", f"Candidate registered with Email OTP (@{username_clean})", client_ip)
 
     return {
         "status": "success",
@@ -1025,7 +1093,7 @@ async def signup_verify(payload: SignupVerifyRequest, request: Request):
     }
 
 @app.post("/api/auth/reset-password")
-async def reset_password(payload: ResetPasswordRequest, request: Request):
+async def reset_password(payload: ResetPasswordRequest, request: Request, background_tasks: BackgroundTasks):
     raw_email = payload.email or payload.identifier or ""
     email_clean = raw_email.strip().lower()
     otp = payload.otp.strip()
@@ -1051,11 +1119,11 @@ async def reset_password(payload: ResetPasswordRequest, request: Request):
     conn.close()
 
     client_ip = get_client_ip(request)
-    log_activity(email_clean, "reset_password", "Password reset successfully via OTP", client_ip)
+    background_tasks.add_task(log_activity, email_clean, "reset_password", "Password reset successfully via OTP", client_ip)
     return {"status": "success", "message": "Password updated successfully."}
 
 @app.post("/api/auth/login")
-async def login(payload: LoginRequest, request: Request):
+async def login(payload: LoginRequest, request: Request, background_tasks: BackgroundTasks):
     identifier = payload.identifier.strip().lower()
     hashed_pwd = hash_password(payload.password)
     new_token = secrets.token_hex(24)
@@ -1080,7 +1148,7 @@ async def login(payload: LoginRequest, request: Request):
     conn.close()
 
     client_ip = get_client_ip(request)
-    log_activity(user_email, "login", "Candidate logged in via Email & Password", client_ip)
+    background_tasks.add_task(log_activity, user_email, "login", "Candidate logged in via Email & Password", client_ip)
 
     return {
         "token": new_token,
@@ -1092,7 +1160,7 @@ async def login(payload: LoginRequest, request: Request):
     }
 
 @app.post("/api/auth/google")
-async def google_auth(payload: GoogleAuthRequest, request: Request):
+async def google_auth(payload: GoogleAuthRequest, request: Request, background_tasks: BackgroundTasks):
     google_client_id = os.getenv("GOOGLE_CLIENT_ID")
     try:
         idinfo = id_token.verify_oauth2_token(
@@ -1136,14 +1204,14 @@ async def google_auth(payload: GoogleAuthRequest, request: Request):
         client_ip = get_client_ip(request)
         action = "signup_google" if not user else "login_google"
         desc = f"New candidate registered via Google OAuth ({name})" if not user else f"Candidate logged in via Google OAuth ({name})"
-        log_activity(email_clean, action, desc, client_ip)
+        background_tasks.add_task(log_activity, email_clean, action, desc, client_ip)
 
         return {"status": "success", "token": new_token, "email": email_clean, "profile": user_profile}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Google Login Error: {str(e)}")
 
 @app.post("/api/auth/logout")
-async def logout(request: Request, user_email: str = Depends(get_current_user_email)):
+async def logout(request: Request, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET token='' WHERE email=?", (user_email,))
@@ -1151,7 +1219,7 @@ async def logout(request: Request, user_email: str = Depends(get_current_user_em
     conn.close()
 
     client_ip = get_client_ip(request)
-    log_activity(user_email, "logout", "Candidate logged out of session", client_ip)
+    background_tasks.add_task(log_activity, user_email, "logout", "Candidate logged out of session", client_ip)
     return {"status": "success"}
 
 @app.post("/api/auth/ping")
@@ -1166,7 +1234,7 @@ async def ping_auth(user_email: str = Depends(get_current_user_email)):
 
 # --- Member Features ---
 @app.post("/api/resume/upload-pdf")
-async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Depends(get_current_user_email)):
+async def upload_pdf_resume(file: UploadFile = File(...), background_tasks: BackgroundTasks = None, user_email: str = Depends(get_current_user_email)):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only standard PDF files are supported.")
     try:
@@ -1186,8 +1254,11 @@ async def upload_pdf_resume(file: UploadFile = File(...), user_email: str = Depe
         conn.commit()
         conn.close()
 
-        log_activity(user_email, "resume_upload", f"Uploaded resume PDF: {file.filename}")
-        sync_backup_to_disk()
+        if background_tasks:
+            background_tasks.add_task(log_activity, user_email, "resume_upload", f"Uploaded resume PDF: {file.filename}")
+        else:
+            log_activity(user_email, "resume_upload", f"Uploaded resume PDF: {file.filename}")
+        schedule_disk_backup(background_tasks)
         return {"extracted_text": extracted_text.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
@@ -1202,32 +1273,71 @@ async def get_jobs(user_email: str = Depends(get_current_user_email)):
     jobs = [{"id": r[0], "company": r[1], "role": r[2], "date": r[3], "status": r[4], "tags": json.loads(r[5]), "jd": r[6]} for r in rows]
     return {"jobs": jobs}
 
-@app.post("/api/jobs/save")
-async def save_job(payload: JobPayload, user_email: str = Depends(get_current_user_email)):
+class BatchJobsPayload(BaseModel):
+    jobs: List[JobPayload]
+
+@app.post("/api/jobs/batch-save")
+async def save_jobs_batch(payload: BatchJobsPayload, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
+    """Saves multiple job applications in a single high-efficiency database batch transaction."""
+    if not payload.jobs:
+        return {"status": "success", "count": 0}
     conn = get_db_connection()
     cursor = conn.cursor()
+    today_str = datetime.datetime.now(IST).strftime("%Y-%m-%d")
+    tuples = [
+        (
+            j.id,
+            user_email,
+            j.company,
+            j.role,
+            j.date or today_str,
+            j.status or "Applied",
+            json.dumps(j.tags) if isinstance(j.tags, list) else (j.tags or "[]"),
+            j.jd or ""
+        )
+        for j in payload.jobs
+    ]
+    cursor.executemany("""
+        INSERT OR REPLACE INTO jobs (id, user_email, company, role, date, status, tags, jd)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, tuples)
+    conn.commit()
+    conn.close()
+    background_tasks.add_task(log_activity, user_email, "jobs_batch_saved", f"Batch saved {len(tuples)} applications")
+    schedule_disk_backup(background_tasks)
+    return {"status": "success", "count": len(tuples)}
+
+@app.post("/api/jobs/save")
+async def save_job(payload: JobPayload, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    today_str = datetime.datetime.now(IST).strftime("%Y-%m-%d")
+    date_val = payload.date or today_str
+    status_val = payload.status or "Applied"
+    tags_val = json.dumps(payload.tags) if isinstance(payload.tags, list) else (payload.tags or "[]")
+    jd_val = payload.jd or ""
     cursor.execute("""
         INSERT OR REPLACE INTO jobs (id, user_email, company, role, date, status, tags, jd)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (payload.id, user_email, payload.company, payload.role, payload.date, payload.status, json.dumps(payload.tags), payload.jd))
+    """, (payload.id, user_email, payload.company, payload.role, date_val, status_val, tags_val, jd_val))
     conn.commit()
     conn.close()
-    log_activity(user_email, "job_saved", f"Saved application: {payload.company} - {payload.role}")
-    sync_backup_to_disk()
+    background_tasks.add_task(log_activity, user_email, "job_saved", f"Saved application: {payload.company} - {payload.role}")
+    schedule_disk_backup(background_tasks)
     return {"status": "success"}
 
 @app.post("/api/jobs/update_status")
-async def update_job_status(data: dict, user_email: str = Depends(get_current_user_email)):
+async def update_job_status(data: dict, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE jobs SET status=? WHERE id=? AND user_email=?", (data.get("status"), data.get("id"), user_email))
     conn.commit()
     conn.close()
-    sync_backup_to_disk()
+    schedule_disk_backup(background_tasks)
     return {"status": "success"}
 
 @app.post("/api/profile/save")
-async def save_profile(payload: ProfileRequest, user_email: str = Depends(get_current_user_email)):
+async def save_profile(payload: ProfileRequest, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -1237,12 +1347,12 @@ async def save_profile(payload: ProfileRequest, user_email: str = Depends(get_cu
     """, (payload.full_name, payload.target_role, payload.skills, payload.resume, payload.linkedin_url, payload.github_url, payload.portfolio_url, time.time(), user_email))
     conn.commit()
     conn.close()
-    log_activity(user_email, "profile_update", "Updated profile settings")
-    sync_backup_to_disk()
+    background_tasks.add_task(log_activity, user_email, "profile_update", "Updated profile settings")
+    schedule_disk_backup(background_tasks)
     return {"status": "success"}
 
 @app.delete("/api/account/delete")
-async def delete_account(user_email: str = Depends(get_current_user_email)):
+async def delete_account(background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM jobs WHERE user_email=?", (user_email,))
@@ -1250,12 +1360,12 @@ async def delete_account(user_email: str = Depends(get_current_user_email)):
     cursor.execute("DELETE FROM activity_logs WHERE user_email=?", (user_email,))
     conn.commit()
     conn.close()
-    sync_backup_to_disk()
+    schedule_disk_backup(background_tasks)
     return {"status": "success", "message": "Account permanently deleted."}
 
 # --- Auto-Syncing & Staging Endpoints (100% Accuracy Guarantee) ---
 @app.post("/api/sync/parse-email")
-async def sync_parse_email(payload: ParseEmailRequest, user_email: str = Depends(get_current_user_email)):
+async def sync_parse_email(payload: ParseEmailRequest, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     sender = payload.sender or payload.source_portal or ""
     subject = payload.subject or ""
     body = payload.body or payload.raw_email or ""
@@ -1348,14 +1458,15 @@ Respond ONLY with valid JSON:
 
         conn.commit()
         conn.close()
-        sync_backup_to_disk()
+        schedule_disk_backup(background_tasks)
 
         alert_dispatched = False
-        # Dispatch alert email if action required or milestone
+        # Dispatch alert email non-blocking in background
         if action_type in ("coding_test", "assessment", "interview", "schedule_interview", "offer"):
-            alert_dispatched = bool(dispatch_career_alert_email(user_email, action_type, company, role, parsed))
+            background_tasks.add_task(dispatch_career_alert_email, user_email, action_type, company, role, parsed)
+            alert_dispatched = True
 
-        log_activity(user_email, "job_synced", f"Auto-synced {company} ({role}) from {source}")
+        background_tasks.add_task(log_activity, user_email, "job_synced", f"Auto-synced {company} ({role}) from {source}")
 
         return {
             "status": "success",
@@ -1381,7 +1492,7 @@ Respond ONLY with valid JSON:
     """, (staged_id, user_email, company, role, today_str, status, json.dumps(tags), body[:500], source, confidence))
     conn.commit()
     conn.close()
-    sync_backup_to_disk()
+    schedule_disk_backup(background_tasks)
 
     return {
         "status": "success",
@@ -1409,11 +1520,11 @@ async def get_staged_jobs(user_email: str = Depends(get_current_user_email)):
     return {"status": "success", "staged": staged, "staged_jobs": staged}
 
 @app.post("/api/sync/confirm-staged")
-async def confirm_staged_job(payload: ConfirmStagedRequest, user_email: str = Depends(get_current_user_email)):
+async def confirm_staged_job(payload: ConfirmStagedRequest, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     conn = get_db_connection()
     cursor = conn.cursor()
     today_str = datetime.datetime.now(IST).strftime("%Y-%m-%d")
-    job_id = f"job_{int(time.time()*1000)}"
+    job_id = payload.job_id or f"job_{int(time.time()*1000)}"
     tags = payload.tags or ["Verified Sync", "1-Click Confirmed"]
 
     company = payload.company
@@ -1439,8 +1550,8 @@ async def confirm_staged_job(payload: ConfirmStagedRequest, user_email: str = De
     cursor.execute("DELETE FROM staged_jobs WHERE id=? AND user_email=?", (payload.staged_id, user_email))
     conn.commit()
     conn.close()
-    sync_backup_to_disk()
-    log_activity(user_email, "staged_confirmed", f"Confirmed application: {company} - {role}")
+    schedule_disk_backup(background_tasks)
+    background_tasks.add_task(log_activity, user_email, "staged_confirmed", f"Confirmed application: {company} - {role}")
 
     return {
         "status": "promoted",
@@ -1451,18 +1562,18 @@ async def confirm_staged_job(payload: ConfirmStagedRequest, user_email: str = De
     }
 
 @app.post("/api/sync/reject-staged")
-async def reject_staged_job(payload: RejectStagedRequest, user_email: str = Depends(get_current_user_email)):
+async def reject_staged_job(payload: RejectStagedRequest, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM staged_jobs WHERE id=? AND user_email=?", (payload.staged_id, user_email))
     conn.commit()
     conn.close()
-    sync_backup_to_disk()
-    log_activity(user_email, "staged_rejected", f"Dismissed staged application ID: {payload.staged_id}")
+    schedule_disk_backup(background_tasks)
+    background_tasks.add_task(log_activity, user_email, "staged_rejected", f"Dismissed staged application ID: {payload.staged_id}")
     return {"status": "dismissed"}
 
 @app.post("/api/sync/portal-capture")
-async def portal_capture(payload: PortalCaptureRequest, user_email: str = Depends(get_current_user_email)):
+async def portal_capture(payload: PortalCaptureRequest, background_tasks: BackgroundTasks, user_email: str = Depends(get_current_user_email)):
     conn = get_db_connection()
     cursor = conn.cursor()
     today_str = datetime.datetime.now(IST).strftime("%Y-%m-%d")
@@ -1477,8 +1588,8 @@ async def portal_capture(payload: PortalCaptureRequest, user_email: str = Depend
 
     conn.commit()
     conn.close()
-    sync_backup_to_disk()
-    log_activity(user_email, "portal_capture", f"Captured {payload.company} ({payload.role}) from {source_name}")
+    schedule_disk_backup(background_tasks)
+    background_tasks.add_task(log_activity, user_email, "portal_capture", f"Captured {payload.company} ({payload.role}) from {source_name}")
 
     return {
         "status": "staged",
@@ -1489,6 +1600,7 @@ async def portal_capture(payload: PortalCaptureRequest, user_email: str = Depend
 
 # --- AI Decision Engine (Structured JSON & High-Impact Formatting) ---
 @app.post("/api/gemini/smart-decision")
+@app.post("/api/decision/ats-score")
 async def execute_smart_decision(payload: DecisionRequest):
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -1646,7 +1758,7 @@ Respond ONLY with valid JSON matching this schema:
 
 # --- Admin Cockpit with IST Timestamps, Login Stream & Active Dots ---
 @app.post("/admin/delete-user")
-async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depends(security)):
+async def admin_delete_user(data: dict, background_tasks: BackgroundTasks, credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
     admin_pass = os.getenv("ADMIN_PASS", "adminsecret")
     if credentials.username != admin_user or credentials.password != admin_pass:
@@ -1663,7 +1775,7 @@ async def admin_delete_user(data: dict, credentials: HTTPBasicCredentials = Depe
     cursor.execute("DELETE FROM activity_logs WHERE user_email=?", (email,))
     conn.commit()
     conn.close()
-    sync_backup_to_disk()
+    schedule_disk_backup(background_tasks)
     return {"status": "success", "message": f"User {email} successfully deleted."}
 
 @app.get("/admin/backup/download")
@@ -1700,12 +1812,21 @@ async def admin_restore_backup(data: dict, credentials: HTTPBasicCredentials = D
     restore_database_from_backup()
     return {"status": "success", "message": "Database successfully restored from backup."}
 
+_admin_cache = {"html": None, "time": 0.0, "etag": ""}
+
 @app.get("/admin", response_class=HTMLResponse)
-async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
+async def admin_dashboard(request: Request, credentials: HTTPBasicCredentials = Depends(security)):
     admin_user = os.getenv("ADMIN_USER", "admin")
     admin_pass = os.getenv("ADMIN_PASS", "adminsecret")
     if credentials.username != admin_user or credentials.password != admin_pass:
         raise HTTPException(status_code=401, detail="Unauthorized Admin Access")
+
+    now = time.time()
+    if _admin_cache["html"] and (now - _admin_cache["time"] < 5.0):
+        client_etag = request.headers.get("if-none-match")
+        if client_etag and client_etag == _admin_cache["etag"]:
+            return Response(status_code=304)
+        return HTMLResponse(content=_admin_cache["html"], headers={"ETag": _admin_cache["etag"], "Cache-Control": "private, max-age=5"})
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1714,7 +1835,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     cursor.execute("""
         SELECT 
             u.email, 
-            u.username,
+            u.username, 
             u.full_name, 
             u.target_role, 
             u.skills,
@@ -1892,7 +2013,7 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     db_status_text = "Database: Supabase Cloud PostgreSQL" if USE_POSTGRES else "Database: Local SQLite (nexjob.db)"
     db_badge_class = "badge-teal" if USE_POSTGRES else "badge-amber"
 
-    return f"""
+    html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -2917,20 +3038,37 @@ async def admin_dashboard(credentials: HTTPBasicCredentials = Depends(security))
     </body>
     </html>
     """
+    etag = f'"{hashlib.md5(html_content.encode("utf-8")).hexdigest()}"'
+    _admin_cache["html"] = html_content
+    _admin_cache["time"] = now
+    _admin_cache["etag"] = etag
+    return HTMLResponse(content=html_content, headers={"ETag": etag, "Cache-Control": "private, max-age=5"})
+
+class CachedStaticFiles(StaticFiles):
+    """High-performance static file server providing browser and CDN caching headers."""
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            if path.endswith((".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".woff", ".woff2", ".ttf")):
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            elif path.endswith((".html", ".xml", ".txt")):
+                response.headers["Cache-Control"] = "public, max-age=3600, stale-while-revalidate=86400"
+        return response
 
 # --- Sitemap, Robots, Static Mounts ---
 @app.get("/sitemap.xml")
 async def get_sitemap():
     content = """<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://ai-job-tracker-9a3m.onrender.com/</loc><lastmod>2026-08-30</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>"""
-    return Response(content=content, media_type="application/xml")
+    return Response(content=content, media_type="application/xml", headers={"Cache-Control": "public, max-age=86400"})
 
 @app.get("/robots.txt")
 async def get_robots():
-    return Response(content="User-agent: *\nAllow: /\nSitemap: https://ai-job-tracker-9a3m.onrender.com/sitemap.xml", media_type="text/plain")
+    return Response(content="User-agent: *\nAllow: /\nSitemap: https://ai-job-tracker-9a3m.onrender.com/sitemap.xml", media_type="text/plain", headers={"Cache-Control": "public, max-age=86400"})
 
 @app.get("/")
 async def serve_home():
-    return FileResponse("index.html")
+    return FileResponse("index.html", headers={"Cache-Control": "public, max-age=3600, stale-while-revalidate=86400"})
 
-app.mount("/static", StaticFiles(directory="."), name="static")
-app.mount("/", StaticFiles(directory=".", html=True), name="root_static")
+app.mount("/static", CachedStaticFiles(directory="."), name="static")
+app.mount("/", CachedStaticFiles(directory=".", html=True), name="root_static")
+

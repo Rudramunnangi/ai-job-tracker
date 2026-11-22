@@ -615,7 +615,8 @@ setInterval(pingSessionHeartbeat, 60000);
 
 async function loadUserData() {
     if (currentUser && authToken) {
-        await pingSessionHeartbeat();
+        // Non-blocking background session ping to eliminate load waterfall
+        pingSessionHeartbeat();
         try {
             const res = await fetch("/api/jobs", { headers: getAuthHeaders() });
             if (res.status === 401) {
@@ -873,37 +874,86 @@ async function submitNewJob() {
         jd: jd || "No Job Description provided."
     };
 
-    try {
-        const res = await fetch("/api/jobs/save", {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify(newJob)
-        });
+    // Optimistic UI Rendering: Update UI, modal, and state immediately
+    jobs.unshift(newJob);
+    renderDashboard();
+    closeJobModal();
+    document.getElementById('modalCompany').value = '';
+    document.getElementById('modalRole').value = '';
+    document.getElementById('modalTags').value = '';
+    document.getElementById('modalJD').value = '';
+    showToast(`Added ${role} at ${company}!`, "success");
 
-        if (res.ok) {
-            jobs.unshift(newJob);
-            renderDashboard();
-            closeJobModal();
-            document.getElementById('modalCompany').value = '';
-            document.getElementById('modalRole').value = '';
-            document.getElementById('modalTags').value = '';
-            document.getElementById('modalJD').value = '';
+    if (authToken) {
+        try {
+            const res = await fetch("/api/jobs/save", {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(newJob)
+            });
+            if (!res.ok) throw new Error("Server rejected save");
+        } catch (e) {
+            // Rollback on network or server error
+            const idx = jobs.findIndex(j => j.id === newJob.id);
+            if (idx !== -1) {
+                jobs.splice(idx, 1);
+                renderDashboard();
+            }
+            showToast("Failed to save application to server. Rolled back.", "error");
         }
-    } catch (e) {
-        alert("Failed to save application.");
     }
 }
 
 async function changeJobStage(id, newStatus) {
     const target = jobs.find(j => j.id === id);
-    if (target) {
-        target.status = newStatus;
-        await fetch("/api/jobs/update_status", {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ id: id, status: newStatus })
-        });
-        renderDashboard();
+    if (!target) return;
+    const oldStatus = target.status;
+    if (oldStatus === newStatus) return;
+
+    // Optimistic UI Rendering: Instantly reflect the updated status in dashboard
+    target.status = newStatus;
+    renderDashboard();
+
+    if (authToken) {
+        try {
+            const res = await fetch("/api/jobs/update_status", {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id: id, status: newStatus })
+            });
+            if (!res.ok) throw new Error("Server rejected status update");
+        } catch (e) {
+            // Rollback optimistic update
+            target.status = oldStatus;
+            renderDashboard();
+            showToast("Failed to update status on server. Rolled back.", "error");
+        }
+    }
+}
+
+async function batchSaveApplications(jobList) {
+    if (!jobList || !jobList.length) return;
+
+    // Optimistic UI Rendering: Instantly prepend all batch jobs to UI
+    jobs.unshift(...jobList);
+    renderDashboard();
+    showToast(`Batch added ${jobList.length} applications!`, "success");
+
+    if (authToken) {
+        try {
+            const res = await fetch("/api/jobs/batch-save", {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ jobs: jobList })
+            });
+            if (!res.ok) throw new Error("Server error during batch save");
+        } catch (e) {
+            // Rollback on failure
+            const ids = new Set(jobList.map(j => j.id));
+            jobs = jobs.filter(j => !ids.has(j.id));
+            renderDashboard();
+            showToast("Failed to save batch to server. Rolled back.", "error");
+        }
     }
 }
 
@@ -1487,11 +1537,6 @@ async function triggerPlatformSync() {
 
 // --- 1-Click Auto-Apply Engine ---
 async function oneClickAutoApply(role, company, fitScore, tags, btnEl) {
-    if (btnEl) {
-        btnEl.disabled = true;
-        btnEl.innerHTML = `<span class="brand-loader-sm"><svg class="brand-loader-svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#141A26"/><path d="M30 72V28L70 72V28" stroke="#0D9488" stroke-width="12" fill="none"/></svg> Applying...</span>`;
-    }
-
     const newJob = {
         id: "job_" + Date.now(),
         company: company,
@@ -1502,29 +1547,41 @@ async function oneClickAutoApply(role, company, fitScore, tags, btnEl) {
         jd: `Auto-applied based on verified resume fit score of ${fitScore}%.`
     };
 
-    try {
-        if (authToken) {
-            await fetch("/api/jobs/save", {
+    // Optimistic UI Rendering: Update button and board immediately
+    jobs.unshift(newJob);
+    renderDashboard();
+
+    if (btnEl) {
+        btnEl.classList.remove('btn-primary');
+        btnEl.classList.add('btn-ghost');
+        btnEl.innerHTML = `Applied (Synced)`;
+        btnEl.disabled = true;
+    }
+    showToast(`Applied to ${company} for ${role}! Auto-synced to your board.`, "success");
+
+    if (authToken) {
+        try {
+            const res = await fetch("/api/jobs/save", {
                 method: "POST",
                 headers: getAuthHeaders(),
                 body: JSON.stringify(newJob)
             });
+            if (!res.ok) throw new Error("Server error");
+        } catch (e) {
+            // Rollback optimistic update
+            const idx = jobs.findIndex(j => j.id === newJob.id);
+            if (idx !== -1) {
+                jobs.splice(idx, 1);
+                renderDashboard();
+            }
+            if (btnEl) {
+                btnEl.classList.add('btn-primary');
+                btnEl.classList.remove('btn-ghost');
+                btnEl.disabled = false;
+                btnEl.innerHTML = `${ICONS.bolt} 1-Click Auto-Apply`;
+            }
+            showToast("Failed to save application to server. Rolled back.", "error");
         }
-        jobs.unshift(newJob);
-        renderDashboard();
-
-        if (btnEl) {
-            btnEl.classList.remove('btn-primary');
-            btnEl.classList.add('btn-ghost');
-            btnEl.innerHTML = `Applied (Synced)`;
-        }
-        showToast(`Applied to ${company} for ${role}! Auto-synced to your board.`, "success");
-    } catch (e) {
-        if (btnEl) {
-            btnEl.disabled = false;
-            btnEl.innerHTML = `${ICONS.bolt} 1-Click Auto-Apply`;
-        }
-        showToast("Auto-apply logged to your board.", "info");
     }
 }
 
@@ -1619,42 +1676,67 @@ async function fetchStagedJobs() {
 
 async function confirmStagedJob(stagedId, company, role) {
     if (!currentUser || !authToken) return;
+
+    // Optimistic UI Rendering: Remove card from review queue and add to jobs board instantly
+    const cardEl = document.getElementById('staged-item-' + stagedId);
+    if (cardEl) cardEl.remove();
+
+    const optimisticJob = {
+        id: "job_" + Date.now(),
+        company: company,
+        role: role,
+        date: new Date().toISOString().split('T')[0],
+        status: "Applied",
+        tags: ["Verified Sync", "1-Click Confirmed"],
+        jd: "Confirmed from review queue."
+    };
+    jobs.unshift(optimisticJob);
+    renderDashboard();
+    showToast(`Added ${role} at ${company} to your board!`, "success");
+
     try {
         const res = await fetch("/api/sync/confirm-staged", {
             method: "POST",
             headers: getAuthHeaders(),
-            body: JSON.stringify({ staged_id: stagedId })
+            body: JSON.stringify({ staged_id: stagedId, company, role })
         });
-        if (res.ok) {
-            showToast(`Added ${role} at ${company} to your board!`, "success");
-            await loadUserData();
-            renderDashboard();
-        } else {
+        if (!res.ok) {
             const err = await res.json();
-            showToast(err.detail || "Failed to confirm application.", "error");
+            throw new Error(err.detail || "Failed to confirm application.");
         }
     } catch (e) {
-        showToast("Network error confirming application.", "error");
+        // Rollback optimistic update on error
+        const idx = jobs.findIndex(j => j.id === optimisticJob.id);
+        if (idx !== -1) {
+            jobs.splice(idx, 1);
+            renderDashboard();
+        }
+        await fetchStagedJobs();
+        showToast(e.message || "Network error confirming application. Rolled back.", "error");
     }
 }
 
 async function rejectStagedJob(stagedId) {
     if (!currentUser || !authToken) return;
+
+    // Optimistic UI Rendering: Remove card immediately
+    const cardEl = document.getElementById('staged-item-' + stagedId);
+    if (cardEl) cardEl.remove();
+    showToast("Application dismissed.", "info");
+
     try {
         const res = await fetch("/api/sync/reject-staged", {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify({ staged_id: stagedId })
         });
-        if (res.ok) {
-            showToast("Application dismissed.", "info");
-            fetchStagedJobs();
-        } else {
+        if (!res.ok) {
             const err = await res.json();
-            showToast(err.detail || "Failed to dismiss application.", "error");
+            throw new Error(err.detail || "Failed to dismiss application.");
         }
     } catch (e) {
-        showToast("Network error dismissing application.", "error");
+        await fetchStagedJobs();
+        showToast(e.message || "Network error dismissing application. Rolled back.", "error");
     }
 }
 

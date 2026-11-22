@@ -147,3 +147,71 @@ def test_save_profile():
 def test_smart_decision_invalid_payload():
     response = client.post("/api/gemini/smart-decision", json={"isGuest": True})
     assert response.status_code == 422
+
+
+# --- 6. Boost & Performance Verification Tests ---
+
+def test_batch_save_jobs():
+    batch_payload = {
+        "jobs": [
+            {
+                "id": "job-batch-1",
+                "company": "Amazon AWS",
+                "role": "Cloud Architect",
+                "date": "2026-09-01",
+                "status": "Applied",
+                "tags": ["Cloud", "AWS"],
+                "jd": "Design multi-region scalable cloud services."
+            },
+            {
+                "id": "job-batch-2",
+                "company": "Microsoft",
+                "role": "Principal Systems Engineer",
+                "date": "2026-09-02",
+                "status": "Interviewing",
+                "tags": ["Systems", "Azure"],
+                "jd": "Distributed operating systems and kernel virtualization."
+            }
+        ]
+    }
+    response = client.post("/api/jobs/batch-save", json=batch_payload, headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["count"] == 2
+
+    # Verify both jobs were inserted
+    get_res = client.get("/api/jobs", headers=auth_headers)
+    assert get_res.status_code == 200
+    all_jobs = get_res.json()["jobs"]
+    job_ids = [j["id"] for j in all_jobs]
+    assert "job-batch-1" in job_ids
+    assert "job-batch-2" in job_ids
+
+def test_gzip_compression_on_json():
+    # Fetch jobs with Accept-Encoding: gzip
+    headers = dict(auth_headers)
+    headers["Accept-Encoding"] = "gzip"
+    response = client.get("/api/jobs", headers=headers)
+    assert response.status_code == 200
+    # Since jobs payload is larger than 500 bytes, GZipMiddleware must compress it
+    assert response.headers.get("Content-Encoding") == "gzip"
+
+def test_static_cache_headers():
+    home_res = client.get("/")
+    assert home_res.status_code == 200
+    assert "Cache-Control" in home_res.headers
+    assert "public" in home_res.headers["Cache-Control"]
+
+    sitemap_res = client.get("/sitemap.xml")
+    assert sitemap_res.status_code == 200
+    assert "Cache-Control" in sitemap_res.headers
+
+    robots_res = client.get("/robots.txt")
+    assert robots_res.status_code == 200
+    assert "Cache-Control" in robots_res.headers
+
+def test_decision_alias_endpoint():
+    response = client.post("/api/decision/ats-score", json={"isGuest": True})
+    assert response.status_code == 422
+
