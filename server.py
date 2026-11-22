@@ -3065,6 +3065,10 @@ async def get_sitemap():
 async def get_robots():
     return Response(content="User-agent: *\nAllow: /\nSitemap: https://ai-job-tracker-9a3m.onrender.com/sitemap.xml", media_type="text/plain", headers={"Cache-Control": "public, max-age=86400"})
 
+@app.get("/googlea771eba2957995c8.html")
+async def google_verification():
+    return FileResponse("googlea771eba2957995c8.html")
+
 @app.get("/")
 async def serve_home():
     return FileResponse("index.html", headers={"Cache-Control": "public, max-age=3600, stale-while-revalidate=86400"})

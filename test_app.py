@@ -215,3 +215,8 @@ def test_decision_alias_endpoint():
     response = client.post("/api/decision/ats-score", json={"isGuest": True})
     assert response.status_code == 422
 
+def test_google_site_verification():
+    response = client.get("/googlea771eba2957995c8.html")
+    assert response.status_code == 200
+    assert "google-site-verification: googlea771eba2957995c8.html" in response.text
+
