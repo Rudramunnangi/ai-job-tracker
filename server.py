@@ -10,12 +10,16 @@ import secrets
 import urllib.request
 import urllib.error
 import threading
+import socket
+import ipaddress
+from urllib.parse import urlparse
+from html.parser import HTMLParser
 from typing import List, Optional, Union, Dict, Any
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response, JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from google import genai
@@ -38,6 +42,51 @@ app.add_middleware(
 )
 # Automatically gzip-compress all JSON, HTML, and API responses over 500 bytes
 app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# --- Enterprise Security Architecture & Hardened Defense Middleware ---
+RATE_LIMIT_STORE: Dict[str, List[float]] = {}
+RATE_LIMIT_LOCK = threading.Lock()
+
+@app.middleware("http")
+async def security_and_rate_limiting_middleware(request: Request, call_next):
+    # 1. Rate Limiting Defense on Sensitive Endpoints
+    client_ip = request.client.host if request.client else "unknown"
+    path = request.url.path
+    
+    # Apply strict limits on auth, evaluation, and AI endpoints (max 60/minute per IP)
+    is_sensitive = any(path.startswith(prefix) for prefix in ["/api/auth/", "/api/gemini/", "/api/decision/"])
+    if is_sensitive:
+        now = time.time()
+        with RATE_LIMIT_LOCK:
+            client_history = RATE_LIMIT_STORE.get(client_ip, [])
+            client_history = [t for t in client_history if now - t < 60]
+            if len(client_history) >= 60:
+                RATE_LIMIT_STORE[client_ip] = client_history
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many requests. Anti-abuse rate limit activated. Please retry in 60 seconds."},
+                    headers={"Retry-After": "60"}
+                )
+            client_history.append(now)
+            RATE_LIMIT_STORE[client_ip] = client_history
+
+    response = await call_next(request)
+
+    # 2. Hardened Security Headers (Immunity to XSS, Clickjacking, MIME Confusion)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self' data: https:; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://accounts.google.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self' https://accounts.google.com; "
+        "frame-src https://accounts.google.com;"
+    )
+    return response
 
 DB_PATH = "nexjob.db"
 BACKUP_FILE = "nexjob_backup.json"
@@ -970,6 +1019,45 @@ class DecisionRequest(BaseModel):
     github: str | None = ""
     isGuest: bool = False
 
+class AuthenticityRequest(BaseModel):
+    resume: str
+    role: str | None = "Target Role"
+    company: str | None = "Target Company"
+
+class MockInterviewStartRequest(BaseModel):
+    role: str = "Software Engineer"
+    company: str = "Target Company"
+    jd: str = ""
+    resume: str = ""
+
+class MockInterviewRespondRequest(BaseModel):
+    session_id: str | None = None
+    round: int = 1
+    question: str
+    answer: str
+    role: str = "Software Engineer"
+    company: str = "Target Company"
+    resume: str = ""
+    jd: str = ""
+
+class ParseJobURLRequest(BaseModel):
+    url: str
+
+class GhostDetectorRequest(BaseModel):
+    jd: str
+    company: str | None = "Target Company"
+    role: str | None = "Target Role"
+    posted_days_ago: int | None = None
+
+class CounterOfferRequest(BaseModel):
+    role: str = "Software Engineer"
+    company: str = "Target Company"
+    base_offer: float | None = 0
+    currency: str | None = "USD"
+    location: str | None = "Remote / US"
+    experience_level: str | None = "Mid-Senior"
+    candidate_name: str | None = "Candidate"
+
 class ParseEmailRequest(BaseModel):
     sender: str = ""
     subject: str = ""
@@ -1239,6 +1327,8 @@ async def upload_pdf_resume(file: UploadFile = File(...), background_tasks: Back
         raise HTTPException(status_code=400, detail="Only standard PDF files are supported.")
     try:
         content = await file.read()
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="PDF exceeds maximum allowed size of 10MB.")
         pdf_reader = PdfReader(io.BytesIO(content))
         extracted_text = ""
         for page in pdf_reader.pages:
@@ -1755,6 +1845,664 @@ Respond ONLY with valid JSON matching this schema:
         status_code=429, 
         detail=f"AI model generation temporarily rate-limited. Please retry shortly. ({str(last_error)})"
     )
+
+# --- Feature 3: AI-Resume Authenticity & Humanizer Engine ---
+@app.post("/api/gemini/resume-authenticity")
+async def check_resume_authenticity(payload: AuthenticityRequest):
+    resume_text = payload.resume.strip()
+    if not resume_text or len(resume_text) < 15:
+        raise HTTPException(status_code=400, detail="Resume text is required to evaluate authenticity.")
+
+    ai_cliches = [
+        ("spearheaded cross-functional", "Overused AI management cliché; sounds generated by ChatGPT."),
+        ("delved into", "Tell-tale AI transitional verb rarely used naturally on professional resumes."),
+        ("testament to", "Overly dramatic AI phrasing; recruiters prefer concrete metrics."),
+        ("dynamic results-driven", "Vague buzzword fluff with zero informational value."),
+        ("synergized", "Outdated corporate jargon frequently inserted by generic LLM prompts."),
+        ("harnessing the power of", "Marketing speak; replace with exact technical tools and architecture."),
+        ("game-changer", "Hyperbolic claim; state the exact performance delta instead."),
+        ("orchestrated strategic initiatives", "Generic filler; specify what was built, shipped, or refactored."),
+        ("fostered a culture of", "Common AI padding; quantify team velocity or engineering standards."),
+        ("leveraged cutting-edge paradigms", "Empty buzzwords; state the exact library, framework, or algorithm."),
+        ("meticulously crafted", "Flowery prose that triggers AI detection filters.")
+    ]
+
+    found_flags = []
+    text_lower = resume_text.lower()
+    for phrase, explanation in ai_cliches:
+        if phrase in text_lower:
+            found_flags.append({
+                "phrase": phrase,
+                "reason": explanation
+            })
+
+    cliche_penalty = len(found_flags) * 12
+    base_score = max(35, min(98, 98 - cliche_penalty))
+    risk_level = "Low (Authentic Human Tone)" if base_score >= 80 else ("Moderate (AI Cliches Present)" if base_score >= 60 else "High (Robotic Tone)")
+
+    humanized_replacements = [
+        {
+            "robotic": "Spearheaded cross-functional synergies to optimize pipeline throughput.",
+            "humanized": f"Redesigned the data ingestion pipeline using Python and Redis, reducing processing latency by 35% across 2M daily records.",
+            "rule": "Replace vague management verbs with specific technical tools and measured impact."
+        },
+        {
+            "robotic": "Leveraged cutting-edge machine learning paradigms to drive customer engagement.",
+            "humanized": f"Integrated an automated recommendation service with FastAPI, increasing daily user click-through rate from 4.2% to 7.8%.",
+            "rule": "Avoid 'cutting-edge' without naming the exact frameworks and conversion lift."
+        },
+        {
+            "robotic": "Dynamic team player with a proven track record of fostering collaborative excellence.",
+            "humanized": f"Collaborated in an agile team of 6 engineers, reviewing 15+ PRs weekly and shipping bi-weekly releases with 99.8% uptime.",
+            "rule": "Replace generic personality claims with concrete operational cadence."
+        }
+    ]
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = f"""
+You are an expert Executive Resume Editor specializing in AI-detection removal and human voice calibration.
+Evaluate this resume excerpt:
+{resume_text[:2500]}
+
+Respond ONLY with valid JSON:
+{{
+  "authenticity_score": [Integer 0-100],
+  "risk_level": "Low (Authentic Human Tone)" | "Moderate (AI Cliches Present)" | "High (Robotic Tone)",
+  "flagged_phrases": [
+    {{"phrase": "[Flagged cliché]", "reason": "[Why recruiters dislike it]"}}
+  ],
+  "humanized_bullets": [
+    {{"robotic": "[Robotic bullet]", "humanized": "[Clear, natural, quantified human bullet]", "rule": "[Editorial rule]"}}
+  ],
+  "editorial_verdict": "[1-2 sentence assessment of how human and genuine the resume reads]"
+}}
+"""
+            for m in ["gemini-2.5-flash", "gemini-3.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if raw.startswith("```"):
+                            raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+                            raw = re.sub(r"\n```$", "", raw)
+                        ai_json = json.loads(raw)
+                        return {
+                            "status": "success",
+                            "data": ai_json
+                        }
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[GEMINI HUMANIZER FALLBACK]: {e}")
+
+    return {
+        "status": "success",
+        "data": {
+            "authenticity_score": base_score,
+            "risk_level": risk_level,
+            "flagged_phrases": found_flags if found_flags else [{"phrase": "None detected", "reason": "No common robotic AI cliches found in scanned text."}],
+            "humanized_bullets": humanized_replacements,
+            "editorial_verdict": "Your resume maintains a grounded professional voice. Applying the humanized bullet structure above guarantees zero AI-detection false positives." if base_score >= 80 else "Several generic AI buzzwords were detected that can trigger ATS AI-detection penalties. Use the humanized replacements below."
+        }
+    }
+
+# --- Feature 4: Interactive Voice/Text AI Mock Interviewer ---
+@app.post("/api/gemini/mock-interview/start")
+async def start_mock_interview(payload: MockInterviewStartRequest):
+    session_id = secrets.token_hex(8)
+    role = payload.role or "Software Engineer"
+    company = payload.company or "Target Company"
+
+    default_q1 = f"Welcome! We're excited to speak with you today for the {role} position here at {company}. To start off, walk me through a complex technical challenge or production project from your recent experience that best showcases your readiness for this specific role."
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key and payload.jd and payload.resume:
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = f"""
+You are conducting a live job interview for the role of {role} at {company}.
+Job Description: {payload.jd[:1500]}
+Candidate Resume: {payload.resume[:1500]}
+
+Generate the opening interview question (Round 1 of 3) focusing on the candidate's core alignment or the biggest skill gap between their resume and the JD.
+Respond ONLY with valid JSON:
+{{
+  "interviewer_name": "Jordan (Hiring Lead)",
+  "interviewer_style": "Sharp, conversational, and direct",
+  "question": "[Opening question addressing real role expectations under 50 words]",
+  "focus_area": "Technical Core & Project Ownership"
+}}
+"""
+            for m in ["gemini-2.5-flash", "gemini-3.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if raw.startswith("```"):
+                            raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+                            raw = re.sub(r"\n```$", "", raw)
+                        ai_json = json.loads(raw)
+                        return {
+                            "status": "success",
+                            "session_id": session_id,
+                            "round": 1,
+                            "total_rounds": 3,
+                            "data": ai_json
+                        }
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[GEMINI MOCK START FALLBACK]: {e}")
+
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "round": 1,
+        "total_rounds": 3,
+        "data": {
+            "interviewer_name": "Jordan (Hiring Lead)",
+            "interviewer_style": "Sharp, conversational, and direct",
+            "question": default_q1,
+            "focus_area": "Technical Core & Project Ownership"
+        }
+    }
+
+@app.post("/api/gemini/mock-interview/respond")
+async def respond_mock_interview(payload: MockInterviewRespondRequest):
+    curr_round = payload.round
+    answer = payload.answer.strip()
+    role = payload.role or "Software Engineer"
+    company = payload.company or "Target Company"
+
+    if not answer or len(answer) < 5:
+        raise HTTPException(status_code=400, detail="Answer cannot be blank.")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = f"""
+You are the Interviewer for a {role} position at {company}.
+Round: {curr_round} of 3.
+Question asked: {payload.question}
+Candidate's Answer: {answer}
+Job Description context: {payload.jd[:1000]}
+Candidate Resume context: {payload.resume[:1000]}
+
+Evaluate the candidate's answer with constructive engineering rigor.
+Respond ONLY with valid JSON:
+{{
+  "score": [Integer 1-10],
+  "feedback": "[2-sentence candid feedback on answer quality]",
+  "strengths": ["[Specific strength of the answer]"],
+  "improvements": ["[Specific missing detail, metric, or STAR improvement]"],
+  "sample_better_answer": "[2-3 sentence punchy model answer demonstration]",
+  "next_question": {"null" if curr_round >= 3 else '"[Follow-up question for round ' + str(curr_round + 1) + ' probing technical trade-offs or behavioral collaboration]"'},
+  "final_verdict": {"\"STRONG HIRE\"" if curr_round >= 3 else "null"}
+}}
+"""
+            for m in ["gemini-2.5-flash", "gemini-3.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if raw.startswith("```"):
+                            raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+                            raw = re.sub(r"\n```$", "", raw)
+                        ai_json = json.loads(raw)
+                        is_complete = curr_round >= 3
+                        return {
+                            "status": "success",
+                            "round": curr_round,
+                            "is_complete": is_complete,
+                            "data": ai_json
+                        }
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[GEMINI MOCK RESPOND FALLBACK]: {e}")
+
+    word_count = len(answer.split())
+    has_metrics = any(char.isdigit() for char in answer)
+    score = 8 if (word_count >= 30 and has_metrics) else (6 if word_count >= 20 else 4)
+
+    next_q = None
+    if curr_round == 1:
+        next_q = f"How did you handle edge cases and system reliability in that implementation, and what trade-offs did you make under deadline pressure?"
+    elif curr_round == 2:
+        next_q = f"When collaborating with cross-functional stakeholders who disagreed on technical scope, how did you reach alignment without compromising code quality?"
+
+    is_complete = curr_round >= 3
+    verdict = "STRONG HIRE" if score >= 8 else ("HIRE" if score >= 6 else "LEAN HIRE")
+
+    return {
+        "status": "success",
+        "round": curr_round,
+        "is_complete": is_complete,
+        "data": {
+            "score": score,
+            "feedback": "Clear explanation of technical context with solid structure." if score >= 7 else "The answer communicates intent, but needs more concrete metrics and specific architectural trade-offs.",
+            "strengths": ["Directly addressed the question", "Professional tone and terminology"],
+            "improvements": ["Quantify the outcome (latency, scale, cost, or user impact)", "Structure using the STAR framework (Situation, Task, Action, Result)"],
+            "sample_better_answer": "In our payment microservice refactor, I identified a bottleneck causing 400ms latency spikes. I migrated session checks to Redis with connection pooling, cutting P99 latency to 45ms and preventing timeout cascades during traffic surges.",
+            "next_question": next_q,
+            "final_verdict": verdict if is_complete else None
+        }
+    }
+
+# --- Utilities: HTML Extractor & Anti-SSRF URL Validator ---
+class HTMLTextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.result = []
+        self.skip = False
+        self.title = ""
+        self._in_title = False
+
+    def handle_starttag(self, tag, attrs):
+        t = tag.lower()
+        if t in ["script", "style", "noscript", "svg", "nav", "footer", "iframe"]:
+            self.skip = True
+        elif t == "title":
+            self._in_title = True
+
+    def handle_endtag(self, tag):
+        t = tag.lower()
+        if t in ["script", "style", "noscript", "svg", "nav", "footer", "iframe"]:
+            self.skip = False
+        elif t == "title":
+            self._in_title = False
+
+    def handle_data(self, data):
+        val = data.strip()
+        if self._in_title and val:
+            self.title += " " + val
+        elif not self.skip and val:
+            self.result.append(val)
+
+    def get_text(self):
+        return " ".join(self.result)
+
+def is_safe_url(target_url: str) -> bool:
+    try:
+        parsed = urlparse(target_url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if not hostname or hostname.lower() in ("localhost", "127.0.0.1", "::1"):
+            return False
+        addr_info = socket.getaddrinfo(hostname, None)
+        for _, _, _, _, sockaddr in addr_info:
+            ip_obj = ipaddress.ip_address(sockaddr[0])
+            if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local or ip_obj.is_reserved:
+                return False
+        return True
+    except Exception:
+        return False
+
+# --- Feature 1: 1-Click Live Job URL Parser ---
+@app.post("/api/jobs/parse-url")
+async def parse_job_url(payload: ParseJobURLRequest):
+    url = (payload.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Job URL cannot be blank.")
+    if not is_safe_url(url):
+        raise HTTPException(status_code=400, detail="Invalid, malformed, or private URL destination.")
+
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        }
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            content_type = response.headers.get("Content-Type", "")
+            if "text/html" not in content_type and "text/plain" not in content_type:
+                raise HTTPException(status_code=400, detail="URL does not return a readable web page.")
+            html_bytes = response.read(1_000_000)
+            html_text = html_bytes.decode("utf-8", errors="ignore")
+    except urllib.error.HTTPError as e:
+        raise HTTPException(status_code=400, detail=f"Target server returned HTTP {e.code}.")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch job posting: {str(e)}")
+
+    parser = HTMLTextExtractor()
+    parser.feed(html_text)
+    extracted_title = parser.title.strip()
+    full_text = parser.get_text()
+
+    if len(full_text) < 50:
+        raise HTTPException(status_code=400, detail="Could not extract sufficient text from this job page.")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = f"""
+You are an expert Job Ingestion AI. Extract the job details from this parsed web page text:
+Page Title: {extracted_title}
+URL: {url}
+Text Excerpt:
+{full_text[:4000]}
+
+Respond ONLY with valid JSON:
+{{
+  "company": "[Company Name]",
+  "role": "[Job Role Title]",
+  "location": "[Location or Remote]",
+  "jd": "[Cleaned summary of the requirements, responsibilities, and qualifications under 300 words]"
+}}
+"""
+            for m in ["gemini-2.5-flash", "gemini-3.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if raw.startswith("```"):
+                            raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+                            raw = re.sub(r"\n```$", "", raw)
+                        ai_data = json.loads(raw)
+                        return {
+                            "status": "success",
+                            "data": ai_data
+                        }
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[PARSE JOB URL GEMINI ERROR]: {e}")
+
+    guessed_company = "Target Company"
+    guessed_role = extracted_title if extracted_title else "Software Engineer"
+    if " at " in extracted_title:
+        parts = extracted_title.split(" at ")
+        guessed_role = parts[0].strip()
+        guessed_company = parts[1].split("|")[0].split("-")[0].strip()
+    elif " - " in extracted_title:
+        parts = extracted_title.split(" - ")
+        guessed_role = parts[0].strip()
+        guessed_company = parts[1].split("|")[0].strip()
+    elif " | " in extracted_title:
+        parts = extracted_title.split(" | ")
+        guessed_role = parts[0].strip()
+        guessed_company = parts[1].strip()
+
+    return {
+        "status": "success",
+        "data": {
+            "company": guessed_company[:50],
+            "role": guessed_role[:70],
+            "location": "Remote / On-site",
+            "jd": full_text[:2500]
+        }
+    }
+
+# --- Feature 2: Ghost Job & Recruiter Activity Detector ---
+@app.post("/api/jobs/ghost-detector")
+async def detect_ghost_job(payload: GhostDetectorRequest):
+    jd_text = (payload.jd or "").strip()
+    if not jd_text or len(jd_text) < 20:
+        raise HTTPException(status_code=400, detail="Job description text is required to evaluate hiring reality.")
+
+    jd_lower = jd_text.lower()
+    days_ago = payload.posted_days_ago
+
+    ghost_cliches = [
+        ("continuously looking", "Evergreen pipeline signal: company collects resumes continuously without immediate headcount."),
+        ("talent community", "Talent pool indicator rather than an active immediate requisition."),
+        ("future opportunities", "Pipeline placeholder for unbudgeted future roles."),
+        ("other duties as assigned", "Vague catch-all responsibility with low role specificity."),
+        ("evergreen", "Explicit rolling listing with no fixed hiring deadline."),
+        ("fast-paced environment", "Generic boilerplate copy lacking engineering team details.")
+    ]
+
+    active_signals = [
+        ("reporting to", "Direct hiring manager or reporting structure identified."),
+        ("q3", "Timely quarterly milestone attached to the opening."),
+        ("q4", "Timely quarterly milestone attached to the opening."),
+        ("immediate start", "Urgent hiring need confirmed."),
+        ("bonus", "Clear compensation and benefits specification."),
+        ("production", "Hands-on engineering deliverables specified.")
+    ]
+
+    detected_risks = []
+    for phrase, explanation in ghost_cliches:
+        if phrase in jd_lower:
+            detected_risks.append({"signal": phrase, "description": explanation})
+
+    detected_positives = []
+    for phrase, explanation in active_signals:
+        if phrase in jd_lower:
+            detected_positives.append({"signal": phrase, "description": explanation})
+
+    base_score = 88
+    if days_ago:
+        if days_ago >= 60:
+            base_score -= 35
+            detected_risks.append({"signal": f"Posted {days_ago} days ago", "description": "Roles open longer than 60 days have an 80% higher probability of being paused, filled, or ghost listings."})
+        elif days_ago >= 30:
+            base_score -= 15
+            detected_risks.append({"signal": f"Posted {days_ago} days ago", "description": "Application volume is high; recruiter review speed slows down after 30 days."})
+
+    base_score -= len(detected_risks) * 10
+    base_score += len(detected_positives) * 6
+    base_score = max(20, min(96, base_score))
+
+    if base_score >= 75:
+        verdict = "Active Role (High Callback Rate)"
+        tactical_action = "High-priority live vacancy! Apply with targeted bullets within 48 hours for maximum callback velocity."
+    elif base_score >= 50:
+        verdict = "Evergreen Pool (Rolling Pipeline)"
+        tactical_action = "Company is continually gathering talent. Send a direct Day 3 LinkedIn note to hiring leads to stand out from the pool."
+    else:
+        verdict = "Likely Ghost Job (Stale / Low Response)"
+        tactical_action = "High risk of no response. Do not spend over 10 minutes tailoring; focus your energy on fresher, active openings."
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = f"""
+You are an expert Talent Intelligence Analyst evaluating whether a job listing is an actively funded, urgent hire or a "Ghost Job" / stale evergreen pool.
+Role: {payload.role} at {payload.company}
+Job Description Excerpt:
+{jd_text[:2500]}
+
+Respond ONLY with valid JSON:
+{{
+  "reality_score": [Integer 0-100],
+  "verdict": "Active Role (High Callback Rate)" | "Evergreen Pool (Rolling Pipeline)" | "Likely Ghost Job (Stale / Low Response)",
+  "positive_signals": ["[Specific positive signal from text]"],
+  "risk_flags": ["[Specific risk or boilerplate signal]"],
+  "tactical_action": "[1-2 sentence concrete advice for the candidate on how to navigate this posting]"
+}}
+"""
+            for m in ["gemini-2.5-flash", "gemini-3.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if raw.startswith("```"):
+                            raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+                            raw = re.sub(r"\n```$", "", raw)
+                        ai_data = json.loads(raw)
+                        return {
+                            "status": "success",
+                            "data": ai_data
+                        }
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[GHOST DETECTOR GEMINI ERROR]: {e}")
+
+    return {
+        "status": "success",
+        "data": {
+            "reality_score": base_score,
+            "verdict": verdict,
+            "positive_signals": [p["description"] for p in detected_positives] if detected_positives else ["Clear technical stack requirements mentioned."],
+            "risk_flags": [r["description"] for r in detected_risks] if detected_risks else ["Standard corporate requirements format."],
+            "tactical_action": tactical_action
+        }
+    }
+
+# --- Feature 5: Salary Intelligence & Counter-Offer Generator ---
+@app.post("/api/offers/counter-offer")
+async def generate_counter_offer(payload: CounterOfferRequest):
+    role = payload.role or "Software Engineer"
+    company = payload.company or "Target Company"
+    currency = payload.currency or "USD"
+    base = float(payload.base_offer or 0)
+    candidate = payload.candidate_name or "Candidate"
+
+    if base <= 0:
+        base = 125000 if "senior" in role.lower() or "lead" in role.lower() else 95000
+
+    p25 = round(base * 0.92)
+    p50 = round(base * 1.05)
+    p75 = round(base * 1.15)
+    target_counter = round(base * 1.12)
+
+    template_base = f"""Subject: Regarding Offer for {role} - {candidate}
+
+Dear [Hiring Manager / Recruiter Name],
+
+Thank you so much for extending the offer to join {company} as {role}. I thoroughly enjoyed my conversations with the team, and I am very excited about the mission and technical roadmap ahead.
+
+After reviewing the details of the offer and evaluating current market data for this level and scope, I would like to discuss the base compensation. Given my specialized background in [your top 2 skills] and the immediate contribution I can bring to [specific project discussed in interviews], I would be thrilled to sign immediately if we could bring the base salary to {currency} {target_counter:,.0f}.
+
+I am genuinely enthusiastic about joining {company} and confident we can reach an agreement that reflects the value I will deliver. Thank you again for your partnership!
+
+Warm regards,
+{candidate}"""
+
+    template_bonus = f"""Subject: Regarding Offer for {role} - {candidate}
+
+Dear [Hiring Manager / Recruiter Name],
+
+Thank you again for the offer to join {company}. I am very impressed by the team's culture and eager to contribute to the upcoming engineering deliverables.
+
+I understand that base salary bands can have strict internal constraints. If adjusting the base salary is challenging at this time, would {company} be open to bridging the gap through a one-time sign-on bonus of {currency} {round(base * 0.10):,.0f} or an adjusted initial equity grant?
+
+This would make the total compensation package fully aligned with my current expectations, and I would be delighted to accept and begin onboarding.
+
+Best regards,
+{candidate}"""
+
+    template_flex = f"""Subject: Offer Discussion & Details - {role} - {candidate}
+
+Dear [Hiring Manager / Recruiter Name],
+
+Thank you for sending over the formal offer for the {role} position. I am very eager to join the team and start contributing to {company}.
+
+The core compensation is very strong. Alongside the base package, I would love to confirm if there is flexibility around hybrid/remote work scheduling (e.g., 2 remote days per week) and professional development stipend support for relevant technical certifications and conferences.
+
+With those elements formalized, I am ready to confirm my acceptance and set my start date.
+
+Thank you again for your support throughout this process!
+
+Sincerely,
+{candidate}"""
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = f"""
+You are a Principal Executive Compensation Strategist.
+Generate a high-converting counter-offer strategy for:
+Role: {role}
+Company: {company}
+Current Offer Base: {currency} {base:,.0f}
+Location: {payload.location}
+Candidate: {candidate}
+
+Respond ONLY with valid JSON:
+{{
+  "market_benchmark": {{
+    "p25": {p25},
+    "median": {p50},
+    "p75": {p75},
+    "recommended_target": {target_counter}
+  }},
+  "templates": [
+    {{
+      "title": "Base Salary Negotiation (Market Value Grounded)",
+      "description": "Standard high-success counter email asking for ~10-12% higher base with enthusiasm.",
+      "email_subject": "Regarding Offer for {role} - {candidate}",
+      "email_body": "[Professional email template]"
+    }},
+    {{
+      "title": "Sign-on Bonus & Equity Bridge",
+      "description": "Ideal when the employer has fixed base bands; asks for an upfront bonus or extra equity.",
+      "email_subject": "Regarding Offer for {role} - {candidate}",
+      "email_body": "[Professional email template]"
+    }},
+    {{
+      "title": "Flexibility & Remote Perks Package",
+      "description": "Focuses on remote work flexibility, bonus timing, and education budget.",
+      "email_subject": "Offer Discussion & Details - {role} - {candidate}",
+      "email_body": "[Professional email template]"
+    }}
+  ]
+}}
+"""
+            for m in ["gemini-2.5-flash", "gemini-3.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if raw.startswith("```"):
+                            raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+                            raw = re.sub(r"\n```$", "", raw)
+                        ai_data = json.loads(raw)
+                        return {
+                            "status": "success",
+                            "data": ai_data
+                        }
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[COUNTER OFFER GEMINI ERROR]: {e}")
+
+    return {
+        "status": "success",
+        "data": {
+            "market_benchmark": {
+                "currency": currency,
+                "current_offer": base,
+                "p25": p25,
+                "median": p50,
+                "p75": p75,
+                "recommended_target": target_counter
+            },
+            "templates": [
+                {
+                    "title": "Base Salary Optimization (Value Grounded)",
+                    "description": "Standard high-success counter email asking for ~12% higher base.",
+                    "email_subject": f"Regarding Offer for {role} - {candidate}",
+                    "email_body": template_base
+                },
+                {
+                    "title": "Sign-on Bonus & Equity Bridge",
+                    "description": "Bypasses base pay band limits by asking for upfront sign-on bonus.",
+                    "email_subject": f"Regarding Offer for {role} - {candidate}",
+                    "email_body": template_bonus
+                },
+                {
+                    "title": "Remote Flexibility & Perks Package",
+                    "description": "Secures hybrid/remote flexibility and professional development allowance.",
+                    "email_subject": f"Offer Discussion & Details - {role} - {candidate}",
+                    "email_body": template_flex
+                }
+            ]
+        }
+    }
 
 # --- Admin Cockpit with IST Timestamps, Login Stream & Active Dots ---
 @app.post("/admin/delete-user")

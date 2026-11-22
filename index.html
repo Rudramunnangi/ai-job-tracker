@@ -106,6 +106,36 @@
       </a>
     </div>
 
+    <!-- Major 5 Core Features Navigation (Structured & Attractive) -->
+    <div class="nav-features-menu" id="navFeaturesMenu" role="navigation" aria-label="Core Capabilities">
+      <button class="nav-feature-pill" onclick="navToFeature('ats')" title="ATS Resume Score & Missing Skills Gap">
+        <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>ATS Scanner</span>
+      </button>
+
+      <button class="nav-feature-pill" onclick="navToFeature('scan')" title="Instant 6-Second Recruiter Triage Simulation">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>6s Recruiter Triage</span>
+      </button>
+
+      <button class="nav-feature-pill" onclick="navToFeature('traps')" title="Interview Trap Predictor & Defense Framework">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+        <span>Interview Traps</span>
+      </button>
+
+      <button class="nav-feature-pill" onclick="navToFeature('humanizer')" title="AI Resume Authenticity & Humanizer">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
+        <span>AI Humanizer</span>
+        <span class="nav-feature-badge badge-teal">New</span>
+      </button>
+
+      <button class="nav-feature-pill" onclick="navToFeature('mock')" title="Live Interactive AI Mock Interviewer">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span>Mock Interview</span>
+        <span class="nav-feature-badge badge-pulse">Live</span>
+      </button>
+    </div>
+
     <div class="nav-actions">
       <div id="guestTopControls" style="display: flex; align-items: center; gap: 10px;">
         <div class="guest-status-pill">
@@ -236,6 +266,23 @@
             <div class="step-indicator-text">Step 01 // Target Job</div>
             <h2 class="step-card-title">Paste the Job Description</h2>
           </div>
+
+          <!-- 1-Click Live Job URL Ingestion Box -->
+          <div class="url-parser-box" style="margin-bottom: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px;">
+            <label class="form-label" for="liveJobUrlInput" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-weight: 700; color: #FFF; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                1-Click Live Job URL Parser
+              </span>
+              <span style="font-size: 0.72rem; color: var(--accent-teal);">LinkedIn • Indeed • Greenhouse • Lever • Workday</span>
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <input type="url" id="liveJobUrlInput" class="form-input" placeholder="Paste any live job posting URL (e.g. https://www.linkedin.com/jobs/view/...)" style="font-size: 0.85rem;">
+              <button class="btn-primary compact" id="btnParseLiveUrl" onclick="parseLiveJobURL()" style="white-space: nowrap; padding: 0 16px;">
+                Auto-Fill Details
+              </button>
+            </div>
+          </div>
           
           <div id="jobSelectionControl" class="form-group" style="display: none;">
             <label class="form-label" for="roleSelector">Load from your Job Tracker</label>
@@ -332,6 +379,18 @@
             <button class="segment-tab-btn" id="tabResOutreach" onclick="switchResultTab('outreach')">
               <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
               Recruiter Outreach
+            </button>
+            <button class="segment-tab-btn" id="tabResHumanizer" onclick="switchResultTab('humanizer')">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
+              AI Authenticity &amp; Humanizer
+            </button>
+            <button class="segment-tab-btn" id="tabResMock" onclick="switchResultTab('mock')">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              Live Mock Interview
+            </button>
+            <button class="segment-tab-btn" id="tabResGhost" onclick="switchResultTab('ghost')">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/><circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/></svg>
+              Hiring Reality &amp; Ghost Check
             </button>
           </div>
 
@@ -1170,6 +1229,85 @@
 
       <div class="legal-modal-footer">
         <button class="btn-primary" onclick="closeLegalModal()">I Understand & Agree</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offer Negotiation & Counter-Offer Playbook Modal -->
+  <div class="modal-backdrop" id="counterOfferModal" style="display: none;">
+    <div class="modal-box" style="max-width: 680px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="status-dot-green"></span>
+          <h3 style="font-size: 1.2rem; font-weight: 800; color: #FFF;">Offer Negotiation &amp; Counter-Offer Playbook</h3>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeCounterOfferModal()" aria-label="Close" title="Return to webpage">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.2rem;">
+        Never accept the first offer without evaluating market benchmarks. Calibrate your leverage and copy ready-to-send psychological counter templates.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div class="form-group">
+          <label class="form-label" for="offerModalCompany">Company</label>
+          <input type="text" id="offerModalCompany" class="form-input" placeholder="e.g. Stripe">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="offerModalRole">Role Title</label>
+          <input type="text" id="offerModalRole" class="form-input" placeholder="e.g. Senior Software Engineer">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem;">
+        <div class="form-group">
+          <label class="form-label" for="offerModalBase">Current Base Offer ($)</label>
+          <input type="number" id="offerModalBase" class="form-input" placeholder="e.g. 130000">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="offerModalCurrency">Currency</label>
+          <select id="offerModalCurrency" class="form-select">
+            <option value="USD">USD ($)</option>
+            <option value="INR">INR (₹)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="CAD">CAD ($)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btnGenCounter" style="width: 100%; margin-bottom: 1.2rem;" onclick="generateCounterOfferPlaybook()">
+        Calculate Leverage &amp; Generate Counter Templates →
+      </button>
+
+      <div id="offerResultsContainer" style="display: none;">
+        <!-- Market Benchmarks Grid -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.82rem; font-weight: 700; color: var(--accent-teal); margin-bottom: 0.5rem;">Market Compensation Benchmarks</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
+            <div style="background: var(--bg-elevated); padding: 8px; border-radius: 4px;">
+              <div style="font-size: 0.7rem; color: var(--text-muted);">25th %tile</div>
+              <div style="font-weight: 700; color: #FFF; font-size: 0.9rem;" id="benchP25">$120k</div>
+            </div>
+            <div style="background: var(--bg-elevated); padding: 8px; border-radius: 4px;">
+              <div style="font-size: 0.7rem; color: var(--text-muted);">Median (50th)</div>
+              <div style="font-weight: 700; color: #FFF; font-size: 0.9rem;" id="benchMedian">$135k</div>
+            </div>
+            <div style="background: var(--bg-elevated); padding: 8px; border-radius: 4px;">
+              <div style="font-size: 0.7rem; color: var(--text-muted);">75th %tile</div>
+              <div style="font-weight: 700; color: #FFF; font-size: 0.9rem;" id="benchP75">$150k</div>
+            </div>
+            <div style="background: rgba(34,211,200,0.15); border: 1px solid rgba(34,211,200,0.3); padding: 8px; border-radius: 4px;">
+              <div style="font-size: 0.7rem; color: var(--accent-teal);">Target Ask (+12%)</div>
+              <div style="font-weight: 800; color: var(--accent-teal); font-size: 0.9rem;" id="benchTarget">$146k</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Negotiation Templates List -->
+        <div id="counterTemplatesList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
       </div>
     </div>
   </div>

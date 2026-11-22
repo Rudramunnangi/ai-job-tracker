@@ -220,3 +220,98 @@ def test_google_site_verification():
     assert response.status_code == 200
     assert "google-site-verification: googlea771eba2957995c8.html" in response.text
 
+# --- 7. Security & Counter-Attack Features Tests ---
+
+def test_enterprise_security_headers():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.headers.get("X-Frame-Options") == "DENY"
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("X-XSS-Protection") == "1; mode=block"
+    assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+    assert "Content-Security-Policy" in response.headers
+
+def test_resume_authenticity_endpoint():
+    # Test with robotic AI cliches
+    robotic_resume = "Spearheaded cross-functional synergies to optimize pipeline throughput. Leveraged cutting-edge machine learning paradigms."
+    res = client.post("/api/gemini/resume-authenticity", json={
+        "resume": robotic_resume,
+        "role": "Backend Engineer",
+        "company": "Stripe"
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "authenticity_score" in data["data"]
+    assert "flagged_phrases" in data["data"]
+    assert "humanized_bullets" in data["data"]
+
+def test_mock_interview_start_and_respond():
+    # Start mock interview
+    start_res = client.post("/api/gemini/mock-interview/start", json={
+        "role": "Distributed Systems Engineer",
+        "company": "Cloudflare",
+        "jd": "Design low-latency distributed edge proxies with Go and Redis.",
+        "resume": "Software engineer with experience building Go microservices."
+    })
+    assert start_res.status_code == 200
+    start_data = start_res.json()
+    assert start_data["status"] == "success"
+    assert "question" in start_data["data"]
+    assert start_data["round"] == 1
+
+    # Respond to question
+    respond_res = client.post("/api/gemini/mock-interview/respond", json={
+        "session_id": start_data["session_id"],
+        "round": 1,
+        "question": start_data["data"]["question"],
+        "answer": "In my last role, I designed a Redis connection pool in Go which decreased latency by 45% under 10k concurrent requests.",
+        "role": "Distributed Systems Engineer",
+        "company": "Cloudflare"
+    })
+    assert respond_res.status_code == 200
+    respond_data = respond_res.json()
+    assert respond_data["status"] == "success"
+    assert "score" in respond_data["data"]
+    assert "feedback" in respond_data["data"]
+    assert "strengths" in respond_data["data"]
+
+def test_parse_job_url_ssrf_protection():
+    # Attempting to fetch loopback or private URLs must be rejected with 400
+    for bad_url in ["http://localhost:8000", "http://127.0.0.1:5000", "http://169.254.169.254/latest/meta-data"]:
+        res = client.post("/api/jobs/parse-url", json={"url": bad_url})
+        assert res.status_code == 400
+        assert "Invalid, malformed, or private URL" in res.json()["detail"]
+
+def test_ghost_detector_endpoint():
+    res = client.post("/api/jobs/ghost-detector", json={
+        "jd": "We are looking for a Senior Python Developer to join our backend team reporting to the VP of Engineering with immediate start and annual bonus.",
+        "company": "ScaleAI",
+        "role": "Senior Python Developer",
+        "posted_days_ago": 5
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "reality_score" in data["data"]
+    assert "verdict" in data["data"]
+    assert "tactical_action" in data["data"]
+
+def test_counter_offer_endpoint():
+    res = client.post("/api/offers/counter-offer", json={
+        "role": "Staff Backend Architect",
+        "company": "Airbnb",
+        "base_offer": 160000,
+        "currency": "USD",
+        "candidate_name": "Jordan Doe"
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "market_benchmark" in data["data"]
+    assert data["data"]["market_benchmark"]["recommended_target"] > 160000
+    assert "templates" in data["data"]
+    assert len(data["data"]["templates"]) >= 3
+
+
+

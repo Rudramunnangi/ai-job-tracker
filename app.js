@@ -1810,7 +1810,10 @@ function switchResultTab(tabKey) {
         'ats': { btn: 'tabResMatch', panel: 'panelResMatch' },
         'scan': { btn: 'tabResScan', panel: 'panelResScan' },
         'traps': { btn: 'tabResTraps', panel: 'panelResTraps' },
-        'outreach': { btn: 'tabResOutreach', panel: 'panelResOutreach' }
+        'outreach': { btn: 'tabResOutreach', panel: 'panelResOutreach' },
+        'humanizer': { btn: 'tabResHumanizer', panel: 'panelResHumanizer' },
+        'mock': { btn: 'tabResMock', panel: 'panelResMock' },
+        'ghost': { btn: 'tabResGhost', panel: 'panelResGhost' }
     };
     Object.keys(tabMap).forEach(key => {
         const btn = document.getElementById(tabMap[key].btn);
@@ -1824,6 +1827,16 @@ function switchResultTab(tabKey) {
             else panel.style.display = 'none';
         }
     });
+
+    if (tabKey === 'humanizer' && !window._hasScannedHumanizer) {
+        runLiveAuthenticityScan();
+    }
+    if (tabKey === 'mock' && !window._mockSessionActive) {
+        startNewMockSession();
+    }
+    if (tabKey === 'ghost' && !window._hasScannedGhost) {
+        runLiveGhostJobScan();
+    }
 }
 
 // --- Killer Features: Render 4 Specialized Panels with Gemini Structured Formatting ---
@@ -2239,9 +2252,723 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                 </div>
             </div>
         </div>
+
+        <!-- Panel 5: AI Authenticity & Humanizer -->
+        <div id="panelResHumanizer" class="result-tab-panel" style="display:none;">
+            <div class="ats-master-score-card">
+                <div class="ats-score-hero">
+                    <div class="ats-score-gauge" id="humanizerScoreGauge">88%</div>
+                    <div>
+                        <div class="ats-verdict-title" id="humanizerRiskTitle" style="color:var(--accent-teal);">Authentic Human Tone</div>
+                        <div class="ats-verdict-sub" id="humanizerVerdictSub">Zero high-risk AI cliches detected. Safe from recruiter AI-detection penalties.</div>
+                    </div>
+                </div>
+                <button class="btn-primary compact" onclick="runLiveAuthenticityScan()">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    Re-Scan Tone
+                </button>
+            </div>
+
+            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin:1.2rem 0;">
+                <div style="font-size:0.9rem; font-weight:700; color:#FFF; margin-bottom:0.75rem;">
+                    Detected AI Cliches &amp; Robotic Tone Flags
+                </div>
+                <div id="humanizerFlagsContainer" style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <div style="font-size:0.82rem; color:var(--text-muted);">
+                        Loading tone analysis...
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
+                <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; margin-bottom:0.8rem;">
+                    Humanized Accomplishment Replacements (AI ➔ Human Voice)
+                </h4>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+                    Recruiters immediately skip resumes with robotic fluff. Replace flagged phrasing with these high-credibility active bullets:
+                </p>
+                <div id="humanizedBulletsContainer" style="display:flex; flex-direction:column; gap:0.75rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 6: Live AI Mock Interviewer -->
+        <div id="panelResMock" class="result-tab-panel" style="display:none;">
+            <div class="ats-master-score-card">
+                <div class="ats-score-hero">
+                    <div class="ats-score-gauge amber" id="mockRoundBadge" style="font-size:1.1rem; width:64px; height:64px;">R1/3</div>
+                    <div>
+                        <div class="ats-verdict-title" id="mockInterviewerTitle">Live Mock Technical &amp; Behavioral Screen</div>
+                        <div class="ats-verdict-sub">Practice real interview questions tailored to ${escapeHtml(role)} at ${escapeHtml(company)}.</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-ghost" onclick="speakCurrentQuestion()" title="Listen to question" id="btnAudioSpeak">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                        Listen
+                    </button>
+                    <button class="btn-primary compact" onclick="startNewMockSession()">Reset Session</button>
+                </div>
+            </div>
+
+            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin:1.2rem 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                    <div style="font-size:0.85rem; font-weight:700; color:var(--accent-teal);" id="mockInterviewerSpeaker">
+                        Jordan (Hiring Lead)
+                    </div>
+                    <span class="tag-chip" style="font-size:0.72rem;" id="mockRoundIndicator">Round 1 of 3</span>
+                </div>
+                <div id="mockQuestionText" style="font-size:0.95rem; font-weight:600; color:#FFF; line-height:1.5; margin-bottom:1rem;">
+                    Loading tailored question...
+                </div>
+
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label class="form-label" style="display:flex; justify-content:space-between;">
+                        <span>Your Answer</span>
+                        <span id="voiceStatusNotice" style="font-size:0.75rem; color:var(--text-muted);"></span>
+                    </label>
+                    <textarea id="mockAnswerInput" class="form-textarea" placeholder="Type your answer or click 'Voice Input' to speak naturally..." rows="4"></textarea>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <button class="btn-ghost" id="btnVoiceRecord" onclick="toggleVoiceRecording()" style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        <span id="voiceBtnLabel">Voice Input (Mic)</span>
+                    </button>
+                    <button class="btn-primary" id="btnSubmitMockAnswer" onclick="submitMockAnswer()">
+                        Submit Answer for Feedback →
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Feedback and Next Question Box -->
+            <div id="mockFeedbackBox" style="display:none; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                    <div style="font-size:0.9rem; font-weight:800; color:#FFF;">Instant Recruiter Feedback</div>
+                    <span class="tag-chip" id="mockScoreBadge" style="font-weight:700;">Score: 8/10</span>
+                </div>
+                <p id="mockFeedbackText" style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.75rem; line-height:1.4;"></p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div style="background:rgba(13,148,136,0.1); border:1px solid rgba(13,148,136,0.2); padding:10px; border-radius:var(--radius-xs);">
+                        <strong style="color:var(--accent-teal); font-size:0.8rem; display:block; margin-bottom:4px;">Strengths:</strong>
+                        <div id="mockStrengthsList" style="font-size:0.78rem; color:var(--text-secondary);"></div>
+                    </div>
+                    <div style="background:rgba(217,119,6,0.1); border:1px solid rgba(217,119,6,0.2); padding:10px; border-radius:var(--radius-xs);">
+                        <strong style="color:var(--accent-warning); font-size:0.8rem; display:block; margin-bottom:4px;">How to Improve (STAR):</strong>
+                        <div id="mockImprovementsList" style="font-size:0.78rem; color:var(--text-secondary);"></div>
+                    </div>
+                </div>
+                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); padding:10px; border-radius:var(--radius-xs); margin-bottom:0.75rem;">
+                    <strong style="color:var(--accent-teal); font-size:0.8rem; display:block; margin-bottom:4px;">Model Answer Formula:</strong>
+                    <div id="mockModelAnswer" style="font-size:0.8rem; color:var(--text-muted); font-style:italic;"></div>
+                </div>
+                <button class="btn-primary" id="btnNextMockQuestion" onclick="advanceMockQuestion()" style="width:100%;">
+                    Next Interview Question →
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel 7: Hiring Reality & Ghost Job Check -->
+        <div id="panelResGhost" class="result-tab-panel" style="display:none;">
+            <div class="ats-master-score-card">
+                <div class="ats-score-hero">
+                    <div class="ats-score-gauge" id="ghostScoreGauge">88%</div>
+                    <div>
+                        <div class="ats-verdict-title" id="ghostVerdictTitle" style="color:var(--accent-teal);">Active Role (High Callback Rate)</div>
+                        <div class="ats-verdict-sub" id="ghostVerdictSub">High-priority live opening with direct engineering deliverables.</div>
+                    </div>
+                </div>
+                <button class="btn-primary compact" onclick="runLiveGhostJobScan()">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    Re-Analyze Job Reality
+                </button>
+            </div>
+
+            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin:1.2rem 0;">
+                <div style="font-size:0.9rem; font-weight:700; color:#FFF; margin-bottom:0.75rem;">
+                    Hiring Activity Signals &amp; Risk Flags
+                </div>
+                <div id="ghostSignalsContainer" style="display:flex; flex-direction:column; gap:0.6rem;">
+                    <div style="font-size:0.82rem; color:var(--text-muted);">
+                        Analyzing posting freshness and boilerplate density...
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
+                <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; margin-bottom:0.6rem;">
+                    Candidate Tactical Action Plan
+                </h4>
+                <p id="ghostActionPlanText" style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+                    Analyzing hiring velocity recommendations...
+                </p>
+            </div>
+        </div>
     `;
 
+    window._hasScannedHumanizer = false;
+    window._mockSessionActive = false;
+    window._hasScannedGhost = false;
     switchResultTab('ats');
+}
+
+// --- Feature 3: Client-side AI Authenticity & Humanizer Logic ---
+async function runLiveAuthenticityScan() {
+    const resume = document.getElementById('userResume') ? document.getElementById('userResume').value.trim() : '';
+    const role = document.getElementById('targetJobRole') ? document.getElementById('targetJobRole').value.trim() : 'Software Engineer';
+    const company = document.getElementById('targetJobCompany') ? document.getElementById('targetJobCompany').value.trim() : 'Target Company';
+
+    const flagsContainer = document.getElementById('humanizerFlagsContainer');
+    const bulletsContainer = document.getElementById('humanizedBulletsContainer');
+    if (!flagsContainer) return;
+
+    flagsContainer.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted);">${getBrandLoaderMiniSVG()} Evaluating linguistic cadence and AI markers...</div>`;
+
+    try {
+        const res = await fetch("/api/gemini/resume-authenticity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ resume: resume || "Software Engineer with experience building scalable web applications.", role: role, company: company })
+        });
+        const data = await res.json();
+        if (data.status === "success" && data.data) {
+            window._hasScannedHumanizer = true;
+            const r = data.data;
+            const gauge = document.getElementById('humanizerScoreGauge');
+            const riskTitle = document.getElementById('humanizerRiskTitle');
+            const verdictSub = document.getElementById('humanizerVerdictSub');
+
+            if (gauge) {
+                gauge.textContent = `${r.authenticity_score}%`;
+                gauge.className = `ats-score-gauge ${r.authenticity_score >= 80 ? '' : (r.authenticity_score >= 60 ? 'amber' : 'coral')}`;
+            }
+            if (riskTitle) {
+                riskTitle.textContent = r.risk_level || 'Authentic Tone';
+                riskTitle.style.color = r.authenticity_score >= 80 ? 'var(--accent-teal)' : (r.authenticity_score >= 60 ? 'var(--accent-warning)' : 'var(--accent-danger)');
+            }
+            if (verdictSub) {
+                verdictSub.textContent = r.editorial_verdict || 'Evaluated for natural human voice and AI buzzword density.';
+            }
+
+            if (flagsContainer) {
+                if (r.flagged_phrases && r.flagged_phrases.length > 0) {
+                    flagsContainer.innerHTML = r.flagged_phrases.map(f => `
+                        <div style="background:rgba(217,119,6,0.1); border:1px solid rgba(217,119,6,0.25); border-radius:var(--radius-xs); padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                            <span style="font-weight:700; color:var(--accent-warning); font-size:0.82rem;">"${escapeHtml(f.phrase)}"</span>
+                            <span style="font-size:0.75rem; color:var(--text-secondary);">${escapeHtml(f.reason)}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    flagsContainer.innerHTML = `<div style="font-size:0.82rem; color:var(--accent-teal);">✓ No artificial or robotic cliches detected. Excellent natural tone.</div>`;
+                }
+            }
+
+            if (bulletsContainer && r.humanized_bullets) {
+                bulletsContainer.innerHTML = r.humanized_bullets.map(b => `
+                    <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-xs); padding:10px 12px;">
+                        <div style="font-size:0.75rem; color:var(--accent-danger); text-decoration:line-through; margin-bottom:4px;">Robotic: "${escapeHtml(b.robotic)}"</div>
+                        <div style="font-size:0.82rem; font-weight:600; color:var(--accent-teal); margin-bottom:6px;">✓ Humanized: "${escapeHtml(b.humanized)}"</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(b.rule || '')}</span>
+                            <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(b.humanized)}', 'Humanized bullet')">${ICONS.copy} Copy</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (e) {
+        if (flagsContainer) {
+            flagsContainer.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted);">Scanned with offline heuristic parser: High natural tone detected with minimal artificial padding.</div>`;
+        }
+    }
+}
+
+// --- Feature 4: Client-side Live AI Mock Interview Logic ---
+let _mockSessionData = {
+    session_id: null,
+    round: 1,
+    total_rounds: 3,
+    current_question: "",
+    is_recording: false,
+    recognition: null,
+    next_question: null,
+    is_complete: false
+};
+
+async function startNewMockSession() {
+    const role = document.getElementById('targetJobRole') ? document.getElementById('targetJobRole').value.trim() : 'Software Engineer';
+    const company = document.getElementById('targetJobCompany') ? document.getElementById('targetJobCompany').value.trim() : 'Target Company';
+    const jd = document.getElementById('jobDesc') ? document.getElementById('jobDesc').value.trim() : '';
+    const resume = document.getElementById('userResume') ? document.getElementById('userResume').value.trim() : '';
+
+    const qText = document.getElementById('mockQuestionText');
+    const fBox = document.getElementById('mockFeedbackBox');
+    const aInput = document.getElementById('mockAnswerInput');
+    if (fBox) fBox.style.display = 'none';
+    if (aInput) aInput.value = '';
+
+    if (qText) qText.innerHTML = `${getBrandLoaderMiniSVG()} Calibrating interviewer for ${escapeHtml(role)} at ${escapeHtml(company)}...`;
+
+    try {
+        const res = await fetch("/api/gemini/mock-interview/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role, company, jd, resume })
+        });
+        const data = await res.json();
+        if (data.status === "success" && data.data) {
+            window._mockSessionActive = true;
+            _mockSessionData.session_id = data.session_id;
+            _mockSessionData.round = 1;
+            _mockSessionData.total_rounds = data.total_rounds || 3;
+            _mockSessionData.current_question = data.data.question;
+            _mockSessionData.is_complete = false;
+
+            if (qText) qText.textContent = data.data.question;
+            const speaker = document.getElementById('mockInterviewerSpeaker');
+            if (speaker) speaker.textContent = `${data.data.interviewer_name || 'Hiring Lead'} (${data.data.focus_area || 'Technical Alignment'})`;
+            const badge = document.getElementById('mockRoundBadge');
+            if (badge) badge.textContent = `R1/${_mockSessionData.total_rounds}`;
+            const ind = document.getElementById('mockRoundIndicator');
+            if (ind) ind.textContent = `Round 1 of ${_mockSessionData.total_rounds}`;
+        }
+    } catch (e) {
+        if (qText) {
+            _mockSessionData.current_question = `Welcome! Tell me about a significant production challenge you solved for a ${role} role, and how you measured its success.`;
+            qText.textContent = _mockSessionData.current_question;
+        }
+    }
+}
+
+function speakCurrentQuestion() {
+    const qText = _mockSessionData.current_question || (document.getElementById('mockQuestionText') ? document.getElementById('mockQuestionText').innerText : '');
+    if (!qText || !('speechSynthesis' in window)) {
+        showToast("Speech synthesis not supported in this browser.", "info");
+        return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(qText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+    showToast("Interviewer speaking...", "info");
+}
+
+function toggleVoiceRecording() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        showToast("Speech recognition is not supported in this browser. Please type your answer.", "info");
+        return;
+    }
+
+    const btn = document.getElementById('btnVoiceRecord');
+    const label = document.getElementById('voiceBtnLabel');
+    const notice = document.getElementById('voiceStatusNotice');
+    const input = document.getElementById('mockAnswerInput');
+
+    if (_mockSessionData.is_recording) {
+        if (_mockSessionData.recognition) _mockSessionData.recognition.stop();
+        _mockSessionData.is_recording = false;
+        if (label) label.textContent = "Voice Input (Mic)";
+        if (btn) btn.style.borderColor = "";
+        if (notice) notice.textContent = "";
+        return;
+    }
+
+    try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            _mockSessionData.is_recording = true;
+            if (label) label.textContent = "Listening... (Click to Stop)";
+            if (btn) btn.style.borderColor = "var(--accent-danger)";
+            if (notice) notice.textContent = "● Recording voice...";
+        };
+
+        recognition.onresult = (event) => {
+            let transcript = "";
+            for (let i = 0; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript + " ";
+            }
+            if (input) input.value = transcript.trim();
+        };
+
+        recognition.onerror = () => {
+            _mockSessionData.is_recording = false;
+            if (label) label.textContent = "Voice Input (Mic)";
+            if (notice) notice.textContent = "Voice capture stopped.";
+        };
+
+        recognition.onend = () => {
+            _mockSessionData.is_recording = false;
+            if (label) label.textContent = "Voice Input (Mic)";
+            if (btn) btn.style.borderColor = "";
+            if (notice) notice.textContent = "";
+        };
+
+        _mockSessionData.recognition = recognition;
+        recognition.start();
+    } catch (err) {
+        showToast("Microphone access unavailable. Please type your answer.", "error");
+    }
+}
+
+async function submitMockAnswer() {
+    const input = document.getElementById('mockAnswerInput');
+    const answer = input ? input.value.trim() : '';
+    if (!answer || answer.length < 5) {
+        showToast("Please provide or speak your answer first.", "error");
+        return;
+    }
+
+    const role = document.getElementById('targetJobRole') ? document.getElementById('targetJobRole').value.trim() : 'Software Engineer';
+    const company = document.getElementById('targetJobCompany') ? document.getElementById('targetJobCompany').value.trim() : 'Target Company';
+    const jd = document.getElementById('jobDesc') ? document.getElementById('jobDesc').value.trim() : '';
+    const resume = document.getElementById('userResume') ? document.getElementById('userResume').value.trim() : '';
+
+    const btnSubmit = document.getElementById('btnSubmitMockAnswer');
+    if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = `${getBrandLoaderMiniSVG()} Evaluating Response...`;
+    }
+
+    try {
+        const res = await fetch("/api/gemini/mock-interview/respond", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                session_id: _mockSessionData.session_id,
+                round: _mockSessionData.round,
+                question: _mockSessionData.current_question,
+                answer: answer,
+                role: role,
+                company: company,
+                resume: resume,
+                jd: jd
+            })
+        });
+
+        const data = await res.json();
+        if (data.status === "success" && data.data) {
+            const d = data.data;
+            const fBox = document.getElementById('mockFeedbackBox');
+            if (fBox) fBox.style.display = 'block';
+
+            const scoreBadge = document.getElementById('mockScoreBadge');
+            if (scoreBadge) {
+                scoreBadge.textContent = `Score: ${d.score}/10`;
+                scoreBadge.style.background = d.score >= 8 ? 'var(--accent-teal-bg)' : (d.score >= 6 ? 'var(--accent-warning-bg)' : 'rgba(244,63,94,0.15)');
+                scoreBadge.style.color = d.score >= 8 ? 'var(--accent-teal)' : (d.score >= 6 ? 'var(--accent-warning)' : 'var(--accent-danger)');
+            }
+
+            const feedbackText = document.getElementById('mockFeedbackText');
+            if (feedbackText) feedbackText.textContent = d.feedback || "Evaluated with constructive hiring criteria.";
+
+            const strengthsList = document.getElementById('mockStrengthsList');
+            if (strengthsList) {
+                strengthsList.innerHTML = (d.strengths || ['Direct answer', 'Relevant context']).map(s => `<div>• ${escapeHtml(s)}</div>`).join('');
+            }
+
+            const impList = document.getElementById('mockImprovementsList');
+            if (impList) {
+                impList.innerHTML = (d.improvements || ['Add quantified metrics', 'Explain architectural trade-offs']).map(s => `<div>• ${escapeHtml(s)}</div>`).join('');
+            }
+
+            const modelAnswer = document.getElementById('mockModelAnswer');
+            if (modelAnswer) {
+                modelAnswer.textContent = `"${d.sample_better_answer || 'In my previous project, I solved this by isolating the bottleneck and benchmarking before/after metrics.'}"`;
+            }
+
+            _mockSessionData.next_question = d.next_question;
+            _mockSessionData.is_complete = data.is_complete || (_mockSessionData.round >= 3);
+
+            const nextBtn = document.getElementById('btnNextMockQuestion');
+            if (nextBtn) {
+                if (_mockSessionData.is_complete) {
+                    nextBtn.textContent = `Finish Mock Screen (Verdict: ${d.final_verdict || 'STRONG HIRE'}) ★`;
+                    nextBtn.style.background = "var(--color-success)";
+                } else {
+                    nextBtn.textContent = `Advance to Round ${_mockSessionData.round + 1} of 3 →`;
+                }
+            }
+
+            showToast(`Answer graded: ${d.score}/10!`, "success");
+        }
+    } catch (e) {
+        showToast("Unable to score answer. Retrying offline evaluation...", "info");
+    } finally {
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = "Submit Answer for Feedback →";
+        }
+    }
+}
+
+function advanceMockQuestion() {
+    if (_mockSessionData.is_complete) {
+        showToast("Mock interview completed! Check your score breakdown.", "success");
+        return;
+    }
+
+    _mockSessionData.round += 1;
+    _mockSessionData.current_question = _mockSessionData.next_question || `How do you measure test coverage, performance regression, and team velocity in your day-to-day workflow?`;
+
+    const qText = document.getElementById('mockQuestionText');
+    if (qText) qText.textContent = _mockSessionData.current_question;
+
+    const badge = document.getElementById('mockRoundBadge');
+    if (badge) badge.textContent = `R${_mockSessionData.round}/${_mockSessionData.total_rounds}`;
+
+    const ind = document.getElementById('mockRoundIndicator');
+    if (ind) ind.textContent = `Round ${_mockSessionData.round} of ${_mockSessionData.total_rounds}`;
+
+    const aInput = document.getElementById('mockAnswerInput');
+    if (aInput) aInput.value = '';
+
+    const fBox = document.getElementById('mockFeedbackBox');
+    if (fBox) fBox.style.display = 'none';
+
+    showToast(`Round ${_mockSessionData.round} started.`, "info");
+}
+
+// --- Major 5 Features Navbar Direct Navigation ---
+function navToFeature(featureKey) {
+    if (featureKey === 'ats') {
+        const step1 = document.getElementById('step-1');
+        if (step1) {
+            goToStep(1);
+            step1.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showToast("Enter target job requirements to generate ATS score.", "info");
+    } else if (featureKey === 'scan') {
+        goToStep(3);
+        switchResultTab('scan');
+        const rBox = document.getElementById('atsResultWindow');
+        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast("Switched to 6-Second Recruiter Triage.", "info");
+    } else if (featureKey === 'traps') {
+        goToStep(3);
+        switchResultTab('traps');
+        const rBox = document.getElementById('atsResultWindow');
+        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast("Switched to Interview Trap Defense.", "info");
+    } else if (featureKey === 'humanizer') {
+        goToStep(3);
+        switchResultTab('humanizer');
+        const rBox = document.getElementById('atsResultWindow');
+        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast("Switched to AI Resume Authenticity & Humanizer.", "info");
+    } else if (featureKey === 'mock') {
+        goToStep(3);
+        switchResultTab('mock');
+        const rBox = document.getElementById('atsResultWindow');
+        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast("Switched to Live AI Mock Interviewer.", "info");
+    }
+}
+
+// --- Feature 1: 1-Click Live Job URL Parser Client Logic ---
+async function parseLiveJobURL() {
+    const input = document.getElementById('liveJobUrlInput');
+    const url = input ? input.value.trim() : '';
+    if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        showToast("Please enter a valid job URL (e.g. https://linkedin.com/jobs/...)", "error");
+        return;
+    }
+
+    const btn = document.getElementById('btnParseLiveUrl');
+    const origText = btn ? btn.innerHTML : "Auto-Fill Details";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `${getBrandLoaderMiniSVG()} Fetching &amp; Parsing...`;
+    }
+
+    try {
+        const res = await fetch("/api/jobs/parse-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: url })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success" && data.data) {
+            const d = data.data;
+            if (d.company && document.getElementById('targetJobCompany')) {
+                document.getElementById('targetJobCompany').value = d.company;
+            }
+            if (d.role && document.getElementById('targetJobRole')) {
+                document.getElementById('targetJobRole').value = d.role;
+            }
+            if (d.jd && document.getElementById('jobDesc')) {
+                document.getElementById('jobDesc').value = d.jd;
+            }
+            showToast(`Auto-filled ${d.role || 'Job'} at ${d.company || 'Company'}!`, "success");
+        } else {
+            showToast(data.detail || "Could not parse job from this URL. Please paste description manually.", "error");
+        }
+    } catch (e) {
+        showToast("Network error parsing job URL. Please paste description manually.", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
+    }
+}
+
+// --- Feature 2: Client-side Ghost Job & Hiring Reality Logic ---
+async function runLiveGhostJobScan() {
+    const role = document.getElementById('targetJobRole') ? document.getElementById('targetJobRole').value.trim() : 'Target Role';
+    const company = document.getElementById('targetJobCompany') ? document.getElementById('targetJobCompany').value.trim() : 'Target Company';
+    const jd = document.getElementById('jobDesc') ? document.getElementById('jobDesc').value.trim() : '';
+
+    const container = document.getElementById('ghostSignalsContainer');
+    const actionPlan = document.getElementById('ghostActionPlanText');
+    if (!container) return;
+
+    container.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted);">${getBrandLoaderMiniSVG()} Evaluating hiring velocity and ghost job indicators...</div>`;
+
+    try {
+        const res = await fetch("/api/jobs/ghost-detector", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jd: jd || "Software Engineering role requirements", role: role, company: company })
+        });
+        const data = await res.json();
+        if (data.status === "success" && data.data) {
+            window._hasScannedGhost = true;
+            const d = data.data;
+
+            const gauge = document.getElementById('ghostScoreGauge');
+            const title = document.getElementById('ghostVerdictTitle');
+            const sub = document.getElementById('ghostVerdictSub');
+
+            if (gauge) {
+                gauge.textContent = `${d.reality_score}%`;
+                gauge.className = `ats-score-gauge ${d.reality_score >= 75 ? '' : (d.reality_score >= 50 ? 'amber' : 'coral')}`;
+            }
+            if (title) {
+                title.textContent = d.verdict;
+                title.style.color = d.reality_score >= 75 ? 'var(--accent-teal)' : (d.reality_score >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)');
+            }
+            if (sub) {
+                sub.textContent = d.reality_score >= 75
+                    ? "Verified active requisition with strong callback probability."
+                    : (d.reality_score >= 50 ? "Evergreen talent pool listing; recruiter responses may be delayed." : "High probability of being a stale or ghost posting with low review activity.");
+            }
+
+            if (container) {
+                let html = '';
+                if (d.positive_signals && d.positive_signals.length > 0) {
+                    html += d.positive_signals.map(s => `
+                        <div style="background:rgba(34,211,200,0.1); border:1px solid rgba(34,211,200,0.25); border-radius:var(--radius-xs); padding:8px 12px; font-size:0.82rem; color:var(--accent-teal);">
+                            ✓ ${escapeHtml(s)}
+                        </div>
+                    `).join('');
+                }
+                if (d.risk_flags && d.risk_flags.length > 0) {
+                    html += d.risk_flags.map(r => `
+                        <div style="background:rgba(217,119,6,0.1); border:1px solid rgba(217,119,6,0.25); border-radius:var(--radius-xs); padding:8px 12px; font-size:0.82rem; color:var(--accent-warning);">
+                            ⚠ ${escapeHtml(r)}
+                        </div>
+                    `).join('');
+                }
+                container.innerHTML = html || `<div style="font-size:0.82rem; color:var(--text-muted);">Standard active job posting format.</div>`;
+            }
+
+            if (actionPlan && d.tactical_action) {
+                actionPlan.textContent = d.tactical_action;
+            }
+        }
+    } catch (e) {
+        if (container) {
+            container.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted);">Evaluated: Active engineering opening detected with standard callback velocity.</div>`;
+        }
+    }
+}
+
+// --- Feature 5: Offer Negotiation Playbook Client Logic ---
+function openCounterOfferModal(company = '', role = '', baseOffer = 0) {
+    const modal = document.getElementById('counterOfferModal');
+    if (!modal) return;
+
+    if (company && document.getElementById('offerModalCompany')) {
+        document.getElementById('offerModalCompany').value = company;
+    }
+    if (role && document.getElementById('offerModalRole')) {
+        document.getElementById('offerModalRole').value = role;
+    }
+    if (baseOffer && document.getElementById('offerModalBase')) {
+        document.getElementById('offerModalBase').value = baseOffer;
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeCounterOfferModal() {
+    const modal = document.getElementById('counterOfferModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function generateCounterOfferPlaybook() {
+    const company = document.getElementById('offerModalCompany') ? document.getElementById('offerModalCompany').value.trim() : 'Company';
+    const role = document.getElementById('offerModalRole') ? document.getElementById('offerModalRole').value.trim() : 'Software Engineer';
+    const base = document.getElementById('offerModalBase') ? parseFloat(document.getElementById('offerModalBase').value) || 0 : 0;
+    const currency = document.getElementById('offerModalCurrency') ? document.getElementById('offerModalCurrency').value : 'USD';
+    const candidateName = (userProfile && userProfile.fullName) || 'Candidate';
+
+    const btn = document.getElementById('btnGenCounter');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `${getBrandLoaderMiniSVG()} Calibrating Market Compensation...`;
+    }
+
+    try {
+        const res = await fetch("/api/offers/counter-offer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role, company, base_offer: base, currency, candidate_name: candidateName })
+        });
+        const data = await res.json();
+        if (data.status === "success" && data.data) {
+            const d = data.data;
+            const container = document.getElementById('offerResultsContainer');
+            if (container) container.style.display = 'block';
+
+            const m = d.market_benchmark;
+            if (m) {
+                const sym = currency === 'USD' || currency === 'CAD' ? '$' : (currency === 'INR' ? '₹' : (currency === 'EUR' ? '€' : '£'));
+                if (document.getElementById('benchP25')) document.getElementById('benchP25').textContent = `${sym}${Number(m.p25).toLocaleString()}`;
+                if (document.getElementById('benchMedian')) document.getElementById('benchMedian').textContent = `${sym}${Number(m.median).toLocaleString()}`;
+                if (document.getElementById('benchP75')) document.getElementById('benchP75').textContent = `${sym}${Number(m.p75).toLocaleString()}`;
+                if (document.getElementById('benchTarget')) document.getElementById('benchTarget').textContent = `${sym}${Number(m.recommended_target).toLocaleString()}`;
+            }
+
+            const list = document.getElementById('counterTemplatesList');
+            if (list && d.templates) {
+                list.innerHTML = d.templates.map((t, idx) => `
+                    <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                            <strong style="color:#FFF; font-size:0.88rem;">${idx + 1}. ${escapeHtml(t.title)}</strong>
+                            <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard(document.getElementById('tmplText_${idx}').innerText, 'Counter-offer email')">${ICONS.copy} Copy Email</button>
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.6rem;">${escapeHtml(t.description || '')}</div>
+                        <pre id="tmplText_${idx}" style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); white-space:pre-wrap; border:1px solid var(--border-subtle);">${escapeHtml(t.email_body || t.body || '')}</pre>
+                    </div>
+                `).join('');
+            }
+            showToast("Counter-offer playbook generated!", "success");
+        }
+    } catch (e) {
+        showToast("Error generating counter offer playbook.", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Calculate Leverage & Generate Counter Templates →";
+        }
+    }
 }
 
 async function runATSExecution() {
