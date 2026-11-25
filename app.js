@@ -32,7 +32,8 @@ function getAuthHeaders() {
 }
 
 // --- UI/UX Pro Max Enhancement Helpers ---
-function goToStep(stepNum) {
+function goToStep(stepNum, options = {}) {
+    const shouldScroll = options.scroll !== false;
     [1, 2, 3].forEach(n => {
         const card = document.getElementById(`step-${n}`);
         const tab = document.getElementById(`tabStep${n}`);
@@ -53,9 +54,14 @@ function goToStep(stepNum) {
             }
         }
     });
-    const targetCard = document.getElementById(`step-${stepNum}`);
-    if (targetCard) {
-        targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (shouldScroll) {
+        const targetCard = document.getElementById(`step-${stepNum}`);
+        if (targetCard) {
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    if (window.NexJobNavRail) {
+        requestAnimationFrame(() => window.NexJobNavRail.recalculate());
     }
 }
 
@@ -833,6 +839,9 @@ function updateAuthUI() {
     }
 
     updateDynamicJobLinks();
+    if (window.NexJobNavRail) {
+        requestAnimationFrame(() => window.NexJobNavRail.recalculate());
+    }
 }
 
 // Application Board Handlers
@@ -1805,7 +1814,7 @@ async function parsePastedApplicationEmail() {
 }
 
 // --- Segmented Result Tab Switcher ---
-function switchResultTab(tabKey) {
+function switchResultTab(tabKey, syncNavbar = true) {
     const tabMap = {
         'ats': { btn: 'tabResMatch', panel: 'panelResMatch' },
         'scan': { btn: 'tabResScan', panel: 'panelResScan' },
@@ -1828,6 +1837,13 @@ function switchResultTab(tabKey) {
         }
     });
 
+    if (syncNavbar && window.NexJobNavRail) {
+        const tabToStation = { ats: 0, scan: 1, traps: 2, humanizer: 3, mock: 4 };
+        if (Object.prototype.hasOwnProperty.call(tabToStation, tabKey)) {
+            window.NexJobNavRail.pinStation(tabToStation[tabKey]);
+        }
+    }
+
     if (tabKey === 'humanizer' && !window._hasScannedHumanizer) {
         runLiveAuthenticityScan();
     }
@@ -1840,7 +1856,7 @@ function switchResultTab(tabKey) {
 }
 
 // --- Killer Features: Render 4 Specialized Panels with Gemini Structured Formatting ---
-function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData = null) {
+function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData = null, initialTab = 'ats') {
     const resultBox = document.getElementById('atsResultWindow');
     const navEl = document.getElementById('resultSegmentNav');
     if (navEl) navEl.style.display = 'flex';
@@ -2409,7 +2425,10 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
     window._hasScannedHumanizer = false;
     window._mockSessionActive = false;
     window._hasScannedGhost = false;
-    switchResultTab('ats');
+    switchResultTab(initialTab || 'ats', false);
+    if (window.NexJobNavRail) {
+        requestAnimationFrame(() => window.NexJobNavRail.recalculate());
+    }
 }
 
 // --- Feature 3: Client-side AI Authenticity & Humanizer Logic ---
@@ -2734,39 +2753,83 @@ function advanceMockQuestion() {
     showToast(`Round ${_mockSessionData.round} started.`, "info");
 }
 
-// --- Major 5 Features Navbar Direct Navigation ---
+// --- Major 5 Features Navbar Direct Navigation & Workspace Initializer ---
+function ensureFeatureWorkspaceReady(featureKey) {
+    if (document.getElementById('panelResMatch')) return true;
+
+    const roleEl = document.getElementById('targetJobRole');
+    const companyEl = document.getElementById('targetJobCompany');
+    const jdEl = document.getElementById('jobDesc');
+    const resumeEl = document.getElementById('userResume');
+
+    const jdVal = jdEl ? jdEl.value.trim() : '';
+    const resumeVal = (resumeEl ? resumeEl.value.trim() : '') || (userProfile && userProfile.resume) || '';
+    const roleVal = (roleEl ? roleEl.value.trim() : '') || 'Software Engineer';
+    const companyVal = (companyEl ? companyEl.value.trim() : '') || 'Target Company';
+    const isGuest = (!currentUser || !currentUser.email || !authToken);
+
+    if (jdVal.length >= 10 && resumeVal.length >= 10) {
+        runATSExecution(featureKey);
+        return false; // runATSExecution switches tabs once response returns
+    }
+
+    // Initialize an interactive workspace preview immediately so every navbar station opens live tools
+    const sampleJD = jdVal || "Software Engineering role requiring Python, TypeScript, Distributed Systems, REST APIs, PostgreSQL, Docker, Kubernetes, and CI/CD ownership.";
+    const sampleResume = resumeVal || "Experienced Software Engineer with production expertise in Python, TypeScript, REST APIs, PostgreSQL query optimization, Docker deployments, and automated testing.";
+    renderATSResult("", roleVal, companyVal, sampleJD, sampleResume, isGuest, null, featureKey);
+
+    const resultBox = document.getElementById('atsResultWindow');
+    if (resultBox && !document.getElementById('previewWorkspaceBanner')) {
+        const banner = document.createElement('div');
+        banner.id = 'previewWorkspaceBanner';
+        banner.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:rgba(34,211,200,0.08); border:1px solid rgba(34,211,200,0.28); border-radius:var(--radius-sm); padding:8px 12px; margin-bottom:1rem; font-size:0.78rem; color:var(--text-secondary);';
+        banner.innerHTML = `
+            <span><strong style="color:var(--accent-teal);">Interactive Tool Workspace:</strong> Using starter sample context. Add your target job &amp; resume for personalized analysis.</span>
+            <span style="display:flex; gap:6px;">
+                <button type="button" class="btn-ghost mini" style="padding:3px 10px; font-size:0.74rem;" onclick="loadInteractiveDemo('stripe')">Load Stripe Sample</button>
+                <button type="button" class="btn-primary mini" style="padding:3px 10px; font-size:0.74rem;" onclick="navToFeature('ats')">Enter My JD &amp; Resume</button>
+            </span>
+        `;
+        resultBox.prepend(banner);
+    }
+    return true;
+}
+
 function navToFeature(featureKey) {
+    const stationMap = { ats: 0, scan: 1, traps: 2, humanizer: 3, mock: 4 };
+    const stationIdx = Object.prototype.hasOwnProperty.call(stationMap, featureKey) ? stationMap[featureKey] : 0;
+
+    if (window.NexJobNavRail) {
+        window.NexJobNavRail.goToStation(stationIdx);
+    }
+
     if (featureKey === 'ats') {
-        const step1 = document.getElementById('step-1');
-        if (step1) {
-            goToStep(1);
-            step1.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        showToast("Enter target job requirements to generate ATS score.", "info");
-    } else if (featureKey === 'scan') {
-        goToStep(3);
-        switchResultTab('scan');
-        const rBox = document.getElementById('atsResultWindow');
-        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        showToast("Switched to 6-Second Recruiter Triage.", "info");
-    } else if (featureKey === 'traps') {
-        goToStep(3);
-        switchResultTab('traps');
-        const rBox = document.getElementById('atsResultWindow');
-        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        showToast("Switched to Interview Trap Defense.", "info");
-    } else if (featureKey === 'humanizer') {
-        goToStep(3);
-        switchResultTab('humanizer');
-        const rBox = document.getElementById('atsResultWindow');
-        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        showToast("Switched to AI Resume Authenticity & Humanizer.", "info");
-    } else if (featureKey === 'mock') {
-        goToStep(3);
-        switchResultTab('mock');
-        const rBox = document.getElementById('atsResultWindow');
-        if (rBox) rBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        showToast("Switched to Live AI Mock Interviewer.", "info");
+        goToStep(1, { scroll: false });
+        const target = document.getElementById('flowWrapper') || document.getElementById('step-1');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast("Enter target job details to run the ATS Scanner.", "info");
+        return;
+    }
+
+    const ready = ensureFeatureWorkspaceReady(featureKey);
+    goToStep(3, { scroll: false });
+    if (ready) {
+        switchResultTab(featureKey, false);
+    }
+
+    const scrollTarget = document.getElementById('step-3') || document.getElementById('atsResultWindow');
+    if (scrollTarget) {
+        scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    const labels = {
+        scan: "6-Second Recruiter Triage ready.",
+        traps: "Interview Trap Predictor ready.",
+        humanizer: "AI Authenticity & Humanizer active.",
+        mock: "Live AI Mock Interview initialized."
+    };
+    if (labels[featureKey]) {
+        showToast(labels[featureKey], "info");
     }
 }
 
@@ -2971,7 +3034,7 @@ async function generateCounterOfferPlaybook() {
     }
 }
 
-async function runATSExecution() {
+async function runATSExecution(preferredTab = 'ats') {
     const role = document.getElementById('targetJobRole').value.trim() || "Target Role";
     const company = document.getElementById('targetJobCompany').value.trim() || "Target Company";
     const jd = document.getElementById('jobDesc').value.trim();
@@ -3018,7 +3081,7 @@ async function runATSExecution() {
         });
         const data = await res.json();
         if (res.ok) {
-            renderATSResult(data.result, role, company, jd, resume, isGuest, data.data);
+            renderATSResult(data.result, role, company, jd, resume, isGuest, data.data, preferredTab);
             updateDynamicJobLinks(role);
             showToast("Match report and recruiter scan ready!", "success");
         } else {
@@ -3566,11 +3629,244 @@ function initFancyCardInteractions() {
     });
 }
 
+// --- Connected 5-Station Glowing Navbar Journey Rail (Scroll-Synced & Magnetic Docking) ---
+function initNavJourneyRail() {
+    const bar = document.getElementById('navJourneyBar');
+    const track = document.getElementById('navRailTrack');
+    const progressEl = document.getElementById('navRailProgress');
+    const orbEl = document.getElementById('navRailOrb');
+    if (!bar || !track || !progressEl || !orbEl) return;
+
+    const buttons = Array.from(bar.querySelectorAll('.nav-station-btn'));
+    const sockets = buttons.map(b => b.querySelector('.nav-station-socket'));
+    if (buttons.length < 2) return;
+
+    let stationPoints = [];
+    let scrollAnchors = [0, 600, 1200, 1800, 2400];
+    let targetFloat = 0;
+    let currentFloat = 0;
+    let lerpRate = 0.11;
+    let rafId = null;
+    let pinnedStation = null;
+    let isProgrammaticScroll = false;
+    let programmaticTimer = null;
+
+    function computeScrollMilestones() {
+        const winH = window.innerHeight || 800;
+        const maxScroll = Math.max(120, document.documentElement.scrollHeight - winH);
+        const rail = document.getElementById('capabilitiesJourneyRail');
+        const stops = rail ? Array.from(rail.querySelectorAll('.rail-stop-item')) : [];
+        const faq = document.getElementById('faqSection') || document.querySelector('.faq-section');
+        const docTop = (el) => el ? (el.getBoundingClientRect().top + window.scrollY) : 0;
+
+        let rawA1 = stops[0] ? Math.max(180, docTop(stops[0]) - winH * 0.45) : maxScroll * 0.25;
+        let rawA2 = stops[2] ? Math.max(rawA1 + 120, docTop(stops[2]) - winH * 0.45) : maxScroll * 0.50;
+        let rawA3 = stops[4] ? Math.max(rawA2 + 120, docTop(stops[4]) - winH * 0.45) : maxScroll * 0.75;
+        let rawA4 = faq ? Math.max(rawA3 + 120, docTop(faq) - winH * 0.60) : maxScroll * 0.94;
+
+        let anchors = [0, rawA1, rawA2, rawA3, Math.min(maxScroll * 0.96, rawA4)];
+        for (let i = 1; i < anchors.length; i++) {
+            if (anchors[i] < anchors[i - 1] + 80) {
+                anchors[i] = anchors[i - 1] + 80;
+            }
+        }
+        if (anchors[4] > maxScroll * 0.97) {
+            const scale = (maxScroll * 0.96) / anchors[4];
+            if (scale > 0 && scale < 1) {
+                anchors = anchors.map(v => v * scale);
+            } else {
+                anchors = [0, maxScroll * 0.24, maxScroll * 0.48, maxScroll * 0.72, maxScroll * 0.95];
+            }
+        }
+        scrollAnchors = anchors;
+    }
+
+    function measureGeometry() {
+        const barRect = bar.getBoundingClientRect();
+        const offsetX = barRect.left + bar.clientLeft;
+        const offsetY = barRect.top + bar.clientTop;
+
+        stationPoints = sockets.map(sock => {
+            if (!sock) return { x: 0, y: 0 };
+            const r = sock.getBoundingClientRect();
+            return {
+                x: (r.left - offsetX) + (r.width / 2),
+                y: (r.top - offsetY) + (r.height / 2)
+            };
+        });
+
+        const first = stationPoints[0];
+        const last = stationPoints[stationPoints.length - 1];
+        if (!first || !last || last.x <= first.x) return;
+
+        track.style.left = `${first.x.toFixed(1)}px`;
+        track.style.top = `${(first.y - 1).toFixed(1)}px`;
+        track.style.bottom = 'auto';
+        track.style.width = `${Math.max(0, last.x - first.x).toFixed(1)}px`;
+
+        computeScrollMilestones();
+        applyOrbVisuals();
+    }
+
+    // Piecewise Scroll-to-Station Transfer Curve:
+    // Glides proportionally across dotted track on scroll, then smoothly docks & fits inside each station socket
+    function scrollYToStationFloat(scrollY) {
+        const lastIdx = buttons.length - 1;
+        if (scrollY <= scrollAnchors[0]) return 0;
+        if (scrollY >= scrollAnchors[lastIdx]) return lastIdx;
+
+        for (let k = 0; k < lastIdx; k++) {
+            const start = scrollAnchors[k];
+            const end = scrollAnchors[k + 1];
+            if (scrollY <= end) {
+                const span = Math.max(1, end - start);
+                const p = (scrollY - start) / span;
+                const dwell = 0.13;
+                if (p <= dwell) return k;
+                if (p >= 1 - dwell) return k + 1;
+
+                const t = (p - dwell) / (1 - 2 * dwell);
+                const smoothT = 0.35 * t + 0.65 * (t * t * (3 - 2 * t));
+                return k + smoothT;
+            }
+        }
+        return lastIdx;
+    }
+
+    function applyOrbVisuals() {
+        if (stationPoints.length < 2) return;
+        const maxIdx = stationPoints.length - 1;
+        const clamped = Math.max(0, Math.min(maxIdx, currentFloat));
+        const seg = Math.min(maxIdx - 1, Math.floor(clamped));
+        const frac = clamped - seg;
+
+        const pA = stationPoints[seg];
+        const pB = stationPoints[seg + 1];
+        const orbX = pA.x + (pB.x - pA.x) * frac;
+        const orbY = pA.y + (pB.y - pA.y) * frac;
+
+        const progressWidth = Math.max(0, orbX - stationPoints[0].x);
+        progressEl.style.width = `${progressWidth.toFixed(1)}px`;
+        orbEl.style.transform = `translate3d(${orbX.toFixed(1)}px, ${orbY.toFixed(1)}px, 0)`;
+        orbEl.classList.add('is-ready');
+
+        const nearest = Math.round(clamped);
+        const isDocked = Math.abs(clamped - nearest) < 0.055;
+        const isMoving = Math.abs(targetFloat - currentFloat) > 0.01;
+
+        orbEl.classList.toggle('is-docked', isDocked && !isMoving);
+        orbEl.classList.toggle('is-traveling', isMoving || !isDocked);
+
+        buttons.forEach((btn, idx) => {
+            const sock = sockets[idx];
+            const activeNow = idx === nearest;
+            btn.classList.toggle('is-active', activeNow);
+            btn.setAttribute('aria-current', activeNow ? 'page' : 'false');
+            if (sock) {
+                sock.classList.toggle('is-docked', activeNow && isDocked);
+                sock.classList.toggle('is-passed', idx < nearest || (idx === nearest && !isDocked && clamped > idx + 0.05));
+            }
+        });
+    }
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function renderFrame() {
+        const diff = targetFloat - currentFloat;
+        if (prefersReducedMotion || Math.abs(diff) < 0.0015) {
+            currentFloat = targetFloat;
+            applyOrbVisuals();
+            rafId = null;
+            lerpRate = 0.11;
+            return;
+        }
+        currentFloat += diff * lerpRate;
+        applyOrbVisuals();
+        rafId = requestAnimationFrame(renderFrame);
+    }
+
+    function startLoop() {
+        if (!rafId) {
+            rafId = requestAnimationFrame(renderFrame);
+        }
+    }
+
+    function onScroll() {
+        if (isProgrammaticScroll) return;
+
+        if (pinnedStation !== null) {
+            const flowEl = document.getElementById('flowWrapper');
+            const railEl = document.getElementById('capabilitiesJourneyRail');
+            const railTop = railEl ? railEl.getBoundingClientRect().top : Infinity;
+            const flowBottom = flowEl ? flowEl.getBoundingClientRect().bottom : 0;
+            if (window.scrollY > 30 && flowBottom > window.innerHeight * 0.42 && railTop > window.innerHeight * 0.72) {
+                return;
+            }
+            pinnedStation = null;
+        }
+
+        lerpRate = 0.12;
+        targetFloat = scrollYToStationFloat(window.scrollY);
+        startLoop();
+    }
+
+    window.NexJobNavRail = {
+        goToStation(idx) {
+            const clampedIdx = Math.max(0, Math.min(buttons.length - 1, idx));
+            pinnedStation = clampedIdx;
+            isProgrammaticScroll = true;
+            clearTimeout(programmaticTimer);
+            programmaticTimer = setTimeout(() => { isProgrammaticScroll = false; }, 950);
+            lerpRate = 0.085;
+            targetFloat = clampedIdx;
+            startLoop();
+        },
+        pinStation(idx) {
+            const clampedIdx = Math.max(0, Math.min(buttons.length - 1, idx));
+            pinnedStation = clampedIdx;
+            lerpRate = 0.095;
+            targetFloat = clampedIdx;
+            startLoop();
+        },
+        recalculate() {
+            measureGeometry();
+            if (pinnedStation === null) {
+                targetFloat = scrollYToStationFloat(window.scrollY);
+                startLoop();
+            }
+        }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => {
+        measureGeometry();
+        if (pinnedStation === null) {
+            targetFloat = scrollYToStationFloat(window.scrollY);
+            applyOrbVisuals();
+        }
+    }, { passive: true });
+
+    if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => measureGeometry());
+        ro.observe(bar);
+        if (bar.parentElement) ro.observe(bar.parentElement);
+    }
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => measureGeometry());
+    }
+
+    measureGeometry();
+    currentFloat = targetFloat = scrollYToStationFloat(window.scrollY);
+    applyOrbVisuals();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     initAmbientMeshBackground();
     await loadUserData();
     updateAuthUI();
     renderDashboard();
+    initNavJourneyRail();
     initScrollAnimations();
     initHero3DNetwork();
     initCapabilitiesJourneyRail();

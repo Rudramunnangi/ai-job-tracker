@@ -87,9 +87,9 @@
   <canvas id="ambientMeshCanvas" class="ambient-mesh-canvas" aria-hidden="true"></canvas>
   <div class="noise-overlay" aria-hidden="true"></div>
 
-  <!-- Navigation (Sticky Blurred Header with Left Console Toggle) -->
-  <nav class="navbar">
-    <div style="display: flex; align-items: center; gap: 12px;">
+  <!-- Navigation (Sticky Blurred Header with Connected 5-Station Glowing Rail) -->
+  <nav class="navbar" id="mainNavbar">
+    <div class="nav-brand-group">
       <button class="drawer-toggle-btn" onclick="toggleDrawer()" aria-label="Open Candidate Console" title="Candidate Profile & Settings">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -106,33 +106,61 @@
       </a>
     </div>
 
-    <!-- Major 5 Core Features Navigation (Structured & Attractive) -->
-    <div class="nav-features-menu" id="navFeaturesMenu" role="navigation" aria-label="Core Capabilities">
-      <button class="nav-feature-pill" onclick="navToFeature('ats')" title="ATS Resume Score & Missing Skills Gap">
-        <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>ATS Scanner</span>
+    <!-- Major 5 Features Connected Journey Navigation Rail -->
+    <div class="nav-journey-bar" id="navJourneyBar" role="navigation" aria-label="Core Capabilities">
+      <div class="nav-rail-track" id="navRailTrack" aria-hidden="true">
+        <div class="nav-rail-dotted"></div>
+        <div class="nav-rail-progress" id="navRailProgress"></div>
+      </div>
+
+      <!-- Glowing Cyan Lighting Point (Glides smoothly on scroll & fits into active station socket) -->
+      <div class="nav-rail-orb is-docked" id="navRailOrb" aria-hidden="true"></div>
+
+      <button type="button" class="nav-station-btn is-active" data-station="0" data-feature="ats" onclick="navToFeature('ats')" title="ATS Resume Score & Missing Skills Gap" aria-current="page">
+        <span class="nav-station-head">
+          <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span class="nav-label-full">ATS Scanner</span>
+          <span class="nav-label-compact">Scanner</span>
+        </span>
+        <span class="nav-station-socket is-docked" aria-hidden="true"></span>
       </button>
 
-      <button class="nav-feature-pill" onclick="navToFeature('scan')" title="Instant 6-Second Recruiter Triage Simulation">
-        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>6s Recruiter Triage</span>
+      <button type="button" class="nav-station-btn" data-station="1" data-feature="scan" onclick="navToFeature('scan')" title="Instant 6-Second Recruiter Triage Simulation">
+        <span class="nav-station-head">
+          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="nav-label-full">6s Recruiter Triage</span>
+          <span class="nav-label-compact">6s Triage</span>
+        </span>
+        <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
 
-      <button class="nav-feature-pill" onclick="navToFeature('traps')" title="Interview Trap Predictor & Defense Framework">
-        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-        <span>Interview Traps</span>
+      <button type="button" class="nav-station-btn" data-station="2" data-feature="traps" onclick="navToFeature('traps')" title="Interview Trap Predictor & Defense Framework">
+        <span class="nav-station-head">
+          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+          <span class="nav-label-full">Interview Traps</span>
+          <span class="nav-label-compact">Traps</span>
+        </span>
+        <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
 
-      <button class="nav-feature-pill" onclick="navToFeature('humanizer')" title="AI Resume Authenticity & Humanizer">
-        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
-        <span>AI Humanizer</span>
-        <span class="nav-feature-badge badge-teal">New</span>
+      <button type="button" class="nav-station-btn" data-station="3" data-feature="humanizer" onclick="navToFeature('humanizer')" title="AI Resume Authenticity & Humanizer">
+        <span class="nav-station-head">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
+          <span class="nav-label-full">AI Humanizer</span>
+          <span class="nav-label-compact">Human</span>
+          <span class="nav-feature-badge badge-teal">New</span>
+        </span>
+        <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
 
-      <button class="nav-feature-pill" onclick="navToFeature('mock')" title="Live Interactive AI Mock Interviewer">
-        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        <span>Mock Interview</span>
-        <span class="nav-feature-badge badge-pulse">Live</span>
+      <button type="button" class="nav-station-btn" data-station="4" data-feature="mock" onclick="navToFeature('mock')" title="Live Interactive AI Mock Interviewer">
+        <span class="nav-station-head">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span class="nav-label-full">Mock Interview</span>
+          <span class="nav-label-compact">Mock</span>
+          <span class="nav-feature-badge badge-pulse">Live</span>
+        </span>
+        <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
     </div>
 
@@ -233,7 +261,7 @@
     </section>
 
     <!-- 3-Step Work Flow -->
-    <div class="flow-wrapper">
+    <div class="flow-wrapper" id="flowWrapper">
       <!-- Interactive Stepper Navigation Tabs -->
       <div class="stepper-nav" id="stepperNav">
         <button class="step-tab active" id="tabStep1" onclick="goToStep(1)">
@@ -404,7 +432,7 @@
     </div>
 
     <!-- Core Capabilities (Simple, Clear English) -->
-    <section class="showcase-section">
+    <section class="showcase-section" id="showcaseSection">
       <div class="section-header-center">
         <div class="section-badge-chip">Built for Job Seekers</div>
         <h2 class="section-title-lg">Everything you need to get hired, not ignored</h2>
@@ -508,7 +536,7 @@
     </section>
 
     <!-- Frequently Asked Questions (FAQ) Section -->
-    <section class="faq-section">
+    <section class="faq-section" id="faqSection">
       <div class="section-header-center">
         <div class="section-badge-chip">Clear Answers</div>
         <h2 class="section-title-lg">Frequently Asked Questions</h2>
@@ -637,6 +665,30 @@
           Delete Account
         </button>
       </div>
+    </div>
+
+    <div class="drawer-features-nav">
+      <div class="drawer-nav-heading">Core Capabilities</div>
+      <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('ats');">
+        <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>ATS Scanner &amp; Skill Match</span>
+      </button>
+      <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('scan');">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>6s Recruiter Triage</span>
+      </button>
+      <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('traps');">
+        <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+        <span>Interview Traps Predictor</span>
+      </button>
+      <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('humanizer');">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
+        <span>AI Resume Humanizer</span>
+      </button>
+      <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('mock');">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span>Live Mock Interview</span>
+      </button>
     </div>
   </aside>
 
