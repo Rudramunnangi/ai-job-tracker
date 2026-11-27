@@ -83,7 +83,7 @@ function showToast(message, type = 'info') {
 function copyToClipboard(text, label = 'Outreach message') {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
-            showToast(`${label} copied to clipboard!`, 'success');
+            showToast(`${label} copied to clipboard`, 'success');
         }).catch(() => {
             showToast(`Could not copy automatically.`, 'error');
         });
@@ -94,7 +94,7 @@ function copyToClipboard(text, label = 'Outreach message') {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        showToast(`${label} copied to clipboard!`, 'success');
+        showToast(`${label} copied to clipboard`, 'success');
     }
 }
 
@@ -184,7 +184,7 @@ function getBrandedBufferingHTML(statusText = "Analyzing resume alignment...") {
 
 function getBrandLoaderMiniSVG() {
     return `<svg class="brand-loader-spin" viewBox="0 0 100 100" width="16" height="16" fill="none" style="display:inline-block; vertical-align:middle;">
-        <rect width="100" height="100" rx="22" fill="#0E1424" stroke="var(--border-subtle)" stroke-width="4"/>
+        <rect width="100" height="100" rx="22" fill="#1A1E28" stroke="var(--border-subtle)" stroke-width="4"/>
         <path d="M30 72V28L70 72V28" stroke="var(--accent-teal)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 }
@@ -539,7 +539,7 @@ async function submitPasswordReset() {
             return;
         }
 
-        alert("Password updated successfully! Please log in with your new credentials.");
+        alert("Password updated. Log in with your new credentials.");
         switchAuthView('login');
     } catch (e) {
         showAuthError("Error updating password.");
@@ -692,7 +692,7 @@ async function uploadResumePDF() {
             document.getElementById('userResume').value = userProfile.resume;
             document.getElementById('profResume').value = userProfile.resume;
             resultBox.innerHTML = "<p style='color: var(--accent-teal); text-align: center;'>Resume successfully parsed and synced with your profile.</p>";
-            alert("Resume PDF successfully parsed and synced!");
+            alert("Resume PDF parsed and synced.");
         } else {
             resultBox.innerHTML = `<p style='color: var(--accent-coral); text-align: center;'>Upload Error: ${data.detail}</p>`;
             alert(data.detail);
@@ -771,7 +771,7 @@ async function saveUserProfile() {
 
             closeProfileModal();
             updateAuthUI();
-            alert("Career profile saved successfully!");
+            alert("Career profile saved.");
         }
     } catch (e) {
         alert("Error saving profile.");
@@ -891,7 +891,7 @@ async function submitNewJob() {
     document.getElementById('modalRole').value = '';
     document.getElementById('modalTags').value = '';
     document.getElementById('modalJD').value = '';
-    showToast(`Added ${role} at ${company}!`, "success");
+    showToast(`Added ${role} at ${company}`, "success");
 
     if (authToken) {
         try {
@@ -946,7 +946,7 @@ async function batchSaveApplications(jobList) {
     // Optimistic UI Rendering: Instantly prepend all batch jobs to UI
     jobs.unshift(...jobList);
     renderDashboard();
-    showToast(`Batch added ${jobList.length} applications!`, "success");
+    showToast(`Batch added ${jobList.length} applications`, "success");
 
     if (authToken) {
         try {
@@ -1008,11 +1008,11 @@ function renderDashboard() {
             nudgeContainer.innerHTML = nudges.map(n => `
                 <div class="pipeline-card" style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
                     <div>
-                        <span style="font-weight:700; color:var(--accent-coral);">Follow-Up Due:</span> 
-                        Applied to <b>${escapeHtml(n.company)}</b> (${escapeHtml(n.role)}) 5+ days ago without response.
+                        <span style="font-weight:500; color:var(--accent-warning);">Follow-up due:</span>
+                        Applied to <strong style="font-weight:500;">${escapeHtml(n.company)}</strong> (${escapeHtml(n.role)}) 5+ days ago without response.
                     </div>
                     <div style="display:flex; gap:8px;">
-                        <button class="btn-ghost compact" onclick="openFollowupModal('${escapeHtml(n.company)}', '${escapeHtml(n.role)}', '${n.date}')">${ICONS.mail} Follow-Up Note</button>
+                        <button class="btn-ghost compact" onclick="openFollowupModal('${escapeHtml(n.company)}', '${escapeHtml(n.role)}', '${n.date}')">${ICONS.mail} Follow-up note</button>
                         <button class="btn-primary compact" onclick="selectJobAndNudge('${n.id}', true)">Run ATS</button>
                     </div>
                 </div>
@@ -1023,9 +1023,9 @@ function renderDashboard() {
     }
 
     const stages = [
-        { name: "Applied", key: "Applied", color: "var(--accent-indigo)" },
-        { name: "Interviewing", key: "Interviewing", color: "var(--accent-amber)" },
-        { name: "Offered", key: "Offered", color: "var(--accent-teal)" },
+        { name: "Applied", key: "Applied", color: "var(--accent-teal)" },
+        { name: "Interviewing", key: "Interviewing", color: "var(--accent-warning)" },
+        { name: "Offered", key: "Offered", color: "var(--accent-success)" },
         { name: "Archived", key: "Rejected", color: "var(--text-muted)" }
     ];
 
@@ -1181,7 +1181,7 @@ function dispatchColdEmail(company, role) {
     const body = encodeURIComponent(`Hi ${compName} Team,\n\nI recently applied for the ${roleTitle} position and wanted to reach out directly. Given my experience delivering reliable software and system architectures, I am very enthusiastic about ${compName}'s product direction.\n\nI have attached my resume and would welcome the opportunity for a brief 10-minute conversation this week to learn more about your engineering priorities.\n\nBest regards,\n${candidateName}`);
 
     window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
-    showToast(`Email draft dispatched to ${targetEmail}!`, "success");
+    showToast(`Email draft sent to ${targetEmail}`, "success");
 }
 
 // 1-Click Viral Scorecard Share to LinkedIn
@@ -1252,13 +1252,13 @@ function renderConnectedPlatformUI() {
 
         if (handle) {
             if (btn) {
-                btn.innerHTML = `<span class="pulse-indicator"></span> Connected`;
+                btn.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:var(--accent-teal);"></span> Connected`;
                 btn.style.borderColor = 'var(--accent-teal)';
                 btn.style.color = 'var(--accent-teal)';
             }
             if (chip) {
                 chip.style.display = 'inline-flex';
-                chip.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:var(--accent-teal);"></span> Monitored: ${escapeHtml(handle)} <span onclick="disconnectPlatform('${p}', event)" style="margin-left:6px; cursor:pointer; font-weight:700; opacity:0.8;" title="Disconnect">&times;</span>`;
+                chip.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:var(--accent-teal);"></span> Monitored: ${escapeHtml(handle)} <span onclick="disconnectPlatform('${p}', event)" style="margin-left:8px; cursor:pointer; font-weight:500; opacity:0.8;" title="Disconnect">&times;</span>`;
             }
         } else {
             if (btn) {
@@ -1339,7 +1339,7 @@ function confirmPlatformConnection() {
     localStorage.setItem('nexjob_connected_platforms', JSON.stringify(connectedPlatforms));
     renderConnectedPlatformUI();
     closePlatformConnectModal();
-    showToast(`Successfully linked ${activeConnectingPlatform.toUpperCase()}! Active monitoring enabled for ${handle}.`, "success");
+    showToast(`Linked ${activeConnectingPlatform} for ${handle}`, "success");
 }
 
 function disconnectPlatform(platform, e) {
@@ -1391,61 +1391,7 @@ function playCelebrationChime() {
     } catch (e) {}
 }
 
-// Celebration Confetti Cannon
-function launchCelebrationConfetti() {
-    const canvas = document.getElementById('confettiCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = [];
-    const colors = ['#00F0FF', '#22D3C8', '#5256D8', '#F59E0B', '#10B981', '#EC4899', '#FFFFFF'];
-    for (let i = 0; i < 90; i++) {
-        particles.push({
-            x: canvas.width / 2 + (Math.random() - 0.5) * 200,
-            y: canvas.height * 0.45 + (Math.random() - 0.5) * 100,
-            vx: (Math.random() - 0.5) * 14,
-            vy: -Math.random() * 11 - 5,
-            size: Math.random() * 8 + 4,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            rot: Math.random() * 360,
-            vRot: (Math.random() - 0.5) * 12,
-            alpha: 1
-        });
-    }
-
-    let frames = 0;
-    function loopConfetti() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.3; // Gravity
-            p.vx *= 0.98;
-            p.rot += p.vRot;
-            p.alpha -= 0.009;
-
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate((p.rot * Math.PI) / 180);
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = Math.max(0, p.alpha);
-            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
-            ctx.restore();
-        });
-
-        frames++;
-        if (frames < 140) {
-            requestAnimationFrame(loopConfetti);
-        } else {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-    }
-    requestAnimationFrame(loopConfetti);
-}
-
-// Trigger Selection Celebration Modal & Alert
+// Trigger Selection Modal & Alert
 function triggerSelectionCelebration(company, role, contextQuote) {
     const modal = document.getElementById('selectionAlertModal');
     const compRoleEl = document.getElementById('selectionCompanyRole');
@@ -1458,8 +1404,7 @@ function triggerSelectionCelebration(company, role, contextQuote) {
 
     if (modal) modal.style.display = 'flex';
     playCelebrationChime();
-    launchCelebrationConfetti();
-    showToast(`CONGRATULATIONS: Selected for ${role} at ${company}!`, "success");
+    showToast(`Offer stage updated for ${role} at ${company}`, "success");
 }
 
 function closeSelectionModal() {
@@ -1488,7 +1433,7 @@ function simulateSelectionUpdate() {
     }
     renderDashboard();
 
-    const sampleQuote = "Pleased to inform you that our hiring committee has officially approved your selection for the Senior Full-Stack Engineer position. We were thoroughly impressed with your technical architecture round and look forward to welcoming you to the Stripe team!";
+    const sampleQuote = "Pleased to inform you that our hiring committee has officially approved your selection for the Senior Full-Stack Engineer position. We were thoroughly impressed with your technical architecture round and look forward to welcoming you to the Stripe team.";
     triggerSelectionCelebration("Stripe", "Senior Full-Stack Engineer", sampleQuote);
 }
 
@@ -1496,7 +1441,7 @@ async function triggerPlatformSync() {
     const btn = document.getElementById('btnTriggerSync');
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<span class="brand-loader-sm"><svg class="brand-loader-svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#141A26"/><path d="M30 72V28L70 72V28" stroke="#5256D8" stroke-width="12" fill="none"/></svg> Syncing Portals...</span>`;
+        btn.innerHTML = `<span class="brand-loader-sm"><svg class="brand-loader-svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#1A1E28"/><path d="M30 72V28L70 72V28" stroke="#22D3C8" stroke-width="12" fill="none"/></svg> Syncing portals...</span>`;
     }
 
     setTimeout(async () => {
@@ -1540,7 +1485,7 @@ async function triggerPlatformSync() {
             btn.innerHTML = `${ICONS.sync} Sync Applications Now`;
         }
         closeIntegrationsModal();
-        showToast("Auto-sync complete: Connected applications updated!", "success");
+        showToast("Auto-sync complete. Connected applications updated.", "success");
     }, 1100);
 }
 
@@ -1566,7 +1511,7 @@ async function oneClickAutoApply(role, company, fitScore, tags, btnEl) {
         btnEl.innerHTML = `Applied (Synced)`;
         btnEl.disabled = true;
     }
-    showToast(`Applied to ${company} for ${role}! Auto-synced to your board.`, "success");
+    showToast(`Applied to ${company} for ${role}. Added to board.`, "success");
 
     if (authToken) {
         try {
@@ -1650,28 +1595,28 @@ async function fetchStagedJobs() {
         banner.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="color:var(--accent-warning); display:inline-flex;">${ICONS.sparkles || '✦'}</span>
-                    <strong style="color:#FFF; font-size:0.92rem;">Pending Applications to Review (${stagedList.length})</strong>
+                    <span style="color:var(--accent-warning); display:inline-flex;">${ICONS.alert}</span>
+                    <strong style="color:var(--text-main); font-size:0.9375rem; font-weight:500;">Pending applications to review (${stagedList.length})</strong>
                 </div>
-                <span style="font-size:0.78rem; color:var(--text-muted);">100% Accuracy Review Queue — verify or dismiss with 1 click</span>
+                <span style="font-size:0.75rem; color:var(--text-muted);">Verify or dismiss pending entries with 1 click</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:8px;">
                 ${stagedList.map(item => `
                     <div class="staged-item-card" id="staged-item-${item.id}">
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <div style="font-weight:700; color:#FFF; font-size:0.88rem;">${escapeHtml(item.role)} <span style="font-weight:400; color:var(--text-muted);">at</span> ${escapeHtml(item.company)}</div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="font-weight:500; color:var(--text-main); font-size:0.875rem;">${escapeHtml(item.role)} <span style="font-weight:400; color:var(--text-muted);">at</span> ${escapeHtml(item.company)}</div>
                             <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                <span class="tag-chip" style="font-size:0.7rem; padding:1px 6px;">${escapeHtml(item.source)}</span>
+                                <span class="tag-chip" style="font-size:0.75rem; padding:2px 8px;">${escapeHtml(item.source)}</span>
                                 <span>Applied: ${item.applied_date || 'Today'}</span>
                                 <span style="color:var(--accent-teal);">Confidence: ${Math.round((item.confidence || 0.9) * 100)}%</span>
                             </div>
                         </div>
                         <div style="display:flex; gap:8px;">
-                            <button class="btn-primary compact" style="padding:4px 10px; font-size:0.75rem;" onclick="confirmStagedJob('${item.id}', '${escapeHtml(item.company)}', '${escapeHtml(item.role)}')">
-                                ${ICONS.check || '✓'} Confirm to Board
+                            <button class="btn-primary compact" style="padding:4px 12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;" onclick="confirmStagedJob('${item.id}', '${escapeHtml(item.company)}', '${escapeHtml(item.role)}')">
+                                ${ICONS.check} Confirm to board
                             </button>
-                            <button class="btn-ghost compact" style="padding:4px 10px; font-size:0.75rem; color:var(--accent-coral);" onclick="rejectStagedJob('${item.id}')">
-                                ${ICONS.trash || '✕'} Dismiss
+                            <button class="btn-ghost compact" style="padding:4px 12px; font-size:0.75rem; color:var(--accent-coral);" onclick="rejectStagedJob('${item.id}')">
+                                Dismiss
                             </button>
                         </div>
                     </div>
@@ -1701,7 +1646,7 @@ async function confirmStagedJob(stagedId, company, role) {
     };
     jobs.unshift(optimisticJob);
     renderDashboard();
-    showToast(`Added ${role} at ${company} to your board!`, "success");
+    showToast(`Added ${role} at ${company} to your board`, "success");
 
     try {
         const res = await fetch("/api/sync/confirm-staged", {
@@ -1781,9 +1726,9 @@ async function parsePastedApplicationEmail() {
             
             let msg = `Detected application: ${parsed.role} at ${parsed.company}`;
             if (data.auto_committed) {
-                msg += " (Auto-synced with 100% confidence!)";
+                msg += " (Auto-synced)";
             } else {
-                msg += " (Added to Staged Queue for your review)";
+                msg += " (Added to review queue)";
             }
             showToast(msg, "success");
             
@@ -1792,7 +1737,7 @@ async function parsePastedApplicationEmail() {
             if (isOfferContext) {
                 triggerSelectionCelebration(parsed.company, parsed.role, emailRaw);
             } else if (data.alert_dispatched) {
-                showToast(`Instant Alert: ${data.alert_type} notification sent!`, "info");
+                showToast(`Instant alert: ${data.alert_type} notification sent`, "info");
             }
             
             if (currentUser && authToken) {
@@ -1996,17 +1941,17 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
 
     // Construct the 4 HTML Panels
     resultBox.innerHTML = `
-        <div class="result-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;">
-            <div style="font-size:0.85rem; color:var(--text-muted);">
-                Report for <strong style="color:#FFF;">${escapeHtml(role)}</strong> at <strong style="color:#FFF;">${escapeHtml(company)}</strong>
+        <div class="result-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+            <div style="font-size:0.875rem; color:var(--text-muted);">
+                Report for <strong style="color:var(--text-main); font-weight:500;">${escapeHtml(role)}</strong> at <strong style="color:var(--text-main); font-weight:500;">${escapeHtml(company)}</strong>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn-ghost" onclick="shareScorecardLinkedIn(${score}, this.dataset.role)" data-role="${escapeHtml(role)}" title="Share scorecard on LinkedIn">
                     <svg class="icon-svg" viewBox="0 0 24 24" style="margin-right:4px;"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-                    Share Result
+                    Share result
                 </button>
-                <button class="btn-ghost" onclick="downloadRoadmapPDF()">${ICONS.download} Print / Save PDF</button>
-                <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultWindow').innerText, 'Full Report')">${ICONS.copy} Copy Full Report</button>
+                <button class="btn-ghost" onclick="downloadRoadmapPDF()">${ICONS.download} Print / save PDF</button>
+                <button class="copy-btn" onclick="copyToClipboard(document.getElementById('atsResultWindow').innerText, 'Full report')">${ICONS.copy} Copy full report</button>
             </div>
         </div>
 
@@ -2021,53 +1966,53 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <span class="tag-chip" style="background:var(--accent-teal-bg); color:var(--accent-teal); border-color:rgba(13,148,136,0.3); font-weight:700;">${matchedSkills.length} Matched</span>
-                    <span class="tag-chip" style="background:var(--accent-warning-bg); color:var(--accent-warning); border-color:rgba(217,119,6,0.3); font-weight:700;">${missingSkills.length} Gaps</span>
+                    <span class="tag-chip" style="background:var(--accent-teal-bg); color:var(--accent-teal); border-color:rgba(34,211,200,0.28); font-weight:500;">${matchedSkills.length} matched</span>
+                    <span class="tag-chip" style="background:var(--accent-warning-bg); color:var(--accent-warning); border-color:rgba(229,169,60,0.28); font-weight:500;">${missingSkills.length} gaps</span>
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.2rem 0;">
-                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem;">
-                    <div style="font-size:0.85rem; font-weight:700; color:var(--accent-teal); margin-bottom:0.75rem;">
-                        Matched Skills &amp; Core Strengths
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:20px 0;">
+                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px;">
+                    <div style="font-size:0.875rem; font-weight:500; color:var(--accent-teal); margin-bottom:12px;">
+                        Matched skills &amp; core strengths
                     </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                        ${matchedSkills.map(s => `<span class="tag-chip" style="background:var(--accent-teal-bg); color:var(--accent-teal); border-color:rgba(13,148,136,0.3);">${escapeHtml(s)}</span>`).join('')}
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        ${matchedSkills.map(s => `<span class="tag-chip" style="background:var(--accent-teal-bg); color:var(--accent-teal); border-color:rgba(34,211,200,0.28);">${escapeHtml(s)}</span>`).join('')}
                     </div>
                 </div>
 
-                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem;">
-                    <div style="font-size:0.85rem; font-weight:700; color:var(--accent-warning); margin-bottom:0.75rem;">
-                        Missing Keywords in Resume
+                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px;">
+                    <div style="font-size:0.875rem; font-weight:500; color:var(--accent-warning); margin-bottom:12px;">
+                        Missing keywords in resume
                     </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                        ${missingSkills.map(s => `<span class="tag-chip" style="background:var(--accent-warning-bg); color:var(--accent-warning); border-color:rgba(217,119,6,0.3);">${escapeHtml(s)}</span>`).join('')}
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        ${missingSkills.map(s => `<span class="tag-chip" style="background:var(--accent-warning-bg); color:var(--accent-warning); border-color:rgba(229,169,60,0.28);">${escapeHtml(s)}</span>`).join('')}
                     </div>
                 </div>
             </div>
 
-            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
-                <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; margin-bottom:0.8rem;">
-                    Suggested Resume Bullets for Missing Skills
+            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin-bottom:24px;">
+                <h4 style="font-size:0.9375rem; font-weight:500; color:var(--text-main); margin-bottom:12px;">
+                    Suggested resume bullets for missing skills
                 </h4>
-                <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
-                    If you have experience with these tools, add these verified impact bullets into your resume's experience section:
+                <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:16px;">
+                    If you have experience with these tools, add these verified impact bullets into your resume experience section:
                 </p>
-                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <div style="display:flex; flex-direction:column; gap:12px;">
                     ${resumeBullets.map(bulletText => `
                         <div class="resume-bullet-row">
                             <span class="resume-bullet-text">• ${escapeHtml(bulletText)}</span>
-                            <button class="btn-ghost" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(bulletText)}', 'Resume bullet')">${ICONS.copy} Copy</button>
+                            <button class="btn-ghost" style="padding:4px 12px; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(bulletText)}', 'Resume bullet')">${ICONS.copy} Copy</button>
                         </div>
                     `).join('')}
                 </div>
             </div>
 
             <!-- Targeted 3-Week Upskilling Roadmap Blueprint -->
-            <div class="ats-section-box" style="margin-bottom:1.5rem;">
+            <div class="ats-section-box" style="margin-bottom:24px;">
                 <div class="ats-section-header">
                     <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    <span>Targeted Upskilling Blueprint (Bridge All Keyword Gaps)</span>
+                    <span>Targeted upskilling blueprint</span>
                 </div>
                 <div class="roadmap-blueprint-card">
                     ${roadmapItems.map(item => `
@@ -2083,28 +2028,28 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
             <div class="instant-fit-section">
                 <div class="instant-fit-header">
                     <div>
-                        <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; display:inline-flex; align-items:center; gap:6px;">${ICONS.bolt} Instant Fit Openings &amp; Verified Portals</h4>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Pre-qualified openings matching your verified resume skills right now.</p>
+                        <h4 style="font-size:0.9375rem; font-weight:500; color:var(--text-main); display:inline-flex; align-items:center; gap:8px;">${ICONS.bolt} Instant fit openings &amp; portals</h4>
+                        <p style="font-size:0.8125rem; color:var(--text-muted); margin-top:4px;">Pre-qualified openings matching your verified resume skills right now.</p>
                     </div>
-                    <span class="fit-score-badge">Instant Sync Enabled</span>
+                    <span class="fit-score-badge">Instant sync enabled</span>
                 </div>
                 <div class="verified-roles-grid">
                     ${alternativeRoles.map(alt => `
                         <div class="verified-role-card">
                             <div>
                                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                                    <div style="font-weight:700; color:#FFF; font-size:0.92rem;">${escapeHtml(alt.role)}</div>
-                                    <span class="fit-score-badge">${alt.fit || 88}% Fit</span>
+                                    <div style="font-weight:500; color:var(--text-main); font-size:0.9375rem;">${escapeHtml(alt.role)}</div>
+                                    <span class="fit-score-badge">${alt.fit || 88}% fit</span>
                                 </div>
-                                <div style="font-size:0.82rem; color:var(--accent-teal); margin-bottom:8px;">${escapeHtml(alt.company)}</div>
+                                <div style="font-size:0.8125rem; color:var(--accent-teal); margin-bottom:8px;">${escapeHtml(alt.company)}</div>
                                 <div class="role-search-links">
                                     <a href="https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(alt.role)}" target="_blank" rel="noopener noreferrer" class="verified-job-link">LinkedIn</a>
                                     <a href="https://www.indeed.com/jobs?q=${encodeURIComponent(alt.role)}" target="_blank" rel="noopener noreferrer" class="verified-job-link">Indeed</a>
                                     <a href="https://www.google.com/search?q=${encodeURIComponent(alt.role + ' jobs')}&ibp=htl;jobs" target="_blank" rel="noopener noreferrer" class="verified-job-link">Google Jobs</a>
                                 </div>
                             </div>
-                            <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:6px; margin-top:8px;" onclick="oneClickAutoApply('${escapeHtml(alt.role)}', '${escapeHtml(alt.company)}', ${alt.fit || 88}, ['Direct Match', 'Immediate'], this)">
-                                ${ICONS.bolt} 1-Click Auto-Apply
+                            <button class="btn-primary compact" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:8px; margin-top:8px;" onclick="oneClickAutoApply('${escapeHtml(alt.role)}', '${escapeHtml(alt.company)}', ${alt.fit || 88}, ['Direct Match', 'Immediate'], this)">
+                                ${ICONS.bolt} 1-click auto-apply
                             </button>
                         </div>
                     `).join('')}
@@ -2113,10 +2058,10 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
 
             <!-- Detailed ATS Analysis Breakdown (Sanitized, No Duplicate Scorecards) -->
             ${parsedRaw.trim() ? `
-                <div class="ats-section-box" style="margin-top:1.5rem;">
+                <div class="ats-section-box" style="margin-top:24px;">
                     <div class="ats-section-header">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        <span>Detailed ATS Analysis Breakdown</span>
+                        <span>Detailed ATS analysis breakdown</span>
                     </div>
                     <div id="atsResultContent">
                         ${parsedRaw}
@@ -2128,23 +2073,23 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
         <!-- Panel 2: 6-Second Recruiter Scan -->
         <div id="panelResScan" class="result-tab-panel" style="display:none;">
             <div class="recruiter-scan-card">
-                <div class="scan-header-badge" style="display:inline-flex; align-items:center; gap:6px;">
-                    ${ICONS.clock} 6-Second Recruiter Skim Simulation
+                <div class="scan-header-badge" style="display:inline-flex; align-items:center; gap:8px;">
+                    ${ICONS.clock} 6-second recruiter skim simulation
                 </div>
                 
                 <div class="scan-verdict-banner">
                     <div>
-                        <div class="verdict-title">Recruiter Skim Verdict</div>
-                        <p style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;">What a human reviewer decides in the first 6 seconds.</p>
+                        <div class="verdict-title">Recruiter skim verdict</div>
+                        <p style="font-size:0.8125rem; color:var(--text-muted); margin-top:4px;">What a human reviewer decides in the first 6 seconds.</p>
                     </div>
                     <div class="verdict-tag ${verdictClass}">${verdict}</div>
                 </div>
 
                 <div class="scan-grid">
                     <div class="scan-col">
-                        <div class="scan-col-title green" style="display:flex; align-items:center; gap:6px;">
+                        <div class="scan-col-title green" style="display:flex; align-items:center; gap:8px;">
                             <span class="indicator-bullet pass"></span>
-                            <span>3 Instant Green Flags</span>
+                            <span>3 instant green flags</span>
                         </div>
                         <ul class="scan-list">
                             ${greenFlags.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
@@ -2152,9 +2097,9 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                     </div>
 
                     <div class="scan-col">
-                        <div class="scan-col-title red" style="display:flex; align-items:center; gap:6px;">
+                        <div class="scan-col-title red" style="display:flex; align-items:center; gap:8px;">
                             <span class="indicator-bullet fail"></span>
-                            <span>3 Instant Red Flags / Friction</span>
+                            <span>3 instant red flags</span>
                         </div>
                         <ul class="scan-list">
                             ${redFlags.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
@@ -2162,9 +2107,9 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                     </div>
                 </div>
 
-                <div style="margin-top:1.2rem; padding:1rem; background:var(--bg-elevated); border-radius:var(--radius-xs); border:1px solid var(--border-medium); font-size:0.84rem; color:var(--text-secondary); display:flex; align-items:flex-start; gap:8px;">
+                <div style="margin-top:20px; padding:16px; background:var(--bg-elevated); border-radius:var(--radius-xs); border:1px solid var(--border-medium); font-size:0.8125rem; color:var(--text-secondary); display:flex; align-items:flex-start; gap:8px;">
                     <span style="color:var(--accent-warning); margin-top:2px;">${ICONS.bulb}</span>
-                    <div><strong>How to flip this verdict:</strong> Ensure your top 3 projects prominently feature the target keywords (${missingSkills.slice(0, 3).join(', ')}) with quantified metrics in the top half of your resume.</div>
+                    <div><strong style="font-weight:500; color:var(--text-main);">How to flip this verdict:</strong> Ensure your top 3 projects prominently feature target keywords (${missingSkills.slice(0, 3).join(', ')}) with quantified metrics in the top half of your resume.</div>
                 </div>
             </div>
         </div>
@@ -2172,12 +2117,12 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
         <!-- Panel 3: Interview Trap Predictor -->
         <div id="panelResTraps" class="result-tab-panel" style="display:none;">
             <div class="interview-trap-card">
-                <div style="margin-bottom:1.2rem;">
-                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF; display:flex; align-items:center; gap:8px;">
-                        ${ICONS.target} Interview Trap Predictor
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:1.125rem; font-weight:500; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                        ${ICONS.target} Interview trap predictor
                     </h3>
-                    <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px;">
-                        Interviewers probe where your resume does not directly match the job description. Here are the 3 hardest questions you will face and how to defend each gap without getting trapped.
+                    <p style="font-size:0.8125rem; color:var(--text-muted); margin-top:4px;">
+                        Interviewers probe where your resume diverges from the job description. Prepare these 3 gap defenses cleanly.
                     </p>
                 </div>
 
@@ -2193,58 +2138,58 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
         <!-- Panel 4: Recruiter Outreach & Anti-Ghosting Timeline -->
         <div id="panelResOutreach" class="result-tab-panel" style="display:none;">
             <div class="ghosting-timeline-card">
-                <div style="margin-bottom:1.5rem;">
-                    <h3 style="font-size:1.1rem; font-weight:800; color:#FFF; display:flex; align-items:center; gap:8px;">
-                        ${ICONS.mail} Recruiter Outreach &amp; Anti-Ghosting Timeline
+                <div style="margin-bottom:24px;">
+                    <h3 style="font-size:1.125rem; font-weight:500; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                        ${ICONS.mail} Recruiter outreach &amp; follow-up sequence
                     </h3>
-                    <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px;">
-                        A proven communication sequence to get responses from engineering managers and recruiters before and after applying.
+                    <p style="font-size:0.8125rem; color:var(--text-muted); margin-top:4px;">
+                        Structured communication sequence for reaching engineering managers and recruiters before and after applying.
                     </p>
                 </div>
 
                 <!-- Cold Outreach -->
-                <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:8px;">
-                        <span style="font-size:0.88rem; font-weight:700; color:#FFF;">Ready-to-Send Cold Outreach Note (&lt;120 words)</span>
-                        <div style="display:flex; gap:6px;">
-                            <button class="btn-primary" style="padding:4px 10px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">
-                                ${ICONS.send} Send to HR (1-Click)
+                <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin-bottom:24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                        <span style="font-size:0.875rem; font-weight:500; color:var(--text-main);">Cold outreach note (&lt;120 words)</span>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-primary" style="padding:4px 12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">
+                                ${ICONS.send} Send to HR
                             </button>
                             <button class="copy-btn" onclick="copyToClipboard(document.getElementById('coldOutreachBox').innerText, 'Cold outreach note')">
                                 ${ICONS.copy} Copy
                             </button>
                         </div>
                     </div>
-                    <pre id="coldOutreachBox" style="white-space:pre-wrap; font-family:inherit; font-size:0.84rem; color:var(--text-secondary); line-height:1.5; margin:0;">${escapeHtml(coldOutreach)}</pre>
+                    <pre id="coldOutreachBox" style="white-space:pre-wrap; font-family:inherit; font-size:0.8125rem; color:var(--text-secondary); line-height:1.5; margin:0;">${escapeHtml(coldOutreach)}</pre>
                 </div>
 
                 <!-- Timeline Steps -->
                 <div class="timeline-step">
-                    <div class="timeline-step-icon">03</div>
+                    <div class="timeline-step-icon">3</div>
                     <div class="timeline-step-content">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="timeline-step-title">Day 3: LinkedIn Connection Note (&lt;300 chars)</div>
+                            <div class="timeline-step-title">Day 3: LinkedIn connection note (&lt;300 chars)</div>
                             <button class="copy-btn mini" onclick="copyFollowupNote('day3')">${ICONS.copy} Copy</button>
                         </div>
                         <div class="timeline-step-desc">Send with your LinkedIn connection request to the recruiter or team lead.</div>
-                        <div style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-size:0.82rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
-                            Hi [Name], applied for the ${escapeHtml(role)} position at ${escapeHtml(company)}! Given my work in ${matchedSkills[0] || 'software development'}, I'm very excited about the team's direction. Would love to connect.
+                        <div style="background:var(--bg-elevated); padding:12px; border-radius:var(--radius-xs); font-size:0.8125rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
+                            Hi [Name], applied for the ${escapeHtml(role)} position at ${escapeHtml(company)}. Given my work in ${matchedSkills[0] || 'software development'}, I would like to connect and follow the team's updates.
                         </div>
                     </div>
                 </div>
 
                 <div class="timeline-step">
-                    <div class="timeline-step-icon">07</div>
+                    <div class="timeline-step-icon">7</div>
                     <div class="timeline-step-content">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="timeline-step-title">Day 7: Polite Status Check</div>
-                            <div style="display:flex; gap:6px;">
-                                <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">${ICONS.send} Send</button>
+                            <div class="timeline-step-title">Day 7: Polite status check</div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn-ghost mini" style="padding:4px 8px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">${ICONS.send} Send</button>
                                 <button class="copy-btn mini" onclick="copyFollowupNote('day7')">${ICONS.copy} Copy</button>
                             </div>
                         </div>
-                        <div class="timeline-step-desc">Send via email or LinkedIn DM if you haven't received an update after 1 week.</div>
-                        <div style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-size:0.82rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
+                        <div class="timeline-step-desc">Send via email or LinkedIn DM if you have not received an update after 1 week.</div>
+                        <div style="background:var(--bg-elevated); padding:12px; border-radius:var(--radius-xs); font-size:0.8125rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
                             Hi [Name], following up on my application for ${escapeHtml(role)} submitted last week. I noticed ${escapeHtml(company)}'s recent work and believe my background with ${matchedSkills[0] || 'core technologies'} allows me to contribute immediately. Happy to share work samples.
                         </div>
                     </div>
@@ -2254,15 +2199,15 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                     <div class="timeline-step-icon">14</div>
                     <div class="timeline-step-content">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="timeline-step-title">Day 14: Value-Add Final Touch</div>
-                            <div style="display:flex; gap:6px;">
-                                <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">${ICONS.send} Send</button>
+                            <div class="timeline-step-title">Day 14: Value-add final touch</div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn-ghost mini" style="padding:4px 8px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;" onclick="dispatchColdEmail('${escapeHtml(company)}', '${escapeHtml(role)}')">${ICONS.send} Send</button>
                                 <button class="copy-btn mini" onclick="copyFollowupNote('day14')">${ICONS.copy} Copy</button>
                             </div>
                         </div>
-                        <div class="timeline-step-desc">Share a quick observation about their product or engineering challenge.</div>
-                        <div style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-size:0.82rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
-                            Hi [Name], checking in regarding the ${escapeHtml(role)} opening. Regardless of timing, really admire what ${escapeHtml(company)} is building and would love to stay in touch for future opportunities.
+                        <div class="timeline-step-desc">Share a concise observation about their product or engineering challenge.</div>
+                        <div style="background:var(--bg-elevated); padding:12px; border-radius:var(--radius-xs); font-size:0.8125rem; color:var(--text-secondary); border:1px solid var(--border-subtle); margin-top:4px;">
+                            Hi [Name], checking in regarding the ${escapeHtml(role)} opening. Regardless of timing, I follow what ${escapeHtml(company)} is building closely and would welcome staying in touch for upcoming roles.
                         </div>
                     </div>
                 </div>
@@ -2275,35 +2220,35 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                 <div class="ats-score-hero">
                     <div class="ats-score-gauge" id="humanizerScoreGauge">88%</div>
                     <div>
-                        <div class="ats-verdict-title" id="humanizerRiskTitle" style="color:var(--accent-teal);">Authentic Human Tone</div>
-                        <div class="ats-verdict-sub" id="humanizerVerdictSub">Zero high-risk AI cliches detected. Safe from recruiter AI-detection penalties.</div>
+                        <div class="ats-verdict-title" id="humanizerRiskTitle" style="color:var(--accent-teal);">Authentic human tone</div>
+                        <div class="ats-verdict-sub" id="humanizerVerdictSub">Zero high-risk AI cliches detected. Natural tone preserved.</div>
                     </div>
                 </div>
                 <button class="btn-primary compact" onclick="runLiveAuthenticityScan()">
                     <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                    Re-Scan Tone
+                    Re-scan tone
                 </button>
             </div>
 
-            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin:1.2rem 0;">
-                <div style="font-size:0.9rem; font-weight:700; color:#FFF; margin-bottom:0.75rem;">
-                    Detected AI Cliches &amp; Robotic Tone Flags
+            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin:20px 0;">
+                <div style="font-size:0.875rem; font-weight:500; color:var(--text-main); margin-bottom:12px;">
+                    Detected AI cliches &amp; phrasing flags
                 </div>
-                <div id="humanizerFlagsContainer" style="display:flex; flex-direction:column; gap:0.5rem;">
-                    <div style="font-size:0.82rem; color:var(--text-muted);">
+                <div id="humanizerFlagsContainer" style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="font-size:0.8125rem; color:var(--text-muted);">
                         Loading tone analysis...
                     </div>
                 </div>
             </div>
 
-            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
-                <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; margin-bottom:0.8rem;">
-                    Humanized Accomplishment Replacements (AI ➔ Human Voice)
+            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin-bottom:24px;">
+                <h4 style="font-size:0.9375rem; font-weight:500; color:var(--text-main); margin-bottom:12px;">
+                    Humanized accomplishment replacements
                 </h4>
-                <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
-                    Recruiters immediately skip resumes with robotic fluff. Replace flagged phrasing with these high-credibility active bullets:
+                <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:16px;">
+                    Recruiters skip generic phrasing. Replace flagged wording with concrete outcome bullets:
                 </p>
-                <div id="humanizedBulletsContainer" style="display:flex; flex-direction:column; gap:0.75rem;">
+                <div id="humanizedBulletsContainer" style="display:flex; flex-direction:column; gap:12px;">
                 </div>
             </div>
         </div>
@@ -2312,10 +2257,10 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
         <div id="panelResMock" class="result-tab-panel" style="display:none;">
             <div class="ats-master-score-card">
                 <div class="ats-score-hero">
-                    <div class="ats-score-gauge amber" id="mockRoundBadge" style="font-size:1.1rem; width:64px; height:64px;">R1/3</div>
+                    <div class="ats-score-gauge amber" id="mockRoundBadge" style="font-size:1.125rem; width:64px; height:64px;">R1/3</div>
                     <div>
-                        <div class="ats-verdict-title" id="mockInterviewerTitle">Live Mock Technical &amp; Behavioral Screen</div>
-                        <div class="ats-verdict-sub">Practice real interview questions tailored to ${escapeHtml(role)} at ${escapeHtml(company)}.</div>
+                        <div class="ats-verdict-title" id="mockInterviewerTitle">Live mock technical &amp; behavioral screen</div>
+                        <div class="ats-verdict-sub">Practice interview questions tailored to ${escapeHtml(role)} at ${escapeHtml(company)}.</div>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px;">
@@ -2323,63 +2268,63 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                         <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                         Listen
                     </button>
-                    <button class="btn-primary compact" onclick="startNewMockSession()">Reset Session</button>
+                    <button class="btn-primary compact" onclick="startNewMockSession()">Reset session</button>
                 </div>
             </div>
 
-            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin:1.2rem 0;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-                    <div style="font-size:0.85rem; font-weight:700; color:var(--accent-teal);" id="mockInterviewerSpeaker">
-                        Jordan (Hiring Lead)
+            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin:20px 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="font-size:0.875rem; font-weight:500; color:var(--accent-teal);" id="mockInterviewerSpeaker">
+                        Jordan (Hiring lead)
                     </div>
-                    <span class="tag-chip" style="font-size:0.72rem;" id="mockRoundIndicator">Round 1 of 3</span>
+                    <span class="tag-chip" style="font-size:0.75rem;" id="mockRoundIndicator">Round 1 of 3</span>
                 </div>
-                <div id="mockQuestionText" style="font-size:0.95rem; font-weight:600; color:#FFF; line-height:1.5; margin-bottom:1rem;">
+                <div id="mockQuestionText" style="font-size:0.9375rem; font-weight:500; color:var(--text-main); line-height:1.5; margin-bottom:16px;">
                     Loading tailored question...
                 </div>
 
-                <div class="form-group" style="margin-bottom:0.75rem;">
+                <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label" style="display:flex; justify-content:space-between;">
-                        <span>Your Answer</span>
+                        <span>Your answer</span>
                         <span id="voiceStatusNotice" style="font-size:0.75rem; color:var(--text-muted);"></span>
                     </label>
-                    <textarea id="mockAnswerInput" class="form-textarea" placeholder="Type your answer or click 'Voice Input' to speak naturally..." rows="4"></textarea>
+                    <textarea id="mockAnswerInput" class="form-textarea" placeholder="Type your answer or click Voice input to speak..." rows="4"></textarea>
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <button class="btn-ghost" id="btnVoiceRecord" onclick="toggleVoiceRecording()" style="display:inline-flex; align-items:center; gap:6px;">
+                    <button class="btn-ghost" id="btnVoiceRecord" onclick="toggleVoiceRecording()" style="display:inline-flex; align-items:center; gap:8px;">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                        <span id="voiceBtnLabel">Voice Input (Mic)</span>
+                        <span id="voiceBtnLabel">Voice input (Mic)</span>
                     </button>
                     <button class="btn-primary" id="btnSubmitMockAnswer" onclick="submitMockAnswer()">
-                        Submit Answer for Feedback →
+                        Submit answer for feedback →
                     </button>
                 </div>
             </div>
 
             <!-- AI Feedback and Next Question Box -->
-            <div id="mockFeedbackBox" style="display:none; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-                    <div style="font-size:0.9rem; font-weight:800; color:#FFF;">Instant Recruiter Feedback</div>
-                    <span class="tag-chip" id="mockScoreBadge" style="font-weight:700;">Score: 8/10</span>
+            <div id="mockFeedbackBox" style="display:none; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin-bottom:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="font-size:0.875rem; font-weight:500; color:var(--text-main);">Recruiter feedback</div>
+                    <span class="tag-chip" id="mockScoreBadge" style="font-weight:500;">Score: 8/10</span>
                 </div>
-                <p id="mockFeedbackText" style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.75rem; line-height:1.4;"></p>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
-                    <div style="background:rgba(13,148,136,0.1); border:1px solid rgba(13,148,136,0.2); padding:10px; border-radius:var(--radius-xs);">
-                        <strong style="color:var(--accent-teal); font-size:0.8rem; display:block; margin-bottom:4px;">Strengths:</strong>
-                        <div id="mockStrengthsList" style="font-size:0.78rem; color:var(--text-secondary);"></div>
+                <p id="mockFeedbackText" style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.5;"></p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                    <div style="background:var(--accent-teal-bg); border:1px solid rgba(34,211,200,0.28); padding:12px; border-radius:var(--radius-xs);">
+                        <strong style="color:var(--accent-teal); font-size:0.8125rem; font-weight:500; display:block; margin-bottom:4px;">Strengths</strong>
+                        <div id="mockStrengthsList" style="font-size:0.75rem; color:var(--text-secondary);"></div>
                     </div>
-                    <div style="background:rgba(217,119,6,0.1); border:1px solid rgba(217,119,6,0.2); padding:10px; border-radius:var(--radius-xs);">
-                        <strong style="color:var(--accent-warning); font-size:0.8rem; display:block; margin-bottom:4px;">How to Improve (STAR):</strong>
-                        <div id="mockImprovementsList" style="font-size:0.78rem; color:var(--text-secondary);"></div>
+                    <div style="background:var(--accent-warning-bg); border:1px solid rgba(229,169,60,0.28); padding:12px; border-radius:var(--radius-xs);">
+                        <strong style="color:var(--accent-warning); font-size:0.8125rem; font-weight:500; display:block; margin-bottom:4px;">How to improve (STAR)</strong>
+                        <div id="mockImprovementsList" style="font-size:0.75rem; color:var(--text-secondary);"></div>
                     </div>
                 </div>
-                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); padding:10px; border-radius:var(--radius-xs); margin-bottom:0.75rem;">
-                    <strong style="color:var(--accent-teal); font-size:0.8rem; display:block; margin-bottom:4px;">Model Answer Formula:</strong>
-                    <div id="mockModelAnswer" style="font-size:0.8rem; color:var(--text-muted); font-style:italic;"></div>
+                <div style="background:var(--bg-card); border:1px solid var(--border-subtle); padding:12px; border-radius:var(--radius-xs); margin-bottom:12px;">
+                    <strong style="color:var(--accent-teal); font-size:0.8125rem; font-weight:500; display:block; margin-bottom:4px;">Model answer formula</strong>
+                    <div id="mockModelAnswer" style="font-size:0.8125rem; color:var(--text-muted);"></div>
                 </div>
                 <button class="btn-primary" id="btnNextMockQuestion" onclick="advanceMockQuestion()" style="width:100%;">
-                    Next Interview Question →
+                    Next interview question →
                 </button>
             </div>
         </div>
@@ -2390,32 +2335,32 @@ function renderATSResult(rawResult, role, company, jd, resume, isGuest, aiData =
                 <div class="ats-score-hero">
                     <div class="ats-score-gauge" id="ghostScoreGauge">88%</div>
                     <div>
-                        <div class="ats-verdict-title" id="ghostVerdictTitle" style="color:var(--accent-teal);">Active Role (High Callback Rate)</div>
+                        <div class="ats-verdict-title" id="ghostVerdictTitle" style="color:var(--accent-teal);">Active role (high callback rate)</div>
                         <div class="ats-verdict-sub" id="ghostVerdictSub">High-priority live opening with direct engineering deliverables.</div>
                     </div>
                 </div>
                 <button class="btn-primary compact" onclick="runLiveGhostJobScan()">
                     <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                    Re-Analyze Job Reality
+                    Re-analyze job reality
                 </button>
             </div>
 
-            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin:1.2rem 0;">
-                <div style="font-size:0.9rem; font-weight:700; color:#FFF; margin-bottom:0.75rem;">
-                    Hiring Activity Signals &amp; Risk Flags
+            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin:20px 0;">
+                <div style="font-size:0.875rem; font-weight:500; color:var(--text-main); margin-bottom:12px;">
+                    Hiring activity signals &amp; risk flags
                 </div>
-                <div id="ghostSignalsContainer" style="display:flex; flex-direction:column; gap:0.6rem;">
-                    <div style="font-size:0.82rem; color:var(--text-muted);">
+                <div id="ghostSignalsContainer" style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="font-size:0.8125rem; color:var(--text-muted);">
                         Analyzing posting freshness and boilerplate density...
                     </div>
                 </div>
             </div>
 
-            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1.2rem; margin-bottom:1.5rem;">
-                <h4 style="font-size:0.95rem; font-weight:800; color:#FFF; margin-bottom:0.6rem;">
-                    Candidate Tactical Action Plan
+            <div class="highlight-section" style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:20px; margin-bottom:24px;">
+                <h4 style="font-size:0.9375rem; font-weight:500; color:var(--text-main); margin-bottom:8px;">
+                    Tactical action plan
                 </h4>
-                <p id="ghostActionPlanText" style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+                <p id="ghostActionPlanText" style="font-size:0.875rem; color:var(--text-secondary); line-height:1.5;">
                     Analyzing hiring velocity recommendations...
                 </p>
             </div>
@@ -2472,24 +2417,24 @@ async function runLiveAuthenticityScan() {
             if (flagsContainer) {
                 if (r.flagged_phrases && r.flagged_phrases.length > 0) {
                     flagsContainer.innerHTML = r.flagged_phrases.map(f => `
-                        <div style="background:rgba(217,119,6,0.1); border:1px solid rgba(217,119,6,0.25); border-radius:var(--radius-xs); padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                            <span style="font-weight:700; color:var(--accent-warning); font-size:0.82rem;">"${escapeHtml(f.phrase)}"</span>
+                        <div style="background:var(--accent-warning-bg); border:1px solid rgba(229,169,60,0.28); border-radius:var(--radius-xs); padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                            <span style="font-weight:500; color:var(--accent-warning); font-size:0.8125rem;">"${escapeHtml(f.phrase)}"</span>
                             <span style="font-size:0.75rem; color:var(--text-secondary);">${escapeHtml(f.reason)}</span>
                         </div>
                     `).join('');
                 } else {
-                    flagsContainer.innerHTML = `<div style="font-size:0.82rem; color:var(--accent-teal);">✓ No artificial or robotic cliches detected. Excellent natural tone.</div>`;
+                    flagsContainer.innerHTML = `<div style="font-size:0.8125rem; color:var(--accent-teal); display:flex; align-items:center; gap:8px;">${ICONS.check} <span>No artificial or robotic cliches detected. Natural tone.</span></div>`;
                 }
             }
 
             if (bulletsContainer && r.humanized_bullets) {
                 bulletsContainer.innerHTML = r.humanized_bullets.map(b => `
-                    <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-xs); padding:10px 12px;">
+                    <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-xs); padding:12px;">
                         <div style="font-size:0.75rem; color:var(--accent-danger); text-decoration:line-through; margin-bottom:4px;">Robotic: "${escapeHtml(b.robotic)}"</div>
-                        <div style="font-size:0.82rem; font-weight:600; color:var(--accent-teal); margin-bottom:6px;">✓ Humanized: "${escapeHtml(b.humanized)}"</div>
+                        <div style="font-size:0.8125rem; font-weight:500; color:var(--accent-teal); margin-bottom:8px; display:flex; align-items:flex-start; gap:8px;"><span style="flex-shrink:0; margin-top:2px;">${ICONS.check}</span><span>Humanized: "${escapeHtml(b.humanized)}"</span></div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(b.rule || '')}</span>
-                            <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(b.humanized)}', 'Humanized bullet')">${ICONS.copy} Copy</button>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(b.rule || '')}</span>
+                            <button class="btn-ghost mini" style="padding:4px 8px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard('${escapeHtml(b.humanized)}', 'Humanized bullet')">${ICONS.copy} Copy</button>
                         </div>
                     </div>
                 `).join('');
@@ -2707,28 +2652,29 @@ async function submitMockAnswer() {
             const nextBtn = document.getElementById('btnNextMockQuestion');
             if (nextBtn) {
                 if (_mockSessionData.is_complete) {
-                    nextBtn.textContent = `Finish Mock Screen (Verdict: ${d.final_verdict || 'STRONG HIRE'}) ★`;
-                    nextBtn.style.background = "var(--color-success)";
+                    nextBtn.textContent = `Finish mock screen (${d.final_verdict || 'Strong hire'})`;
+                    nextBtn.style.background = "var(--accent-success)";
+                    nextBtn.style.color = "#0b0d14";
                 } else {
                     nextBtn.textContent = `Advance to Round ${_mockSessionData.round + 1} of 3 →`;
                 }
             }
 
-            showToast(`Answer graded: ${d.score}/10!`, "success");
+            showToast(`Answer graded: ${d.score}/10`, "success");
         }
     } catch (e) {
         showToast("Unable to score answer. Retrying offline evaluation...", "info");
     } finally {
         if (btnSubmit) {
             btnSubmit.disabled = false;
-            btnSubmit.textContent = "Submit Answer for Feedback →";
+            btnSubmit.textContent = "Submit answer for feedback →";
         }
     }
 }
 
 function advanceMockQuestion() {
     if (_mockSessionData.is_complete) {
-        showToast("Mock interview completed! Check your score breakdown.", "success");
+        showToast("Mock interview completed. Review your score breakdown.", "success");
         return;
     }
 
@@ -2782,12 +2728,12 @@ function ensureFeatureWorkspaceReady(featureKey) {
     if (resultBox && !document.getElementById('previewWorkspaceBanner')) {
         const banner = document.createElement('div');
         banner.id = 'previewWorkspaceBanner';
-        banner.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:rgba(34,211,200,0.08); border:1px solid rgba(34,211,200,0.28); border-radius:var(--radius-sm); padding:8px 12px; margin-bottom:1rem; font-size:0.78rem; color:var(--text-secondary);';
+        banner.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:var(--accent-teal-bg); border:1px solid rgba(34,211,200,0.28); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px; font-size:0.8125rem; color:var(--text-secondary);';
         banner.innerHTML = `
-            <span><strong style="color:var(--accent-teal);">Interactive Tool Workspace:</strong> Using starter sample context. Add your target job &amp; resume for personalized analysis.</span>
-            <span style="display:flex; gap:6px;">
-                <button type="button" class="btn-ghost mini" style="padding:3px 10px; font-size:0.74rem;" onclick="loadInteractiveDemo('stripe')">Load Stripe Sample</button>
-                <button type="button" class="btn-primary mini" style="padding:3px 10px; font-size:0.74rem;" onclick="navToFeature('ats')">Enter My JD &amp; Resume</button>
+            <span><strong style="color:var(--accent-teal); font-weight:500;">Interactive workspace:</strong> Using starter sample context. Add your target job &amp; resume for personalized results.</span>
+            <span style="display:flex; gap:8px;">
+                <button type="button" class="btn-ghost mini" style="padding:4px 12px; font-size:0.75rem;" onclick="loadInteractiveDemo('stripe')">Load Stripe sample</button>
+                <button type="button" class="btn-primary mini" style="padding:4px 12px; font-size:0.75rem;" onclick="navToFeature('ats')">Enter JD &amp; resume</button>
             </span>
         `;
         resultBox.prepend(banner);
@@ -2867,7 +2813,7 @@ async function parseLiveJobURL() {
             if (d.jd && document.getElementById('jobDesc')) {
                 document.getElementById('jobDesc').value = d.jd;
             }
-            showToast(`Auto-filled ${d.role || 'Job'} at ${d.company || 'Company'}!`, "success");
+            showToast(`Auto-filled ${d.role || 'Job'} at ${d.company || 'Company'}`, "success");
         } else {
             showToast(data.detail || "Could not parse job from this URL. Please paste description manually.", "error");
         }
@@ -2926,19 +2872,21 @@ async function runLiveGhostJobScan() {
                 let html = '';
                 if (d.positive_signals && d.positive_signals.length > 0) {
                     html += d.positive_signals.map(s => `
-                        <div style="background:rgba(34,211,200,0.1); border:1px solid rgba(34,211,200,0.25); border-radius:var(--radius-xs); padding:8px 12px; font-size:0.82rem; color:var(--accent-teal);">
-                            ✓ ${escapeHtml(s)}
+                        <div style="background:var(--accent-teal-bg); border:1px solid rgba(34,211,200,0.28); border-radius:var(--radius-xs); padding:8px 12px; font-size:0.8125rem; color:var(--accent-teal); display:flex; align-items:flex-start; gap:8px;">
+                            <span style="flex-shrink:0; margin-top:2px;">${ICONS.check}</span>
+                            <span>${escapeHtml(s)}</span>
                         </div>
                     `).join('');
                 }
                 if (d.risk_flags && d.risk_flags.length > 0) {
                     html += d.risk_flags.map(r => `
-                        <div style="background:rgba(217,119,6,0.1); border:1px solid rgba(217,119,6,0.25); border-radius:var(--radius-xs); padding:8px 12px; font-size:0.82rem; color:var(--accent-warning);">
-                            ⚠ ${escapeHtml(r)}
+                        <div style="background:var(--accent-warning-bg); border:1px solid rgba(229,169,60,0.28); border-radius:var(--radius-xs); padding:8px 12px; font-size:0.8125rem; color:var(--accent-warning); display:flex; align-items:flex-start; gap:8px;">
+                            <span style="flex-shrink:0; margin-top:2px;">${ICONS.alert}</span>
+                            <span>${escapeHtml(r)}</span>
                         </div>
                     `).join('');
                 }
-                container.innerHTML = html || `<div style="font-size:0.82rem; color:var(--text-muted);">Standard active job posting format.</div>`;
+                container.innerHTML = html || `<div style="font-size:0.8125rem; color:var(--text-muted);">Standard active job posting format.</div>`;
             }
 
             if (actionPlan && d.tactical_action) {
@@ -3012,24 +2960,24 @@ async function generateCounterOfferPlaybook() {
             const list = document.getElementById('counterTemplatesList');
             if (list && d.templates) {
                 list.innerHTML = d.templates.map((t, idx) => `
-                    <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1rem;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-                            <strong style="color:#FFF; font-size:0.88rem;">${idx + 1}. ${escapeHtml(t.title)}</strong>
-                            <button class="btn-ghost mini" style="padding:2px 8px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard(document.getElementById('tmplText_${idx}').innerText, 'Counter-offer email')">${ICONS.copy} Copy Email</button>
+                    <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <strong style="color:var(--text-main); font-size:0.875rem; font-weight:500;">${idx + 1}. ${escapeHtml(t.title)}</strong>
+                            <button class="btn-ghost mini" style="padding:4px 8px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;" onclick="copyToClipboard(document.getElementById('tmplText_${idx}').innerText, 'Counter-offer email')">${ICONS.copy} Copy email</button>
                         </div>
-                        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.6rem;">${escapeHtml(t.description || '')}</div>
-                        <pre id="tmplText_${idx}" style="background:var(--bg-elevated); padding:10px; border-radius:var(--radius-xs); font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); white-space:pre-wrap; border:1px solid var(--border-subtle);">${escapeHtml(t.email_body || t.body || '')}</pre>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">${escapeHtml(t.description || '')}</div>
+                        <pre id="tmplText_${idx}" style="background:var(--bg-elevated); padding:12px; border-radius:var(--radius-xs); font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); white-space:pre-wrap; border:1px solid var(--border-subtle);">${escapeHtml(t.email_body || t.body || '')}</pre>
                     </div>
                 `).join('');
             }
-            showToast("Counter-offer playbook generated!", "success");
+            showToast("Counter-offer playbook ready", "success");
         }
     } catch (e) {
-        showToast("Error generating counter offer playbook.", "error");
+        showToast("Error generating counter-offer playbook.", "error");
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = "Calculate Leverage & Generate Counter Templates →";
+            btn.textContent = "Calculate leverage & generate templates →";
         }
     }
 }
@@ -3042,13 +2990,13 @@ async function runATSExecution(preferredTab = 'ats') {
     const resultBox = document.getElementById('atsResultWindow');
 
     if (!jd || jd.length < 10) {
-        showToast("Please paste the target Job Description in Step 01.", "error");
+        showToast("Please paste the target job description in Step 1.", "error");
         goToStep(1);
         return;
     }
 
     if (!resume || resume.length < 10) {
-        showToast("Please paste or upload your resume in Step 02.", "error");
+        showToast("Please paste or upload your resume in Step 2.", "error");
         goToStep(2);
         return;
     }
@@ -3057,7 +3005,7 @@ async function runATSExecution(preferredTab = 'ats') {
     const origBtnHTML = btnATS ? btnATS.innerHTML : "Execute ATS Evaluation";
     if (btnATS) {
         btnATS.disabled = true;
-        btnATS.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;">${getBrandLoaderMiniSVG()} <span>Evaluating ATS Match...</span></span>`;
+        btnATS.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;">${getBrandLoaderMiniSVG()} <span>Evaluating ATS match...</span></span>`;
     }
 
     goToStep(3);
@@ -3083,13 +3031,13 @@ async function runATSExecution(preferredTab = 'ats') {
         if (res.ok) {
             renderATSResult(data.result, role, company, jd, resume, isGuest, data.data, preferredTab);
             updateDynamicJobLinks(role);
-            showToast("Match report and recruiter scan ready!", "success");
+            showToast("Match report and recruiter scan ready", "success");
         } else {
-            resultBox.innerHTML = `<p style="color: var(--accent-coral); text-align: center; padding: 2rem;">Evaluation Error: ${data.detail || "Unable to complete request."}</p>`;
+            resultBox.innerHTML = `<p style="color: var(--accent-coral); text-align: center; padding: 32px;">Evaluation error: ${data.detail || "Unable to complete request."}</p>`;
             showToast(data.detail || "Evaluation failed.", "error");
         }
     } catch (err) {
-        resultBox.innerHTML = '<p style="color: var(--accent-coral); text-align: center; padding: 2rem;">Connection error. Ensure the server is online.</p>';
+        resultBox.innerHTML = '<p style="color: var(--accent-coral); text-align: center; padding: 32px;">Connection error. Ensure the server is online.</p>';
         showToast("Network connection error.", "error");
     } finally {
         if (btnATS) {
@@ -3120,85 +3068,7 @@ function initScrollAnimations() {
     document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
 }
 
-// --- Dynamic Atmospheric Background Mesh Canvas (Anti-Vibecode: Eliminates Plain Dark Void) ---
-let ambientMeshCanvas, ambientMeshCtx, ambientMeshAnimId;
-let ambientNodes = [];
-
-function initAmbientMeshBackground() {
-    ambientMeshCanvas = document.getElementById('ambientMeshCanvas');
-    if (!ambientMeshCanvas) return;
-    ambientMeshCtx = ambientMeshCanvas.getContext('2d');
-    if (!ambientMeshCtx) return;
-
-    function resize() {
-        ambientMeshCanvas.width = window.innerWidth;
-        ambientMeshCanvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    // 4 Harmonic Atmospheric Lighting Nodes (Teal, Cobalt, Cyan, Deep Slate)
-    ambientNodes = [
-        { x: 0.22, y: 0.2, vx: 0.00014, vy: 0.00016, r: 0.55, color: 'rgba(13, 148, 136, 0.045)' },
-        { x: 0.78, y: 0.32, vx: -0.00016, vy: 0.00012, r: 0.5, color: 'rgba(2, 132, 199, 0.04)' },
-        { x: 0.28, y: 0.78, vx: 0.00011, vy: -0.00015, r: 0.45, color: 'rgba(56, 189, 248, 0.03)' },
-        { x: 0.72, y: 0.82, vx: -0.00013, vy: -0.00014, r: 0.5, color: 'rgba(14, 20, 32, 0.06)' }
-    ];
-
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        drawFrame();
-        return;
-    }
-
-    function drawFrame() {
-        const w = ambientMeshCanvas.width;
-        const h = ambientMeshCanvas.height;
-
-        ambientMeshCtx.clearRect(0, 0, w, h);
-
-        ambientNodes.forEach(node => {
-            node.x += node.vx;
-            node.y += node.vy;
-
-            if (node.x < 0.08 || node.x > 0.92) node.vx *= -1;
-            if (node.y < 0.08 || node.y > 0.92) node.vy *= -1;
-
-            const cx = node.x * w;
-            const cy = node.y * h;
-            const radius = Math.max(w, h) * node.r;
-
-            const grad = ambientMeshCtx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-            grad.addColorStop(0, node.color);
-            grad.addColorStop(1, 'rgba(8, 10, 14, 0)');
-
-            ambientMeshCtx.fillStyle = grad;
-            ambientMeshCtx.fillRect(0, 0, w, h);
-        });
-    }
-
-    function loop() {
-        drawFrame();
-        ambientMeshAnimId = requestAnimationFrame(loop);
-    }
-    loop();
-}
-
-// --- Interactive Card Spotlight System (Linear/Raycast Precision Border Glow) ---
-function initCardSpotlight() {
-    const cards = document.querySelectorAll('.card-spotlight, .flow-step-card, .feature-box, .kpi-card, .dashboard-panel, .faq-card, .command-console-card, .capability-card');
-    cards.forEach(card => {
-        card.classList.add('card-spotlight');
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            card.style.setProperty('--mouse-x', `${x}px`);
-            card.style.setProperty('--mouse-y', `${y}px`);
-        });
-    });
-}
-
-// --- Skeleton Shimmer Loader (Point 21: Real Engineering Skeleton States) ---
+// --- Skeleton Shimmer Loader ---
 function renderSkeletonLoader() {
     const resultBox = document.getElementById('atsResultWindow');
     if (!resultBox) return;
@@ -3255,261 +3125,8 @@ function loadInteractiveDemo(preset) {
 
     setTimeout(() => {
         runATSExecution();
-        showToast(`Loaded live interactive demo: ${data.role} @ ${data.company}!`, 'success');
+        showToast(`Loaded demo: ${data.role} at ${data.company}`, 'success');
     }, 450);
-}
-
-// --- 3D Career Node Network (Three.js Hero) ---
-let heroNetworkScene, heroNetworkCamera, heroNetworkRenderer, heroNetworkGroup;
-let heroNetworkAnimFrame = null;
-let heroMouseX = 0, heroMouseY = 0;
-let heroTargetRotX = 0, heroTargetRotY = 0;
-
-function createSoftParticleTexture() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.7)');
-    grad.addColorStop(0.65, 'rgba(255, 255, 255, 0.18)');
-    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 64, 64);
-    return new THREE.CanvasTexture(canvas);
-}
-
-function initHero3DNetwork() {
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        return;
-    }
-
-    const canvas = document.getElementById('heroNetworkCanvas');
-    if (!canvas) return;
-
-    if (!window.THREE) {
-        setTimeout(initHero3DNetwork, 150);
-        return;
-    }
-
-    const heroSection = document.querySelector('.hero-section');
-    if (!heroSection) return;
-
-    const width = heroSection.clientWidth || 800;
-    const height = heroSection.clientHeight || 340;
-
-    heroNetworkScene = new THREE.Scene();
-    heroNetworkCamera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
-    heroNetworkCamera.position.z = 240;
-
-    heroNetworkRenderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        alpha: true,
-        antialias: true,
-        powerPreference: "low-power"
-    });
-    heroNetworkRenderer.setSize(width, height);
-    heroNetworkRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    heroNetworkGroup = new THREE.Group();
-    heroNetworkScene.add(heroNetworkGroup);
-
-    const isMobile = window.innerWidth < 768;
-    const particleCount = isMobile ? 36 : 72;
-    const particlePositions = new Float32Array(particleCount * 3);
-    const particleColors = new Float32Array(particleCount * 3);
-    const particleVelocities = [];
-
-    // Master Tokens Palette: Teal (#22D3C8), Indigo (#5B5FEF), Coral (#FF7A59), Slate (#8D93B0)
-    const colorPalette = [
-        new THREE.Color(0x22D3C8),
-        new THREE.Color(0x5B5FEF),
-        new THREE.Color(0xFF7A59),
-        new THREE.Color(0x8D93B0)
-    ];
-
-    const boundX = isMobile ? 95 : 170;
-    const boundY = 75;
-    const boundZ = 85;
-
-    for (let i = 0; i < particleCount; i++) {
-        const x = (Math.random() - 0.5) * boundX * 2;
-        const y = (Math.random() - 0.5) * boundY * 2;
-        const z = (Math.random() - 0.5) * boundZ * 2;
-
-        particlePositions[i * 3] = x;
-        particlePositions[i * 3 + 1] = y;
-        particlePositions[i * 3 + 2] = z;
-
-        const color = colorPalette[i % colorPalette.length];
-        particleColors[i * 3] = color.r;
-        particleColors[i * 3 + 1] = color.g;
-        particleColors[i * 3 + 2] = color.b;
-
-        particleVelocities.push({
-            vx: (Math.random() - 0.5) * 0.45,
-            vy: (Math.random() - 0.5) * 0.45,
-            vz: (Math.random() - 0.5) * 0.32
-        });
-    }
-
-    const pointGeometry = new THREE.BufferGeometry();
-    pointGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    pointGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
-
-    const pointMaterial = new THREE.PointsMaterial({
-        size: isMobile ? 4.5 : 6.0,
-        map: createSoftParticleTexture(),
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-    });
-
-    const pointsMesh = new THREE.Points(pointGeometry, pointMaterial);
-    heroNetworkGroup.add(pointsMesh);
-
-    const maxConnections = particleCount * particleCount;
-    const linePositions = new Float32Array(maxConnections * 3);
-    const lineColors = new Float32Array(maxConnections * 3);
-
-    const lineGeometry = new THREE.BufferGeometry();
-    lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-    lineGeometry.setAttribute('color', new THREE.BufferAttribute(lineColors, 3));
-
-    const lineMaterial = new THREE.LineBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.38,
-        blending: THREE.AdditiveBlending
-    });
-
-    const linesMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
-    heroNetworkGroup.add(linesMesh);
-
-    window.addEventListener('pointermove', (e) => {
-        if (!heroSection) return;
-        const rect = heroSection.getBoundingClientRect();
-        if (e.clientY < rect.bottom + 150 && e.clientY > rect.top - 150) {
-            heroMouseX = (e.clientX - rect.left) / rect.width - 0.5;
-            heroMouseY = (e.clientY - rect.top) / rect.height - 0.5;
-            heroTargetRotY = heroMouseX * 0.6;
-            heroTargetRotX = -heroMouseY * 0.42;
-        }
-    }, { passive: true });
-
-    heroSection.addEventListener('mouseleave', () => {
-        heroTargetRotX = 0;
-        heroTargetRotY = 0;
-    });
-
-    window.addEventListener('resize', () => {
-        if (!heroSection || !heroNetworkRenderer || !heroNetworkCamera) return;
-        const w = heroSection.clientWidth || 800;
-        const h = heroSection.clientHeight || 340;
-        heroNetworkCamera.aspect = w / h;
-        heroNetworkCamera.updateProjectionMatrix();
-        heroNetworkRenderer.setSize(w, h);
-    });
-
-    let isHeroVisible = true;
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            isHeroVisible = entry.isIntersecting;
-            if (isHeroVisible && !heroNetworkAnimFrame) {
-                animate();
-            }
-        });
-    }, { threshold: 0.05 });
-    observer.observe(heroSection);
-
-    const connectDist = isMobile ? 52 : 68;
-
-    function animate() {
-        if (!isHeroVisible) {
-            heroNetworkAnimFrame = null;
-            return;
-        }
-
-        heroNetworkAnimFrame = requestAnimationFrame(animate);
-
-        heroNetworkGroup.rotation.y += (heroTargetRotY - heroNetworkGroup.rotation.y) * 0.04;
-        heroNetworkGroup.rotation.x += (heroTargetRotX - heroNetworkGroup.rotation.x) * 0.04;
-        heroNetworkGroup.rotation.z += 0.00035;
-
-        const posAttr = pointGeometry.attributes.position;
-        const posArray = posAttr.array;
-
-        for (let i = 0; i < particleCount; i++) {
-            const ix = i * 3;
-            const iy = i * 3 + 1;
-            const iz = i * 3 + 2;
-            const v = particleVelocities[i];
-
-            posArray[ix] += v.vx;
-            posArray[iy] += v.vy;
-            posArray[iz] += v.vz;
-
-            if (posArray[ix] > boundX || posArray[ix] < -boundX) v.vx *= -1;
-            if (posArray[iy] > boundY || posArray[iy] < -boundY) v.vy *= -1;
-            if (posArray[iz] > boundZ || posArray[iz] < -boundZ) v.vz *= -1;
-        }
-        posAttr.needsUpdate = true;
-
-        let lineIdx = 0;
-        for (let i = 0; i < particleCount; i++) {
-            const x1 = posArray[i * 3];
-            const y1 = posArray[i * 3 + 1];
-            const z1 = posArray[i * 3 + 2];
-
-            for (let j = i + 1; j < particleCount; j++) {
-                const x2 = posArray[j * 3];
-                const y2 = posArray[j * 3 + 1];
-                const z2 = posArray[j * 3 + 2];
-
-                const dx = x1 - x2;
-                const dy = y1 - y2;
-                const dz = z1 - z2;
-                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-                if (dist < connectDist) {
-                    const alpha = 1.0 - dist / connectDist;
-
-                    linePositions[lineIdx] = x1;
-                    linePositions[lineIdx + 1] = y1;
-                    linePositions[lineIdx + 2] = z1;
-
-                    linePositions[lineIdx + 3] = x2;
-                    linePositions[lineIdx + 4] = y2;
-                    linePositions[lineIdx + 5] = z2;
-
-                    const c1 = particleColors[i * 3];
-                    const c2 = particleColors[i * 3 + 1];
-                    const c3 = particleColors[i * 3 + 2];
-
-                    lineColors[lineIdx] = c1 * alpha;
-                    lineColors[lineIdx + 1] = c2 * alpha;
-                    lineColors[lineIdx + 2] = c3 * alpha;
-
-                    lineColors[lineIdx + 3] = c1 * alpha;
-                    lineColors[lineIdx + 4] = c2 * alpha;
-                    lineColors[lineIdx + 5] = c3 * alpha;
-
-                    lineIdx += 6;
-                }
-            }
-        }
-
-        lineGeometry.setDrawRange(0, lineIdx / 3);
-        lineGeometry.attributes.position.needsUpdate = true;
-        lineGeometry.attributes.color.needsUpdate = true;
-
-        heroNetworkRenderer.render(heroNetworkScene, heroNetworkCamera);
-    }
-
-    animate();
 }
 
 // --- Item 3: Capabilities Journey Rail Progress & Fade-in Observer ---
@@ -3608,26 +3225,7 @@ function initModalBackdropDismissal() {
     });
 }
 
-// Fancy 3D Interactive Card Tilts & Subtle Sheen
-function initFancyCardInteractions() {
-    const cards = document.querySelectorAll('.pipeline-card, .metric-card, .ats-section-box, .roadmap-blueprint-card, .interactive-tilt');
-    cards.forEach(card => {
-        card.classList.add('interactive-tilt');
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -3;
-            const rotateY = ((x - centerX) / centerX) * 3;
-            card.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-2px)`;
-        });
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = '';
-        });
-    });
-}
+// Fancy card interactions disabled per Ink static-surface discipline
 
 // --- Connected 5-Station Glowing Navbar Journey Rail (Scroll-Synced & Magnetic Docking) ---
 function initNavJourneyRail() {
@@ -3862,15 +3460,11 @@ function initNavJourneyRail() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    initAmbientMeshBackground();
     await loadUserData();
     updateAuthUI();
     renderDashboard();
     initNavJourneyRail();
     initScrollAnimations();
-    initHero3DNetwork();
     initCapabilitiesJourneyRail();
-    initCardSpotlight();
     initModalBackdropDismissal();
-    initFancyCardInteractions();
 });

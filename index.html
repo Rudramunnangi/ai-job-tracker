@@ -65,7 +65,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=Google+Sans+Text:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
@@ -74,20 +73,7 @@
 </head>
 <body>
 
-  <!-- Dynamic Atmospheric Background (Engineering Grid & Floating Ambient Aurora Orbs) -->
-  <div class="ambient-visual-layer" aria-hidden="true">
-    <div class="ambient-grid-mesh"></div>
-    <div class="ambient-glow-orb orb-indigo"></div>
-    <div class="ambient-glow-orb orb-teal"></div>
-    <div class="ambient-glow-orb orb-coral"></div>
-    <div class="ambient-glow-orb orb-purple"></div>
-  </div>
-
-  <!-- Dynamic Atmospheric Background Mesh & Tactile Noise Texture -->
-  <canvas id="ambientMeshCanvas" class="ambient-mesh-canvas" aria-hidden="true"></canvas>
-  <div class="noise-overlay" aria-hidden="true"></div>
-
-  <!-- Navigation (Sticky Blurred Header with Connected 5-Station Glowing Rail) -->
+  <!-- Navigation (Sticky Header with Connected 5-Station Glowing Rail) -->
   <nav class="navbar" id="mainNavbar">
     <div class="nav-brand-group">
       <button class="drawer-toggle-btn" onclick="toggleDrawer()" aria-label="Open Candidate Console" title="Candidate Profile & Settings">
@@ -99,15 +85,15 @@
       </button>
       <a href="/" class="brand-logo">
         <svg viewBox="0 0 100 100" fill="none">
-          <rect width="100" height="100" rx="20" fill="#0E1424"/>
-          <path d="M30 70V30L70 70V30" stroke="var(--color-success)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect width="100" height="100" rx="20" fill="#1A1E28"/>
+          <path d="M30 70V30L70 70V30" stroke="#22D3C8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span>NexJob</span><span class="brand-badge">AI</span>
       </a>
     </div>
 
     <!-- Major 5 Features Connected Journey Navigation Rail -->
-    <div class="nav-journey-bar" id="navJourneyBar" role="navigation" aria-label="Core Capabilities">
+    <div class="nav-journey-bar" id="navJourneyBar" role="navigation" aria-label="Core capabilities">
       <div class="nav-rail-track" id="navRailTrack" aria-hidden="true">
         <div class="nav-rail-dotted"></div>
         <div class="nav-rail-progress" id="navRailProgress"></div>
@@ -116,7 +102,7 @@
       <!-- Glowing Cyan Lighting Point (Glides smoothly on scroll & fits into active station socket) -->
       <div class="nav-rail-orb is-docked" id="navRailOrb" aria-hidden="true"></div>
 
-      <button type="button" class="nav-station-btn is-active" data-station="0" data-feature="ats" onclick="navToFeature('ats')" title="ATS Resume Score & Missing Skills Gap" aria-current="page">
+      <button type="button" class="nav-station-btn is-active" data-station="0" data-feature="ats" onclick="navToFeature('ats')" title="ATS resume score and missing skills gap" aria-current="page">
         <span class="nav-station-head">
           <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           <span class="nav-label-full">ATS Scanner</span>
@@ -125,7 +111,7 @@
         <span class="nav-station-socket is-docked" aria-hidden="true"></span>
       </button>
 
-      <button type="button" class="nav-station-btn" data-station="1" data-feature="scan" onclick="navToFeature('scan')" title="Instant 6-Second Recruiter Triage Simulation">
+      <button type="button" class="nav-station-btn" data-station="1" data-feature="scan" onclick="navToFeature('scan')" title="6-second recruiter triage simulation">
         <span class="nav-station-head">
           <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <span class="nav-label-full">6s Recruiter Triage</span>
@@ -134,7 +120,7 @@
         <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
 
-      <button type="button" class="nav-station-btn" data-station="2" data-feature="traps" onclick="navToFeature('traps')" title="Interview Trap Predictor & Defense Framework">
+      <button type="button" class="nav-station-btn" data-station="2" data-feature="traps" onclick="navToFeature('traps')" title="Interview trap predictor and defense framework">
         <span class="nav-station-head">
           <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
           <span class="nav-label-full">Interview Traps</span>
@@ -143,38 +129,35 @@
         <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
 
-      <button type="button" class="nav-station-btn" data-station="3" data-feature="humanizer" onclick="navToFeature('humanizer')" title="AI Resume Authenticity & Humanizer">
+      <button type="button" class="nav-station-btn" data-station="3" data-feature="humanizer" onclick="navToFeature('humanizer')" title="AI resume authenticity and humanizer">
         <span class="nav-station-head">
           <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
           <span class="nav-label-full">AI Humanizer</span>
           <span class="nav-label-compact">Human</span>
-          <span class="nav-feature-badge badge-teal">New</span>
+          <span class="nav-station-meta">New</span>
         </span>
         <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
 
-      <button type="button" class="nav-station-btn" data-station="4" data-feature="mock" onclick="navToFeature('mock')" title="Live Interactive AI Mock Interviewer">
+      <button type="button" class="nav-station-btn" data-station="4" data-feature="mock" onclick="navToFeature('mock')" title="Interactive AI mock interviewer">
         <span class="nav-station-head">
           <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
           <span class="nav-label-full">Mock Interview</span>
           <span class="nav-label-compact">Mock</span>
-          <span class="nav-feature-badge badge-pulse">Live</span>
+          <span class="nav-station-meta meta-live">Live</span>
         </span>
         <span class="nav-station-socket" aria-hidden="true"></span>
       </button>
     </div>
 
     <div class="nav-actions">
-      <div id="guestTopControls" style="display: flex; align-items: center; gap: 10px;">
-        <div class="guest-status-pill">
-          <span class="status-dot-amber"></span>
-          <span>Guest Mode</span>
-        </div>
-        <button class="btn-primary" onclick="openAuthModal('login')">Sign In</button>
+      <div id="guestTopControls" style="display: flex; align-items: center; gap: 12px;">
+        <span class="guest-status-text">Guest mode</span>
+        <button class="btn-primary" onclick="openAuthModal('login')">Sign in</button>
       </div>
       <div id="userTopControls" style="display: none; align-items: center; gap: 12px;">
         <span class="status-dot-green"></span>
-        <span id="userDisplayName" style="font-weight: 600; font-size: 0.88rem;">User</span>
+        <span id="userDisplayName" style="font-weight: 500; font-size: 0.875rem;">User</span>
         <button class="avatar-btn" id="userAvatarLetter" onclick="toggleDrawer()">U</button>
       </div>
     </div>
@@ -183,73 +166,116 @@
   <!-- Main Container -->
   <main class="main-container">
     
-    <!-- Hero Banner with 3D Particle Network Canvas & Dynamic Color Heading -->
-    <header class="hero-section card-spotlight">
-      <div class="hero-3d-wrapper">
-        <canvas id="heroNetworkCanvas" class="hero-3d-canvas" aria-hidden="true"></canvas>
-      </div>
-      <div class="hero-content">
-        <div class="hero-pill">
-          <span class="hero-pill-dot"></span>
-          <span>Free ATS Scanner &amp; Smart Job Tracker</span>
+    <!-- Split Hero Section with Live Coded ATS & 6s Skim Product Preview -->
+    <header class="hero-section">
+      <div class="hero-copy-col">
+        <h1 class="hero-title">Pass the six-second resume skim before you apply</h1>
+        <p class="hero-subtitle">Score your resume against any job description, pinpoint missing requirements, prepare answers for interview traps, and keep applications organized in one place.</p>
+        <div class="hero-actions">
+          <button type="button" class="btn-primary btn-hero" onclick="navToFeature('ats')">Scan your resume</button>
+          <button type="button" class="btn-ghost btn-hero" onclick="loadInteractiveDemo('stripe')">Preview Stripe match</button>
         </div>
-        <h1 class="hero-title"><span class="gradient-text">The free ATS scanner engineered to get you interviewed.</span></h1>
-        <p class="hero-subtitle">Recruiters spend 6 seconds on your resume. NexJob shows you exactly what they see, fixes your missing keywords, and prepares your interview defenses before you apply.</p>
+      </div>
 
+      <div class="hero-preview-col" aria-label="Sample ATS match and 6-second recruiter triage preview">
+        <div class="hero-preview-window">
+          <div class="preview-window-bar">
+            <div class="preview-role-group">
+              <span class="preview-role-title">Staff Systems Engineer · Stripe</span>
+              <span class="preview-role-meta">Sample scan report</span>
+            </div>
+            <div class="preview-score-pill">
+              <span class="preview-score-num">84%</span>
+              <span class="preview-score-verdict">Fast-track</span>
+            </div>
+          </div>
+
+          <div class="preview-meter-track" aria-hidden="true">
+            <div class="preview-meter-fill" style="width: 84%;"></div>
+          </div>
+
+          <div class="preview-split-grid">
+            <div class="preview-pane">
+              <div class="preview-pane-title">First 6 seconds</div>
+              <ul class="preview-signal-list">
+                <li><span class="signal-dot pass"></span><span>Go and Kafka stream throughput (180k req/s)</span></li>
+                <li><span class="signal-dot pass"></span><span>Raft reconciliation latency cut by 42%</span></li>
+                <li><span class="signal-dot warn"></span><span>Add multi-region failover SLA numbers</span></li>
+              </ul>
+            </div>
+
+            <div class="preview-pane">
+              <div class="preview-pane-title">Keywords and trap focus</div>
+              <div class="preview-token-row">
+                <span class="preview-token matched">Raft consensus</span>
+                <span class="preview-token gap">FoundationDB</span>
+                <span class="preview-token gap">99.999% SLO</span>
+              </div>
+              <div class="preview-trap-callout">
+                <span class="preview-trap-label">Likely probe</span>
+                <span class="preview-trap-text">How do you prevent double-writes during consensus partition recovery?</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-window-footer">
+            <span class="preview-footer-meta">6s skim · 2 skill gaps · 3 interview defenses</span>
+            <button type="button" class="preview-footer-btn" onclick="loadInteractiveDemo('stripe')">Load into workbench</button>
+          </div>
+        </div>
       </div>
     </header>
 
     <!-- Member Job Pipeline Board -->
-    <section id="memberPipelineContainer" class="dashboard-panel card-spotlight" style="display: none;">
+    <section id="memberPipelineContainer" class="dashboard-panel" style="display: none;">
       <div class="panel-header">
         <div>
-          <h2 class="panel-title">Job Tracker</h2>
-          <p class="panel-subtitle">Track applications, detect ghosting, and get reminders when it's time to follow up.</p>
+          <h2 class="panel-title">Job tracker</h2>
+          <p class="panel-subtitle">Track applications, detect ghosting, and set reminders when it is time to follow up.</p>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button class="btn-ghost" onclick="openIntegrationsModal()">
-            <span class="pulse-indicator"></span>
             <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Connect Email & Apps
+            Connect email and apps
           </button>
-          <button class="btn-primary" onclick="openJobModal()">+ Add Application</button>
+          <button class="btn-primary" onclick="openJobModal()">Add application</button>
         </div>
       </div>
 
-      <!-- KPI Summary Cards (Clean SVGs, Zero Emojis) -->
+      <!-- KPI Summary Cards (Quiet surface + single numeric telemetry) -->
       <div class="kpi-grid">
-        <div class="kpi-card card-spotlight">
-          <div class="kpi-label">Total Applied <span><svg class="icon-svg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span></div>
-          <div class="kpi-value" id="statTotal" style="color: var(--accent-primary);">0</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total applied</div>
+          <div class="kpi-value" id="statTotal">0</div>
         </div>
-        <div class="kpi-card card-spotlight">
-          <div class="kpi-label">In Review <span><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
-          <div class="kpi-value" id="statPipe" style="color: #38BDF8;">0</div>
+        <div class="kpi-card">
+          <div class="kpi-label">In review</div>
+          <div class="kpi-value" id="statPipe">0</div>
         </div>
-        <div class="kpi-card card-spotlight">
-          <div class="kpi-label">Interviews / Offers <span><svg class="icon-svg" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7v4h10v-4h-2c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span></div>
+        <div class="kpi-card">
+          <div class="kpi-label">Interviews and offers</div>
           <div class="kpi-value" id="statOffers" style="color: var(--accent-success);">0</div>
         </div>
-        <div class="kpi-card card-spotlight">
-          <div class="kpi-label">Follow-ups Due <span><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span></div>
-          <div class="kpi-value" id="statNudges" style="color: var(--accent-danger);">0</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Follow-ups due</div>
+          <div class="kpi-value" id="statNudges" style="color: var(--accent-warning);">0</div>
         </div>
       </div>
 
       <!-- Search & Filter Bar -->
       <div class="board-filter-bar">
-        <input type="text" id="boardSearchInput" class="board-search-input" placeholder="Search by company, role title, or tech tag..." oninput="filterBoard(this.value)">
+        <input type="text" id="boardSearchInput" class="board-search-input" placeholder="Search company, role or tag" oninput="filterBoard(this.value)">
       </div>
 
       <!-- Follow-up Nudges -->
-      <div id="nudgeAlertContainer" style="margin-bottom: 1.5rem;"></div>
+      <div id="nudgeAlertContainer" style="margin-bottom: 24px;"></div>
 
-      <!-- Staged Applications Review Banner (100% Accuracy Safety Valve) -->
+      <!-- Staged Applications Review Banner -->
       <div id="stagedReviewBanner" class="staged-review-banner" style="display: none;"></div>
 
-      <!-- Mobile Segmented Stage Switcher Bar (Responsive Phone Navigation) -->
+      <!-- Mobile Segmented Stage Switcher Bar -->
       <div class="mobile-stage-bar" id="mobileStageBar">
-        <button class="mobile-stage-pill active" onclick="setMobileStage('all', this)">All Stages</button>
+        <button class="mobile-stage-pill active" onclick="setMobileStage('all', this)">All stages</button>
         <button class="mobile-stage-pill" onclick="setMobileStage('Applied', this)">Applied</button>
         <button class="mobile-stage-pill" onclick="setMobileStage('Interviewing', this)">Interviewing</button>
         <button class="mobile-stage-pill" onclick="setMobileStage('Offer', this)">Offers</button>
@@ -265,181 +291,180 @@
       <!-- Interactive Stepper Navigation Tabs -->
       <div class="stepper-nav" id="stepperNav">
         <button class="step-tab active" id="tabStep1" onclick="goToStep(1)">
-          <div class="step-num-badge">01</div>
+          <div class="step-num-badge">1</div>
           <div class="step-tab-meta">
-            <span class="step-tab-title">Target Job</span>
-            <span class="step-tab-sub">Role & Job Description</span>
+            <span class="step-tab-title">Target job</span>
+            <span class="step-tab-sub">Role and description</span>
           </div>
         </button>
         <button class="step-tab" id="tabStep2" onclick="goToStep(2)">
-          <div class="step-num-badge">02</div>
+          <div class="step-num-badge">2</div>
           <div class="step-tab-meta">
-            <span class="step-tab-title">Your Resume</span>
-            <span class="step-tab-sub">Upload PDF or Paste Text</span>
+            <span class="step-tab-title">Your resume</span>
+            <span class="step-tab-sub">Upload PDF or paste text</span>
           </div>
         </button>
         <button class="step-tab" id="tabStep3" onclick="goToStep(3)">
-          <div class="step-num-badge">03</div>
+          <div class="step-num-badge">3</div>
           <div class="step-tab-meta">
-            <span class="step-tab-title">Match Report</span>
-            <span class="step-tab-sub">Gaps, Traps & Outreach</span>
+            <span class="step-tab-title">Match report</span>
+            <span class="step-tab-sub">Gaps, traps and outreach</span>
           </div>
         </button>
       </div>
 
       <div class="flow-grid">
-        <!-- Step 01: Job Details -->
+        <!-- Step 1: Job Details -->
         <div class="flow-step-card active" id="step-1">
           <div class="step-card-header">
-            <div class="step-indicator-text">Step 01 // Target Job</div>
-            <h2 class="step-card-title">Paste the Job Description</h2>
+            <div class="step-indicator-text">Step 1 · Target job</div>
+            <h2 class="step-card-title">Paste the job description</h2>
           </div>
 
           <!-- 1-Click Live Job URL Ingestion Box -->
-          <div class="url-parser-box" style="margin-bottom: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px;">
-            <label class="form-label" for="liveJobUrlInput" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-weight: 700; color: #FFF; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-                <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                1-Click Live Job URL Parser
+          <div class="url-parser-box">
+            <label class="form-label url-parser-head" for="liveJobUrlInput">
+              <span class="url-parser-title">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Import from live job posting URL
               </span>
-              <span style="font-size: 0.72rem; color: var(--accent-teal);">LinkedIn • Indeed • Greenhouse • Lever • Workday</span>
+              <span class="url-parser-sources">LinkedIn · Indeed · Greenhouse · Lever · Workday</span>
             </label>
             <div style="display: flex; gap: 8px;">
-              <input type="url" id="liveJobUrlInput" class="form-input" placeholder="Paste any live job posting URL (e.g. https://www.linkedin.com/jobs/view/...)" style="font-size: 0.85rem;">
+              <input type="url" id="liveJobUrlInput" class="form-input" placeholder="https://www.linkedin.com/jobs/view/..." style="font-size: 0.875rem;">
               <button class="btn-primary compact" id="btnParseLiveUrl" onclick="parseLiveJobURL()" style="white-space: nowrap; padding: 0 16px;">
-                Auto-Fill Details
+                Auto-fill details
               </button>
             </div>
           </div>
           
           <div id="jobSelectionControl" class="form-group" style="display: none;">
-            <label class="form-label" for="roleSelector">Load from your Job Tracker</label>
+            <label class="form-label" for="roleSelector">Load from job tracker</label>
             <select id="roleSelector" class="form-select" onchange="onTrackedJobChange()"></select>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="targetJobCompany">Company</label>
-              <input type="text" id="targetJobCompany" class="form-input" placeholder="e.g. Stripe">
+              <input type="text" id="targetJobCompany" class="form-input" placeholder="Stripe">
             </div>
             <div class="form-group">
-              <label class="form-label" for="targetJobRole">Role Title</label>
-              <input type="text" id="targetJobRole" class="form-input" placeholder="e.g. Senior Backend Engineer">
+              <label class="form-label" for="targetJobRole">Role title</label>
+              <input type="text" id="targetJobRole" class="form-input" placeholder="Senior Backend Engineer">
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="jobDesc">Job Description Requirements</label>
-            <textarea id="jobDesc" class="form-textarea" placeholder="Paste the job description or requirements here..."></textarea>
+            <label class="form-label" for="jobDesc">Job description requirements</label>
+            <textarea id="jobDesc" class="form-textarea" placeholder="Paste the job description and required skills"></textarea>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
             <button class="btn-primary" onclick="goToStep(2)">
-              Next: Add Resume →
+              Next: Add resume →
             </button>
           </div>
         </div>
 
-        <!-- Step 02: Resume Vault & Input -->
+        <!-- Step 2: Resume Vault & Input -->
         <div class="flow-step-card" id="step-2">
           <div class="step-card-header">
-            <div class="step-indicator-text">Step 02 // Your Resume</div>
-            <h2 class="step-card-title">Upload or Paste Your Resume</h2>
+            <div class="step-indicator-text">Step 2 · Your resume</div>
+            <h2 class="step-card-title">Upload or paste your resume</h2>
           </div>
 
-          <div id="resumeVaultBox" class="form-group" style="display: none; margin-bottom: 1.25rem;">
-            <label class="form-label">Upload Resume (PDF)</label>
+          <div id="resumeVaultBox" class="form-group" style="display: none;">
+            <label class="form-label">Upload resume (PDF)</label>
             <div class="custom-file-wrapper">
               <input type="file" id="pdfFileInput" class="custom-file-input" accept=".pdf" onchange="handleFileSelect(event)">
               <label for="pdfFileInput" class="custom-file-label">
                 Select PDF
               </label>
               <span id="selectedFileName" class="file-status-text">No file chosen</span>
-              <button class="btn-primary compact" onclick="uploadResumePDF()">Sync to Profile</button>
+              <button class="btn-primary compact" onclick="uploadResumePDF()">Sync to profile</button>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="userResume">Resume Content (Plain Text)</label>
-            <textarea id="userResume" class="form-textarea" placeholder="Paste your resume text here (Skills, Experience, Projects)..."></textarea>
+            <label class="form-label" for="userResume">Resume content (plain text)</label>
+            <textarea id="userResume" class="form-textarea" placeholder="Paste your resume summary, experience, and skills"></textarea>
           </div>
 
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 12px; flex-wrap: wrap;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; gap: 12px; flex-wrap: wrap;">
             <button class="btn-ghost" onclick="goToStep(1)">
-              ← Back to Job Details
+              ← Back to job details
             </button>
-            <button class="btn-primary" id="btnATSExecution" style="padding: 0.8rem 1.6rem;" onclick="runATSExecution()">
-              Execute ATS Evaluation
+            <button class="btn-primary" id="btnATSExecution" style="padding: 12px 24px;" onclick="runATSExecution()">
+              Execute ATS evaluation
             </button>
           </div>
         </div>
 
-        <!-- Step 03: Strategic Intelligence Output with 4 Killer Feature Tabs -->
+        <!-- Step 3: Match Report & Interactive Modules -->
         <div class="flow-step-card" id="step-3">
-          <div class="step-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div class="step-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div>
-              <div class="step-indicator-text">Step 03 // Match Report</div>
-              <h2 class="step-card-title">Compatibility & Action Plan</h2>
+              <div class="step-indicator-text">Step 3 · Match report</div>
+              <h2 class="step-card-title">Compatibility and action plan</h2>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn-ghost" onclick="downloadRoadmapPDF()" id="btnDownloadPDF" style="display: none;">
                 <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download PDF Guide
+                Download PDF guide
               </button>
-              <button class="btn-ghost" onclick="goToStep(2)">← Edit Resume / Job</button>
+              <button class="btn-ghost" onclick="goToStep(2)">← Edit resume or job</button>
             </div>
           </div>
 
-          <!-- Killer Feature Segmented Tabs (Clean Bespoke SVGs, Zero Emojis) -->
+          <!-- Feature Segmented Tabs -->
           <div class="result-segment-nav" id="resultSegmentNav" style="display: none;">
             <button class="segment-tab-btn active" id="tabResMatch" onclick="switchResultTab('ats')">
               <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-              Match & Missing Skills
+              Match and missing skills
             </button>
             <button class="segment-tab-btn" id="tabResScan" onclick="switchResultTab('scan')">
               <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              6-Second Recruiter Scan
+              6-second recruiter scan
             </button>
             <button class="segment-tab-btn" id="tabResTraps" onclick="switchResultTab('traps')">
               <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-              Interview Traps
+              Interview traps
             </button>
             <button class="segment-tab-btn" id="tabResOutreach" onclick="switchResultTab('outreach')">
               <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-              Recruiter Outreach
+              Recruiter outreach
             </button>
             <button class="segment-tab-btn" id="tabResHumanizer" onclick="switchResultTab('humanizer')">
               <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
-              AI Authenticity &amp; Humanizer
+              AI authenticity and humanizer
             </button>
             <button class="segment-tab-btn" id="tabResMock" onclick="switchResultTab('mock')">
               <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              Live Mock Interview
+              Mock interview
             </button>
             <button class="segment-tab-btn" id="tabResGhost" onclick="switchResultTab('ghost')">
               <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/><circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/></svg>
-              Hiring Reality &amp; Ghost Check
+              Hiring reality check
             </button>
           </div>
 
           <div id="atsResultWindow">
-            <p style="color: var(--text-muted); font-size: 0.95rem; text-align: center; padding: 3rem 0;">
-              Add your target job in Step 1 and your resume in Step 2 to generate your full breakdown.
+            <p style="color: var(--text-muted); font-size: 0.9375rem; text-align: center; padding: 48px 0;">
+              Add a target job in Step 1 and your resume in Step 2 to generate your full breakdown.
             </p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Core Capabilities (Simple, Clear English) -->
+    <!-- Core Capabilities Journey -->
     <section class="showcase-section" id="showcaseSection">
       <div class="section-header-center">
-        <div class="section-badge-chip">Built for Job Seekers</div>
-        <h2 class="section-title-lg">Everything you need to get hired, not ignored</h2>
-        <p class="section-subtext">Simple, proven tools that help you stand out to hiring managers and take control of your career search.</p>
+        <h2 class="section-title-lg">Everything built around the hiring review</h2>
+        <p class="section-subtext">Practical tools designed for how recruiters shortlist candidates and how engineering teams interview.</p>
       </div>
 
-      <!-- Vertical Connected Journey Rail with Dynamic Line & Glowing Scroll Marker -->
+      <!-- Vertical Connected Journey Rail (NexJob Signature Rail) -->
       <div class="capabilities-journey-rail" id="capabilitiesJourneyRail">
         <div class="rail-spine" id="railSpine">
           <div class="rail-dotted-line"></div>
@@ -448,88 +473,87 @@
         </div>
 
         <!-- Stop 1: Recruiter Review -->
-        <div class="rail-stop-item card-spotlight">
+        <div class="rail-stop-item">
           <div class="rail-stop-node">
             <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
           </div>
           <div class="rail-stop-card">
             <div class="console-card-header">
-              <span class="console-badge" style="background: rgba(91, 95, 239, 0.15); color: var(--accent-primary);">6-SECOND RECRUITER TRIAGE</span>
+              <span class="console-badge">Recruiter triage</span>
               <span class="indicator-bullet pass"></span>
             </div>
-            <h3 class="console-card-title">Instant 6-Second Recruiter Review</h3>
-            <p class="console-card-desc">Recruiters take less than 6 seconds to decide whether to interview you. NexJob shows you exactly what they notice first, highlights any red flags, and prepares you for the hardest interview questions before you apply.</p>
+            <h3 class="console-card-title">Instant 6-second recruiter review</h3>
+            <p class="console-card-desc">Recruiters spend less than six seconds deciding whether to advance your resume. NexJob shows what stands out first, highlights hiring friction, and prepares you for probing questions before you apply.</p>
           </div>
         </div>
 
-        <!-- Stop 2: 100% Private -->
-        <div class="rail-stop-item card-spotlight">
+        <!-- Stop 2: Private -->
+        <div class="rail-stop-item">
           <div class="rail-stop-node">
             <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <div class="rail-stop-card">
             <div class="console-card-header">
-              <span class="console-badge" style="background: rgba(34, 211, 200, 0.15); color: var(--accent-teal);">DATA PRIVACY</span>
-              <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span class="console-badge">Data privacy</span>
             </div>
-            <h3 class="console-card-title">100% Private &amp; Strictly Confidential</h3>
-            <p class="console-card-desc">Your resume and personal details are strictly protected. We never sell your data, never share your files with third parties, and never train public models on your information. You can delete your account and data at any time.</p>
+            <h3 class="console-card-title">Private and strictly confidential</h3>
+            <p class="console-card-desc">Your resume and career history remain yours. NexJob never sells data, shares resumes with third parties, or trains public models on your submissions, and you can delete your account and stored data at any time.</p>
           </div>
         </div>
 
         <!-- Stop 3: Missing Skills -->
-        <div class="rail-stop-item card-spotlight">
+        <div class="rail-stop-item">
           <div class="rail-stop-node">
             <svg class="icon-svg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
           </div>
           <div class="rail-stop-card">
             <div class="console-card-header">
-              <span class="console-badge" style="background: rgba(255, 122, 89, 0.15); color: var(--accent-coral);">SKILLS &amp; BULLETS</span>
+              <span class="console-badge">Skills and bullets</span>
             </div>
-            <h3 class="console-card-title">Missing Skills &amp; Ready-to-Copy Bullets</h3>
-            <p class="console-card-desc">Never guess why you didn't get a call. See the exact skills and keywords the employer wants that your resume is missing, with ready-made, quantified accomplishment bullets you can copy directly into your resume.</p>
+            <h3 class="console-card-title">Missing keywords and impact bullets</h3>
+            <p class="console-card-desc">See the exact technologies and domain terms the posting requires that your resume omits, paired with measurable bullet drafts you can adapt to your real work.</p>
           </div>
         </div>
 
         <!-- Stop 4: Follow-ups -->
-        <div class="rail-stop-item card-spotlight">
+        <div class="rail-stop-item">
           <div class="rail-stop-node">
             <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           </div>
           <div class="rail-stop-card">
             <div class="console-card-header">
-              <span class="console-badge" style="background: rgba(91, 95, 239, 0.15); color: var(--accent-primary);">OUTREACH CADENCE</span>
+              <span class="console-badge">Outreach cadence</span>
             </div>
-            <h3 class="console-card-title">No More Ghosting: Follow-Up Templates</h3>
-            <p class="console-card-desc">Tired of applying and waiting in total silence? Get friendly, professional follow-up messages timed for Day 3, Day 7, and Day 14 after applying to help you get real responses from recruiters.</p>
+            <h3 class="console-card-title">Timed follow-up sequences</h3>
+            <p class="console-card-desc">Avoid letting applications sit unreviewed in a queue. Send concise follow-up notes timed for Day 3, Day 7, and Day 14 tailored to the company and your matching skills.</p>
           </div>
         </div>
 
         <!-- Stop 5: Connected Portals -->
-        <div class="rail-stop-item card-spotlight">
+        <div class="rail-stop-item">
           <div class="rail-stop-node">
             <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           </div>
           <div class="rail-stop-card">
             <div class="console-card-header">
-              <span class="console-badge" style="background: rgba(34, 211, 200, 0.15); color: var(--accent-teal);">PORTAL SYNC</span>
+              <span class="console-badge">Portal sync</span>
             </div>
-            <h3 class="console-card-title">Sync All Your Applications in One Place</h3>
-            <p class="console-card-desc">Keep your entire job search organized without messy spreadsheets. Connect your email or job platforms like LinkedIn, Indeed, and Naukri to automatically log applications and track interview invites as soon as they land.</p>
+            <h3 class="console-card-title">Track every application in one ledger</h3>
+            <p class="console-card-desc">Keep your search organized without manual spreadsheets. Link job portal handles or paste confirmation emails to track applications and interview invites automatically.</p>
           </div>
         </div>
 
         <!-- Stop 6: Instant Fit -->
-        <div class="rail-stop-item card-spotlight">
+        <div class="rail-stop-item">
           <div class="rail-stop-node">
             <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           </div>
           <div class="rail-stop-card">
             <div class="console-card-header">
-              <span class="console-badge" style="background: rgba(245, 166, 35, 0.15); color: var(--accent-warning);">INSTANT FIT</span>
+              <span class="console-badge">Direct fit</span>
             </div>
-            <h3 class="console-card-title">Instant Job Matches with 1-Click Tracking</h3>
-            <p class="console-card-desc">Find live open roles that fit your actual experience and strengths. See your real match score before applying and save jobs directly into your personal tracking board with a single click.</p>
+            <h3 class="console-card-title">Role matches with one-click tracking</h3>
+            <p class="console-card-desc">Review open roles aligned with your verified background, inspect match compatibility up front, and log applications into your pipeline board in a single click.</p>
           </div>
         </div>
       </div>
@@ -538,9 +562,8 @@
     <!-- Frequently Asked Questions (FAQ) Section -->
     <section class="faq-section" id="faqSection">
       <div class="section-header-center">
-        <div class="section-badge-chip">Clear Answers</div>
-        <h2 class="section-title-lg">Frequently Asked Questions</h2>
-        <p class="section-subtext">Straightforward answers about how NexJob works and how your data is protected.</p>
+        <h2 class="section-title-lg">Frequently asked questions</h2>
+        <p class="section-subtext">Straightforward answers about how NexJob evaluates resumes and protects your data.</p>
       </div>
 
       <div class="faq-container">
@@ -633,61 +656,61 @@
   <!-- Side Navigation Drawer -->
   <div class="drawer-scrim" id="drawerScrim" onclick="toggleDrawer()"></div>
   <aside class="drawer" id="profileDrawer">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-      <h3 style="font-size: 1.1rem; font-weight: 800;">Account Menu</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h3 style="font-size: 1.05rem; font-weight: 500;">Account menu</h3>
       <button class="btn-ghost" style="padding: 4px 8px;" onclick="toggleDrawer()">&times;</button>
     </div>
 
-    <div id="drawerGuestActions" style="text-align: center; padding: 2rem 0;">
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Access cloud sync, custom pipelines, and full roadmaps.</p>
-      <button class="btn-primary" style="width: 100%; margin-bottom: 0.75rem;" onclick="toggleDrawer(); openAuthModal('login');">Sign In</button>
-      <button class="btn-ghost" style="width: 100%;" onclick="toggleDrawer(); openAuthModal('signup_step1');">Create Free Account</button>
+    <div id="drawerGuestActions" style="text-align: center; padding: 24px 0;">
+      <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 20px;">Access cloud sync, saved pipelines, and stored resumes.</p>
+      <button class="btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="toggleDrawer(); openAuthModal('login');">Sign in</button>
+      <button class="btn-ghost" style="width: 100%;" onclick="toggleDrawer(); openAuthModal('signup_step1');">Create free account</button>
     </div>
 
     <div id="drawerMemberActions" style="display: none;">
-      <div style="text-align: center; margin-bottom: 2rem;">
-        <div class="avatar-btn" id="drawerAvatar" style="width: 54px; height: 54px; font-size: 1.3rem; margin: 0 auto 10px auto;">U</div>
-        <div id="drawerUserName" style="font-weight: 700; font-size: 1.05rem;">User</div>
-        <div id="drawerUserEmail" style="font-size: 0.8rem; color: var(--text-muted);">user@example.com</div>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div class="avatar-btn" id="drawerAvatar" style="width: 48px; height: 48px; font-size: 1.15rem; margin: 0 auto 12px auto;">U</div>
+        <div id="drawerUserName" style="font-weight: 500; font-size: 1rem;">User</div>
+        <div id="drawerUserEmail" style="font-size: 0.8125rem; color: var(--text-muted);">user@example.com</div>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <button class="btn-ghost" style="text-align: left; width: 100%; display: flex; align-items: center; gap: 8px;" onclick="toggleDrawer(); openProfileModal();">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button class="btn-ghost" style="text-align: left; width: 100%; justify-content: flex-start; gap: 8px;" onclick="toggleDrawer(); openProfileModal();">
           <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Career Profile Settings
+          Career profile settings
         </button>
-        <button class="btn-ghost" style="text-align: left; width: 100%; display: flex; align-items: center; gap: 8px;" onclick="toggleDrawer(); logoutUser();">
+        <button class="btn-ghost" style="text-align: left; width: 100%; justify-content: flex-start; gap: 8px;" onclick="toggleDrawer(); logoutUser();">
           <svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sign Out
+          Sign out
         </button>
-        <button class="btn-ghost" style="text-align: left; width: 100%; display: flex; align-items: center; gap: 8px; color: var(--accent-coral); border-color: rgba(244, 63, 94, 0.3);" onclick="deleteAccount()">
+        <button class="btn-ghost" style="text-align: left; width: 100%; justify-content: flex-start; gap: 8px; color: var(--accent-danger); border-color: rgba(229, 72, 77, 0.25);" onclick="deleteAccount()">
           <svg class="icon-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          Delete Account
+          Delete account
         </button>
       </div>
     </div>
 
     <div class="drawer-features-nav">
-      <div class="drawer-nav-heading">Core Capabilities</div>
+      <div class="drawer-nav-heading">Core tools</div>
       <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('ats');">
         <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>ATS Scanner &amp; Skill Match</span>
+        <span>ATS scanner and skill match</span>
       </button>
       <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('scan');">
         <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>6s Recruiter Triage</span>
+        <span>6s recruiter triage</span>
       </button>
       <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('traps');">
         <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-        <span>Interview Traps Predictor</span>
+        <span>Interview traps predictor</span>
       </button>
       <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('humanizer');">
         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v4.59l-3.3 3.3a1 1 0 0 0 1.42 1.42l3.59-3.6A1 1 0 0 0 13 12V7a1 1 0 0 0-1-1z"/></svg>
-        <span>AI Resume Humanizer</span>
+        <span>AI resume humanizer</span>
       </button>
       <button type="button" class="drawer-feature-link" onclick="toggleDrawer(); navToFeature('mock');">
         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        <span>Live Mock Interview</span>
+        <span>Mock interview</span>
       </button>
     </div>
   </aside>
@@ -695,9 +718,9 @@
   <!-- Auth Modal Flow -->
   <div class="modal-backdrop" id="authModal" style="display: none;">
     <div class="modal-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <h3 id="authModalTitle" style="font-size: 1.2rem; font-weight: 800;">Sign In</h3>
-        <button class="btn-ghost" style="padding: 2px 8px; border: none;" onclick="closeAuthModal()">&times;</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 id="authModalTitle" style="font-size: 1.15rem; font-weight: 500;">Sign in</h3>
+        <button class="btn-ghost" style="padding: 4px 8px; border: none;" onclick="closeAuthModal()">&times;</button>
       </div>
 
       <div id="authDiagnosticBox" class="diagnostic-error"></div>
@@ -705,100 +728,100 @@
       <!-- View: Login -->
       <div id="authViewLogin">
         <div class="form-group">
-          <label class="form-label" for="loginIdentifier">Email or Username</label>
-          <input type="text" id="loginIdentifier" class="form-input" placeholder="name@example.com or username">
+          <label class="form-label" for="loginIdentifier">Email or username</label>
+          <input type="text" id="loginIdentifier" class="form-input" placeholder="name@example.com">
         </div>
         <div class="form-group">
           <label class="form-label" for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password">
+          <input type="password" id="loginPassword" class="form-input" placeholder="Password">
         </div>
-        <button class="btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="submitLogin()">Sign In</button>
+        <button class="btn-primary" style="width: 100%; margin-bottom: 16px;" onclick="submitLogin()">Sign in</button>
         
-        <div style="text-align: center; margin-bottom: 1rem;">
+        <div style="text-align: center; margin-bottom: 16px;">
           <div id="googleHiddenRenderWrapper" style="display: flex; justify-content: center;"></div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
-          <a href="javascript:switchAuthView('forgot')" style="color: var(--text-muted); text-decoration: none;">Forgot Password?</a>
-          <a href="javascript:switchAuthView('signup_step1')" style="color: var(--accent-teal-glow); text-decoration: none; font-weight: 600;">Create Account</a>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; color: var(--text-muted);">
+          <a href="javascript:switchAuthView('forgot')" style="color: var(--text-muted); text-decoration: none;">Forgot password?</a>
+          <a href="javascript:switchAuthView('signup_step1')" style="color: var(--accent-teal); text-decoration: none; font-weight: 500;">Create account</a>
         </div>
       </div>
 
       <!-- View: Signup Step 1 -->
       <div id="authViewSignupStep1" style="display: none;">
         <div class="form-group">
-          <label class="form-label" for="signupIdentifier">Email Address</label>
+          <label class="form-label" for="signupIdentifier">Email address</label>
           <input type="email" id="signupIdentifier" class="form-input" placeholder="name@domain.com">
         </div>
-        <button class="btn-primary" id="btnSendSignupCode" style="width: 100%; margin-bottom: 1rem;" onclick="requestSignupOTP()">Send Verification Code</button>
-        <div style="text-align: center; font-size: 0.8rem;">
+        <button class="btn-primary" id="btnSendSignupCode" style="width: 100%; margin-bottom: 16px;" onclick="requestSignupOTP()">Send verification code</button>
+        <div style="text-align: center; font-size: 0.8125rem;">
           <span style="color: var(--text-muted);">Already registered? </span>
-          <a href="javascript:switchAuthView('login')" style="color: var(--accent-teal-glow); text-decoration: none; font-weight: 600;">Sign In</a>
+          <a href="javascript:switchAuthView('login')" style="color: var(--accent-teal); text-decoration: none; font-weight: 500;">Sign in</a>
         </div>
       </div>
 
       <!-- View: Signup Step 2 -->
       <div id="authViewSignupStep2" style="display: none;">
-        <p id="signupOtpPrompt" style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 12px;"></p>
+        <p id="signupOtpPrompt" style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 12px;"></p>
         <div class="form-group">
-          <label class="form-label" for="signupOtpCode">6-Digit OTP Code</label>
-          <input type="text" id="signupOtpCode" class="form-input" placeholder="123456" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: 700;">
+          <label class="form-label" for="signupOtpCode">6-digit code</label>
+          <input type="text" id="signupOtpCode" class="form-input" placeholder="123456" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: 500;">
         </div>
         <div class="form-group">
-          <label class="form-label" for="signupUsername">Unique Username</label>
+          <label class="form-label" for="signupUsername">Username</label>
           <input type="text" id="signupUsername" class="form-input" placeholder="username">
         </div>
         <div class="form-group">
-          <label class="form-label" for="signupFullName">Full Name (Optional)</label>
-          <input type="text" id="signupFullName" class="form-input" placeholder="e.g. Alex Turing">
+          <label class="form-label" for="signupFullName">Full name (optional)</label>
+          <input type="text" id="signupFullName" class="form-input" placeholder="Alex Turing">
         </div>
         <div class="form-group">
           <label class="form-label" for="signupPassword">Password</label>
-          <input type="password" id="signupPassword" class="form-input" placeholder="Min. 6 characters">
+          <input type="password" id="signupPassword" class="form-input" placeholder="At least 6 characters">
         </div>
 
-        <div style="display: flex; align-items: flex-start; gap: 8px; margin: 14px 0; font-size: 0.82rem; color: var(--text-muted);">
-          <input type="checkbox" id="signupTermsAccept" checked style="accent-color: var(--accent-indigo); margin-top: 3px;">
+        <div style="display: flex; align-items: flex-start; gap: 8px; margin: 16px 0; font-size: 0.8125rem; color: var(--text-muted);">
+          <input type="checkbox" id="signupTermsAccept" checked style="accent-color: var(--accent-teal); margin-top: 3px;">
           <label for="signupTermsAccept">
-            I agree to the <a href="javascript:openLegalModal('terms')" style="color: var(--accent-teal-glow); text-decoration: underline;">Terms of Service</a> & <a href="javascript:openLegalModal('privacy')" style="color: var(--accent-teal-glow); text-decoration: underline;">Privacy Policy</a>.
+            I agree to the <a href="javascript:openLegalModal('terms')" style="color: var(--accent-teal); text-decoration: underline;">Terms of Service</a> and <a href="javascript:openLegalModal('privacy')" style="color: var(--accent-teal); text-decoration: underline;">Privacy Policy</a>.
           </label>
         </div>
 
-        <button class="btn-primary" style="width: 100%;" onclick="submitSignupVerification()">Verify & Create Account</button>
+        <button class="btn-primary" style="width: 100%;" onclick="submitSignupVerification()">Verify and create account</button>
         
-        <div style="text-align: center; margin-top: 14px; font-size: 0.82rem;">
+        <div style="text-align: center; margin-top: 16px; font-size: 0.8125rem;">
           <span id="signupTimerNotice" style="color: var(--text-muted);">Resend code in <b id="signupTimerCount">60</b>s</span>
-          <button id="btnResendSignupCode" style="display: none; background: none; border: none; color: var(--accent-teal-glow); cursor: pointer; font-weight: 700;" onclick="resendSignupCode()">Resend Code Now</button>
+          <button id="btnResendSignupCode" style="display: none; background: none; border: none; color: var(--accent-teal); cursor: pointer; font-weight: 500;" onclick="resendSignupCode()">Resend code</button>
         </div>
       </div>
 
       <!-- View: Forgot Password Step 1 -->
       <div id="authViewForgotStep1" style="display: none;">
         <div class="form-group">
-          <label class="form-label" for="forgotIdentifier">Registered Email</label>
+          <label class="form-label" for="forgotIdentifier">Registered email</label>
           <input type="email" id="forgotIdentifier" class="form-input" placeholder="name@domain.com">
         </div>
-        <button class="btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="requestForgotOTP()">Send Reset OTP</button>
-        <div style="text-align: center; font-size: 0.8rem;">
-          <a href="javascript:switchAuthView('login')" style="color: var(--text-muted); text-decoration: none;">← Back to Sign In</a>
+        <button class="btn-primary" style="width: 100%; margin-bottom: 16px;" onclick="requestForgotOTP()">Send reset code</button>
+        <div style="text-align: center; font-size: 0.8125rem;">
+          <a href="javascript:switchAuthView('login')" style="color: var(--text-muted); text-decoration: none;">← Back to sign in</a>
         </div>
       </div>
 
       <!-- View: Forgot Password Step 2 -->
       <div id="authViewForgotStep2" style="display: none;">
         <div class="form-group">
-          <label class="form-label" for="forgotOtpCode">Reset OTP</label>
+          <label class="form-label" for="forgotOtpCode">Reset code</label>
           <input type="text" id="forgotOtpCode" class="form-input" placeholder="6-digit code" maxlength="6" style="text-align: center; letter-spacing: 4px;">
         </div>
         <div class="form-group">
-          <label class="form-label" for="forgotNewPassword">New Password</label>
-          <input type="password" id="forgotNewPassword" class="form-input" placeholder="Enter new password">
+          <label class="form-label" for="forgotNewPassword">New password</label>
+          <input type="password" id="forgotNewPassword" class="form-input" placeholder="New password">
         </div>
-        <button class="btn-primary" style="width: 100%;" onclick="submitPasswordReset()">Update Password</button>
+        <button class="btn-primary" style="width: 100%;" onclick="submitPasswordReset()">Update password</button>
         
-        <div style="text-align: center; margin-top: 14px; font-size: 0.82rem;">
+        <div style="text-align: center; margin-top: 16px; font-size: 0.8125rem;">
           <span id="forgotTimerNotice" style="color: var(--text-muted);">Resend code in <b id="forgotTimerCount">60</b>s</span>
-          <button id="btnResendForgotCode" style="display: none; background: none; border: none; color: var(--accent-teal-glow); cursor: pointer; font-weight: 700;" onclick="resendForgotCode()">Resend Code Now</button>
+          <button id="btnResendForgotCode" style="display: none; background: none; border: none; color: var(--accent-teal); cursor: pointer; font-weight: 500;" onclick="resendForgotCode()">Resend code</button>
         </div>
       </div>
 
@@ -808,27 +831,27 @@
   <!-- Job Application Modal -->
   <div class="modal-backdrop" id="jobModal" style="display: none;">
     <div class="modal-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 800;">Log Application</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.15rem; font-weight: 500;">Log application</h3>
         <button class="modal-close-icon-btn" onclick="closeJobModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
       <div class="form-group">
-        <label class="form-label" for="modalCompany">Company Name</label>
-        <input type="text" id="modalCompany" class="form-input" placeholder="e.g. Meta">
+        <label class="form-label" for="modalCompany">Company name</label>
+        <input type="text" id="modalCompany" class="form-input" placeholder="Meta">
       </div>
       <div class="form-group">
-        <label class="form-label" for="modalRole">Role Title</label>
-        <input type="text" id="modalRole" class="form-input" placeholder="e.g. Machine Learning Engineer">
+        <label class="form-label" for="modalRole">Role title</label>
+        <input type="text" id="modalRole" class="form-input" placeholder="Machine Learning Engineer">
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="form-grid-2">
         <div class="form-group">
-          <label class="form-label" for="modalDate">Application Date</label>
+          <label class="form-label" for="modalDate">Application date</label>
           <input type="date" id="modalDate" class="form-input">
         </div>
         <div class="form-group">
-          <label class="form-label" for="modalStatus">Initial Stage</label>
+          <label class="form-label" for="modalStatus">Initial stage</label>
           <select id="modalStatus" class="form-select">
             <option value="Applied">Applied</option>
             <option value="Interviewing">Interviewing</option>
@@ -838,39 +861,39 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label" for="modalTags">Tags (Comma Separated)</label>
+        <label class="form-label" for="modalTags">Tags (comma separated)</label>
         <input type="text" id="modalTags" class="form-input" placeholder="AI, Remote, Python">
       </div>
       <div class="form-group">
-        <label class="form-label" for="modalJD">Full Job Description</label>
-        <textarea id="modalJD" class="form-textarea" placeholder="Paste JD requirements..."></textarea>
+        <label class="form-label" for="modalJD">Full job description</label>
+        <textarea id="modalJD" class="form-textarea" placeholder="Paste job requirements"></textarea>
       </div>
-      <button class="btn-primary" style="width: 100%;" onclick="submitNewJob()">Save Application</button>
+      <button class="btn-primary" style="width: 100%;" onclick="submitNewJob()">Save application</button>
     </div>
   </div>
 
   <!-- Profile Settings Modal -->
   <div class="modal-backdrop" id="profileModal" style="display: none;">
     <div class="modal-box" style="max-width: 540px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 800;">Candidate Profile Settings</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.15rem; font-weight: 500;">Candidate profile settings</h3>
         <button class="modal-close-icon-btn" onclick="closeProfileModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
       <div class="form-group">
-        <label class="form-label" for="profFullName">Full Name</label>
+        <label class="form-label" for="profFullName">Full name</label>
         <input type="text" id="profFullName" class="form-input">
       </div>
       <div class="form-group">
-        <label class="form-label" for="profTargetRole">Default Target Role</label>
+        <label class="form-label" for="profTargetRole">Default target role</label>
         <input type="text" id="profTargetRole" class="form-input">
       </div>
       <div class="form-group">
-        <label class="form-label" for="profSkills">Core Technical Skills</label>
-        <input type="text" id="profSkills" class="form-input" placeholder="e.g. Python, PyTorch, Kubernetes">
+        <label class="form-label" for="profSkills">Core technical skills</label>
+        <input type="text" id="profSkills" class="form-input" placeholder="Python, PyTorch, Kubernetes">
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="form-grid-2">
         <div class="form-group">
           <label class="form-label" for="profLinkedin">LinkedIn URL</label>
           <input type="url" id="profLinkedin" class="form-input">
@@ -881,56 +904,56 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label" for="profResume">Default Stored Resume</label>
+        <label class="form-label" for="profResume">Default stored resume</label>
         <textarea id="profResume" class="form-textarea"></textarea>
       </div>
-      <button class="btn-primary" style="width: 100%;" onclick="saveUserProfile()">Save Career Profile</button>
+      <button class="btn-primary" style="width: 100%;" onclick="saveUserProfile()">Save career profile</button>
     </div>
   </div>
 
   <!-- Anti-Ghosting Follow-Up Modal -->
   <div class="modal-backdrop" id="followupModal" style="display: none;">
     <div class="modal-box" style="max-width: 580px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <div>
-          <h3 id="followupModalTitle" style="font-size: 1.2rem; font-weight: 800;">Anti-Ghosting Follow-Up Sequence</h3>
-          <p id="followupModalSubtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Proven cadence for getting replies after applying.</p>
+          <h3 id="followupModalTitle" style="font-size: 1.15rem; font-weight: 500;">Follow-up sequence</h3>
+          <p id="followupModalSubtitle" style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Structured cadence for getting responses after applying</p>
         </div>
         <button class="modal-close-icon-btn" onclick="closeFollowupModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
       <div class="ghosting-timeline-card" style="padding: 0; background: transparent; border: none;">
         <!-- Day 3 -->
         <div class="timeline-step">
-          <div class="timeline-step-icon">03</div>
+          <div class="timeline-step-icon">3</div>
           <div class="timeline-step-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div class="timeline-step-title">Day 3: LinkedIn Connection Note</div>
-              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day3')">
-                <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <div class="timeline-step-title">Day 3: LinkedIn connection note</div>
+              <button class="copy-btn" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day3')">
+                <svg class="icon-svg" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 Copy
               </button>
             </div>
             <div class="timeline-step-desc">Under 300 characters. Send with your connection request to the recruiter or hiring manager.</div>
-            <div id="followupDay3Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
+            <div id="followupDay3Text" style="background: var(--bg-elevated); padding: 12px; border-radius: var(--radius-sm); font-size: 0.8125rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
           </div>
         </div>
 
         <!-- Day 7 -->
         <div class="timeline-step">
-          <div class="timeline-step-icon">07</div>
+          <div class="timeline-step-icon">7</div>
           <div class="timeline-step-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div class="timeline-step-title">Day 7: Polite Status Check</div>
-              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day7')">
-                <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <div class="timeline-step-title">Day 7: Polite status check</div>
+              <button class="copy-btn" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day7')">
+                <svg class="icon-svg" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 Copy
               </button>
             </div>
-            <div class="timeline-step-desc">Send via email or LinkedIn DM if you haven't received an update after one full week.</div>
-            <div id="followupDay7Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
+            <div class="timeline-step-desc">Send via email or LinkedIn message if no update arrives after one week.</div>
+            <div id="followupDay7Text" style="background: var(--bg-elevated); padding: 12px; border-radius: var(--radius-sm); font-size: 0.8125rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
           </div>
         </div>
 
@@ -939,22 +962,22 @@
           <div class="timeline-step-icon">14</div>
           <div class="timeline-step-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div class="timeline-step-title">Day 14: Value-Add Final Touch</div>
-              <button class="copy-btn" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day14')">
-                <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <div class="timeline-step-title">Day 14: Final value check-in</div>
+              <button class="copy-btn" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyFollowupNote('day14')">
+                <svg class="icon-svg" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 Copy
               </button>
             </div>
-            <div class="timeline-step-desc">Share a quick perspective or thoughtful observation about their product.</div>
-            <div id="followupDay14Text" style="background: var(--bg-elevated); padding: 10px; border-radius: var(--radius-xs); font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
+            <div class="timeline-step-desc">Share a concise observation about their product or engineering work.</div>
+            <div id="followupDay14Text" style="background: var(--bg-elevated); padding: 12px; border-radius: var(--radius-sm); font-size: 0.8125rem; color: var(--text-secondary); border: 1px solid var(--border-subtle); margin-top: 4px;"></div>
           </div>
         </div>
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 10px; flex-wrap: wrap;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; gap: 12px; flex-wrap: wrap;">
         <button class="btn-primary" onclick="dispatchColdEmail(currentFollowupCompany, currentFollowupRole)">
           <svg class="icon-svg" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Send to HR (1-Click)
+          Send email draft
         </button>
         <button class="btn-ghost" onclick="closeFollowupModal()">Close</button>
       </div>
@@ -966,20 +989,20 @@
     <div class="modal-box" style="max-width: 620px;">
       <div class="modal-header-sticky">
         <div>
-          <h3 style="font-size: 1.25rem; font-weight: 800; color: #FFF;">Application Monitoring &amp; Integrations</h3>
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Connect your profile handles and mailboxes to monitor applications &amp; selection status.</p>
+          <h3 style="font-size: 1.2rem; font-weight: 500; color: var(--text-main);">Application monitoring and integrations</h3>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Connect profile handles and mailboxes to monitor application status</p>
         </div>
         <button class="modal-floating-close-btn" onclick="closeIntegrationsModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
       <!-- Security & Encryption Badge -->
       <div class="encryption-security-bar">
-        <svg class="icon-svg-lg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <svg class="icon-svg" viewBox="0 0 24 24" style="color: var(--accent-teal);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <div>
-          <strong>End-to-End Encrypted (AES-256-GCM / TLS 1.3)</strong>
-          <div>Candidate profile links and monitoring webhooks are securely isolated. Your credentials are never scraped or shared.</div>
+          <span style="font-weight: 500; color: var(--text-main);">End-to-end encrypted (AES-256-GCM / TLS 1.3)</span>
+          <div>Profile links and monitoring webhooks stay isolated. Account passwords are never stored.</div>
         </div>
       </div>
 
@@ -991,13 +1014,13 @@
               <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             </div>
             <div>
-              <div class="integration-name">Email Inbox Monitoring (Gmail / Outlook)</div>
-              <div class="integration-desc">Detects interview invites, selection confirmations, and application status changes.</div>
+              <div class="integration-name">Email inbox monitoring (Gmail / Outlook)</div>
+              <div class="integration-desc">Detects interview invites, selection confirmations, and status updates.</div>
               <div id="emailMonitorHandle" class="connected-handle-chip" style="display:none;"></div>
             </div>
           </div>
           <button class="btn-ghost compact" id="btnToggleEmailSync" onclick="toggleIntegration('email_monitor')">
-            <span class="pulse-indicator"></span> Active
+            Active
           </button>
         </div>
 
@@ -1008,7 +1031,7 @@
               <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
             </div>
             <div>
-              <div class="integration-name">LinkedIn Jobs &amp; InMail</div>
+              <div class="integration-name">LinkedIn Jobs and InMail</div>
               <div class="integration-desc">Sync Easy Apply submissions, recruiter views, and interview invites.</div>
               <div id="linkedinHandleDisplay" class="connected-handle-chip" style="display:none;"></div>
             </div>
@@ -1025,7 +1048,7 @@
               <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             </div>
             <div>
-              <div class="integration-name">Naukri.com Portal</div>
+              <div class="integration-name">Naukri portal</div>
               <div class="integration-desc">Sync active applications, recruiter view alerts, and interview calls.</div>
               <div id="naukriHandleDisplay" class="connected-handle-chip" style="display:none;"></div>
             </div>
@@ -1042,8 +1065,8 @@
               <svg class="icon-svg" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             </div>
             <div>
-              <div class="integration-name">Internshala Careers</div>
-              <div class="integration-desc">Monitor internships, assignment submissions, shortlists, and selection letters.</div>
+              <div class="integration-name">Internshala careers</div>
+              <div class="integration-desc">Monitor internships, assignment submissions, shortlists, and offers.</div>
               <div id="internshalaHandleDisplay" class="connected-handle-chip" style="display:none;"></div>
             </div>
           </div>
@@ -1054,46 +1077,43 @@
       </div>
 
       <!-- Quick-Paste Application Email Dropzone -->
-      <div class="email-paste-dropzone-box" style="background: var(--bg-elevated); border: 1px dashed var(--border-medium); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <label style="font-size: 0.82rem; font-weight: 700; color: #FFF; display: flex; align-items: center; gap: 6px;">
-            <svg class="icon-svg-sm" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            Quick-Paste Confirmation / Interview / Selection Email
+      <div class="email-paste-dropzone-box" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="font-size: 0.8125rem; font-weight: 500; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Paste confirmation or interview email
           </label>
-          <span style="font-size: 0.72rem; color: var(--accent-teal); font-family: var(--font-mono);">100% Precision Parser</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">Email parser</span>
         </div>
-        <textarea id="syncEmailPasteArea" class="form-textarea" style="min-height: 80px; font-size: 0.8rem; margin-bottom: 8px;" placeholder="Paste confirmation email text, subject, or recruiter invite snippet here (LinkedIn, Internshala, Greenhouse, Lever, etc.)..."></textarea>
+        <textarea id="syncEmailPasteArea" class="form-textarea" style="min-height: 80px; font-size: 0.8125rem; margin-bottom: 8px;" placeholder="Paste recruiter email text, subject, or application receipt"></textarea>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button class="btn-ghost compact" onclick="document.getElementById('syncEmailPasteArea').value = ''">Clear</button>
           <button class="btn-primary compact" id="btnParsePastedEmail" onclick="parsePastedApplicationEmail()">
-            <svg class="icon-svg-sm" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Auto-Sync to Board
+            Sync to board
           </button>
         </div>
       </div>
 
-      <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px; font-size: 0.8125rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
         <div>
-          <span style="font-weight: 600; color: #FFF;">Direct Email Forwarding: </span>
+          <span style="font-weight: 500; color: var(--text-main);">Direct forwarding: </span>
           <code id="syncEmailWebhook" style="color: var(--accent-teal); font-family: var(--font-mono);">tracker-sync@nexjob.ai</code>
         </div>
-        <button class="btn-ghost" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyToClipboard('tracker-sync@nexjob.ai', 'Sync address')">
-          <svg class="icon-svg-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <button class="btn-ghost" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="copyToClipboard('tracker-sync@nexjob.ai', 'Sync address')">
+          <svg class="icon-svg" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy
         </button>
       </div>
 
-      <!-- Action Footer with Live Test Simulator -->
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <button class="btn-ghost" onclick="simulateSelectionUpdate()" style="border-color: rgba(34,211,200,0.3); color: var(--accent-teal);" title="Test how NexJob detects when you get selected for a job">
-          <svg class="icon-svg-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-          Test Selection Alert
+      <!-- Action Footer -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <button class="btn-ghost" onclick="simulateSelectionUpdate()" title="Test offer detection alert">
+          Test offer alert
         </button>
         <div style="display: flex; gap: 8px;">
           <button class="btn-ghost" onclick="closeIntegrationsModal()">Close</button>
           <button class="btn-primary" id="btnTriggerSync" onclick="triggerPlatformSync()">
-            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-            Sync Applications Now
+            Sync applications
           </button>
         </div>
       </div>
@@ -1103,87 +1123,85 @@
   <!-- Platform Credentials & Profile Linking Modal -->
   <div class="modal-backdrop" id="platformConnectModal" style="display: none; z-index: 9999;" onclick="if(event.target === this) closePlatformConnectModal()">
     <div class="modal-box" style="max-width: 520px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div id="connectPlatformIcon" class="integration-icon" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: var(--bg-elevated); border-radius: var(--radius-xs);"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div id="connectPlatformIcon" class="integration-icon" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-elevated); border-radius: var(--radius-xs);"></div>
           <div>
-            <h3 id="connectPlatformTitle" style="font-size: 1.2rem; font-weight: 800; color: #FFF;">Connect Platform</h3>
-            <p id="connectPlatformSubtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Link your profile to monitor applications and selection status.</p>
+            <h3 id="connectPlatformTitle" style="font-size: 1.15rem; font-weight: 500; color: var(--text-main);">Connect platform</h3>
+            <p id="connectPlatformSubtitle" style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 2px;">Link your handle to monitor application updates</p>
           </div>
         </div>
         <button class="modal-close-icon-btn" onclick="closePlatformConnectModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
       <div class="form-group">
-        <label class="form-label" id="connectInputLabel" for="connectHandleInput">Profile URL or Registered Username</label>
-        <input type="text" id="connectHandleInput" class="form-input" placeholder="e.g. https://www.linkedin.com/in/username">
-        <span style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; display: block;">
-          NexJob links your profile handle to track recruiter views, interview invites, and selection decisions without compromising passwords.
+        <label class="form-label" id="connectInputLabel" for="connectHandleInput">Profile URL or username</label>
+        <input type="text" id="connectHandleInput" class="form-input" placeholder="https://www.linkedin.com/in/username">
+        <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">
+          NexJob uses your public handle to track recruiter views, interview invitations, and offer updates.
         </span>
       </div>
 
-      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.9rem; margin-bottom: 1.25rem;">
-        <div style="font-size: 0.82rem; font-weight: 700; color: #FFF; margin-bottom: 8px;">Monitoring Scope:</div>
-        <div style="font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Auto-detect application submissions &amp; confirmations</span>
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px;">
+        <div style="font-size: 0.8125rem; font-weight: 500; color: var(--text-main); margin-bottom: 8px;">Monitoring scope</div>
+        <div style="font-size: 0.8125rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Detect application submissions and confirmations</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Track recruiter interview invitations &amp; scheduling</span>
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Track interview invitations and scheduling</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--accent-teal); font-weight: 700;">
-            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Instant celebration alert when Selected / Job Offer received</span>
+          <label style="display: flex; align-items: center; gap: 8px; color: var(--accent-success);">
+            <input type="checkbox" checked disabled style="accent-color: var(--accent-teal);"> <span>Notify when an application reaches Offer stage</span>
           </label>
         </div>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button class="btn-ghost" onclick="closePlatformConnectModal()">Cancel</button>
         <button class="btn-primary" id="btnConfirmPlatformConnect" onclick="confirmPlatformConnection()">
-          Connect &amp; Start Monitoring
+          Connect and monitor
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Real-Time Selection & Offer Celebration Modal -->
+  <!-- Selection & Offer Status Modal -->
   <div class="modal-backdrop" id="selectionAlertModal" style="display: none; z-index: 10000;" onclick="if(event.target === this) closeSelectionModal()">
-    <canvas id="confettiCanvas" style="position: fixed; inset: 0; pointer-events: none; width: 100vw; height: 100vh; z-index: 10001;"></canvas>
-    <div class="modal-box selection-celebration-box" style="max-width: 540px; text-align: center; border: 2px solid rgba(34, 211, 200, 0.6); box-shadow: 0 0 40px rgba(34, 211, 200, 0.35); position: relative; z-index: 10002;">
-      <button class="modal-close-icon-btn" style="position: absolute; top: 14px; right: 14px;" onclick="closeSelectionModal()" aria-label="Close" title="Return to webpage">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <div class="modal-box selection-celebration-box" style="max-width: 540px; text-align: center; position: relative; z-index: 10002;">
+      <button class="modal-close-icon-btn" style="position: absolute; top: 16px; right: 16px;" onclick="closeSelectionModal()" aria-label="Close" title="Return to webpage">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
 
-      <div class="selection-badge-trophy" style="width: 72px; height: 72px; margin: 0.5rem auto 1rem; border-radius: 50%; background: linear-gradient(135deg, rgba(34,211,200,0.25), rgba(82,86,216,0.35)); display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent-teal); box-shadow: 0 0 24px rgba(34,211,200,0.6);">
-        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#00F0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      <div class="selection-badge-trophy">
+        <svg class="icon-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
 
-      <div style="font-size: 0.82rem; font-weight: 800; letter-spacing: 0.1em; color: var(--accent-teal); text-transform: uppercase; margin-bottom: 6px;">
-        Selection Status Update
+      <div style="font-size: 0.75rem; font-weight: 500; color: var(--accent-success); margin-bottom: 8px; font-family: var(--font-mono);">
+        Selection status update
       </div>
-      <h2 style="font-size: 1.65rem; font-weight: 800; color: #FFF; margin-bottom: 0.5rem;">
-        Congratulations! You Got Selected!
+      <h2 style="font-size: 1.5rem; font-weight: 500; color: var(--text-main); margin-bottom: 8px;">
+        Offer stage recorded
       </h2>
-      <p id="selectionOfferDetails" style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-        Recruiter context confirmed: Your application has been moved to the Offer Stage!
+      <p id="selectionOfferDetails" style="font-size: 0.9375rem; color: var(--text-secondary); margin-bottom: 20px;">
+        Recruiter correspondence indicates this application moved to the offer stage.
       </p>
 
-      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.1rem; text-align: left; margin-bottom: 1.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
-          <strong id="selectionCompanyRole" style="color: #FFF; font-size: 1rem;">Software Engineer at Stripe</strong>
-          <span class="tag-chip" style="background: rgba(34,211,200,0.15); color: var(--accent-teal); border-color: rgba(34,211,200,0.4); font-weight: 700;">Selected / Offer Stage</span>
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; text-align: left; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <span id="selectionCompanyRole" style="color: var(--text-main); font-size: 0.9375rem; font-weight: 500;">Software Engineer at Stripe</span>
+          <span class="tag-chip" style="background: var(--accent-success-bg); color: var(--accent-success); border: 1px solid rgba(76, 195, 138, 0.3);">Offer stage</span>
         </div>
-        <div id="selectionContextQuote" style="font-size: 0.85rem; color: var(--text-muted); font-style: italic; line-height: 1.4;">
-          "Pleased to inform you that following your interview rounds, we would like to formally extend an offer for this position..."
+        <div id="selectionContextQuote" style="font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5;">
+          "Pleased to inform you that following your interview rounds, we would like to extend an offer for this position."
         </div>
       </div>
 
-      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
         <button class="btn-primary" onclick="closeSelectionModal(); openMemberPipeline();">
-          <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-          View On Pipeline Board
+          View pipeline board
         </button>
         <button class="btn-ghost" onclick="closeSelectionModal()">
           Dismiss
@@ -1197,17 +1215,17 @@
     <div class="modal-box legal-modal">
       <div class="legal-modal-header">
         <div>
-          <h3 style="font-size: 1.3rem; font-weight: 800; color: #FFF;">Legal &amp; Data Governance</h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Last updated: September 2026</p>
+          <h3 style="font-size: 1.2rem; font-weight: 500; color: var(--text-main);">Legal and data governance</h3>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Last updated September 2026</p>
         </div>
         <button class="modal-close-icon-btn" onclick="closeLegalModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
       <div class="legal-tabs">
-        <button class="legal-tab-btn active" id="btnTabTerms" onclick="switchLegalTab('terms')">Terms of Service</button>
-        <button class="legal-tab-btn" id="btnTabPrivacy" onclick="switchLegalTab('privacy')">Privacy Policy</button>
+        <button class="legal-tab-btn active" id="btnTabTerms" onclick="switchLegalTab('terms')">Terms of service</button>
+        <button class="legal-tab-btn" id="btnTabPrivacy" onclick="switchLegalTab('privacy')">Privacy policy</button>
       </div>
 
       <div class="legal-body-scroll">
@@ -1219,8 +1237,8 @@
           </div>
 
           <div class="legal-section-block">
-            <h4>2. AI Career Intelligence & Disclaimers</h4>
-            <p>NexJob AI utilizes advanced artificial intelligence and algorithmic models to evaluate resumes against target job descriptions and generate recruiter communications. You acknowledge that:</p>
+            <h4>2. AI Career Intelligence &amp; Disclaimers</h4>
+            <p>NexJob AI utilizes artificial intelligence and algorithmic models to evaluate resumes against target job descriptions and generate recruiter communications. You acknowledge that:</p>
             <ul>
               <li>ATS match scores, skill gap evaluations, and interview recommendations are for informational and career development purposes only.</li>
               <li>NexJob AI does not guarantee interviews, employment offers, or hiring outcomes with any third-party employer.</li>
@@ -1229,13 +1247,13 @@
           </div>
 
           <div class="legal-section-block">
-            <h4>3. Candidate Data & Resume Ownership</h4>
-            <p>You retain 100% full intellectual property ownership of all resumes, cover letters, career profiles, and credentials submitted to the platform. By uploading content, you grant NexJob AI a limited, worldwide license solely to process, analyze, and format your data to provide our career services to you.</p>
+            <h4>3. Candidate Data &amp; Resume Ownership</h4>
+            <p>You retain full intellectual property ownership of all resumes, cover letters, career profiles, and credentials submitted to the platform. By uploading content, you grant NexJob AI a limited license solely to process, analyze, and format your data to provide our career services to you.</p>
           </div>
 
           <div class="legal-section-block">
-            <h4>4. User Accounts & Security</h4>
-            <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorized access or security breaches. NexJob AI reserves the right to terminate accounts that engage in abusive, fraudulent, or automated scraping activities.</p>
+            <h4>4. User Accounts &amp; Security</h4>
+            <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us of any unauthorized access. NexJob AI reserves the right to terminate accounts that engage in abusive, fraudulent, or automated scraping activities.</p>
           </div>
 
           <div class="legal-section-block">
@@ -1248,39 +1266,39 @@
         <div id="legalViewPrivacy" style="display: none;">
           <div class="legal-section-block">
             <h4>1. Information We Collect</h4>
-            <p>We only collect information necessary to deliver high-precision career intelligence:</p>
+            <p>We only collect information necessary to deliver career intelligence:</p>
             <ul>
               <li><strong>Account Credentials:</strong> Email address, unique username, and encrypted password hash.</li>
               <li><strong>Candidate Profile:</strong> Target role, full name, technical skills, and optional portfolio links (LinkedIn, GitHub).</li>
               <li><strong>Resume Content:</strong> Extracted plain text and PDF document contents uploaded to your Resume Vault.</li>
-              <li><strong>Job Tracking Records:</strong> Companies, role titles, application dates, status stages, and job descriptions saved to your Kanban board.</li>
+              <li><strong>Job Tracking Records:</strong> Companies, role titles, application dates, status stages, and job descriptions saved to your board.</li>
             </ul>
           </div>
 
           <div class="legal-section-block">
-            <h4>2. Strict Zero Data Sale Policy</h4>
-            <p><strong>We never sell, rent, monetize, or broker your personal information or resume contents to data aggregators, staffing agencies, or third-party advertisers.</strong> Your data is used exclusively to evaluate job compatibility and automate your job search pipeline.</p>
+            <h4>2. Zero Data Sale Policy</h4>
+            <p>We never sell, rent, or broker your personal information or resume contents to data aggregators, staffing agencies, or third-party advertisers. Your data is used solely to evaluate job compatibility and manage your application pipeline.</p>
           </div>
 
           <div class="legal-section-block">
             <h4>3. AI Model Data Privacy</h4>
-            <p>Resume evaluations performed by Google Gemini API utilize secure enterprise API endpoints with zero retention for public training. Your proprietary resume texts and career history are not used to train public foundation models.</p>
+            <p>Resume evaluations performed by Google Gemini API use enterprise API endpoints. Your proprietary resume texts and career history are not used to train public foundation models.</p>
           </div>
 
           <div class="legal-section-block">
-            <h4>4. Data Security & Retention</h4>
-            <p>All data transmitted between your browser and our servers is secured using modern TLS 1.3 encryption. Passwords and OTP codes are protected using one-way cryptographic SHA-256 hashing.</p>
+            <h4>4. Data Security &amp; Retention</h4>
+            <p>Data transmitted between your browser and our servers is secured using TLS encryption. Passwords and OTP codes are protected using cryptographic hashing.</p>
           </div>
 
           <div class="legal-section-block">
-            <h4>5. Right to Erasure (Complete Account Deletion)</h4>
-            <p>You have full autonomy over your data. You may permanently delete your account, stored profile, uploaded resumes, and application board history at any time with a single click in Account Settings. All associated records are instantly removed from our active database.</p>
+            <h4>5. Right to Erasure</h4>
+            <p>You can permanently delete your account, stored profile, uploaded resumes, and application board history at any time from Account settings. All associated records are removed from our active database.</p>
           </div>
         </div>
       </div>
 
       <div class="legal-modal-footer">
-        <button class="btn-primary" onclick="closeLegalModal()">I Understand & Agree</button>
+        <button class="btn-primary" onclick="closeLegalModal()">Close</button>
       </div>
     </div>
   </div>
@@ -1288,35 +1306,32 @@
   <!-- Offer Negotiation & Counter-Offer Playbook Modal -->
   <div class="modal-backdrop" id="counterOfferModal" style="display: none;">
     <div class="modal-box" style="max-width: 680px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="status-dot-green"></span>
-          <h3 style="font-size: 1.2rem; font-weight: 800; color: #FFF;">Offer Negotiation &amp; Counter-Offer Playbook</h3>
-        </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.15rem; font-weight: 500; color: var(--text-main);">Offer negotiation and counter-offer playbook</h3>
         <button class="modal-close-icon-btn" onclick="closeCounterOfferModal()" aria-label="Close" title="Return to webpage">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.2rem;">
-        Never accept the first offer without evaluating market benchmarks. Calibrate your leverage and copy ready-to-send psychological counter templates.
+      <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 20px;">
+        Evaluate compensation percentiles before responding to a written offer and generate counter-offer drafts.
       </p>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+      <div class="form-grid-2">
         <div class="form-group">
           <label class="form-label" for="offerModalCompany">Company</label>
-          <input type="text" id="offerModalCompany" class="form-input" placeholder="e.g. Stripe">
+          <input type="text" id="offerModalCompany" class="form-input" placeholder="Stripe">
         </div>
         <div class="form-group">
-          <label class="form-label" for="offerModalRole">Role Title</label>
-          <input type="text" id="offerModalRole" class="form-input" placeholder="e.g. Senior Software Engineer">
+          <label class="form-label" for="offerModalRole">Role title</label>
+          <input type="text" id="offerModalRole" class="form-input" placeholder="Senior Software Engineer">
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem;">
+      <div class="form-grid-2" style="margin-bottom: 20px;">
         <div class="form-group">
-          <label class="form-label" for="offerModalBase">Current Base Offer ($)</label>
-          <input type="number" id="offerModalBase" class="form-input" placeholder="e.g. 130000">
+          <label class="form-label" for="offerModalBase">Current base offer</label>
+          <input type="number" id="offerModalBase" class="form-input" placeholder="130000">
         </div>
         <div class="form-group">
           <label class="form-label" for="offerModalCurrency">Currency</label>
@@ -1330,36 +1345,36 @@
         </div>
       </div>
 
-      <button class="btn-primary" id="btnGenCounter" style="width: 100%; margin-bottom: 1.2rem;" onclick="generateCounterOfferPlaybook()">
-        Calculate Leverage &amp; Generate Counter Templates →
+      <button class="btn-primary" id="btnGenCounter" style="width: 100%; margin-bottom: 20px;" onclick="generateCounterOfferPlaybook()">
+        Calculate range and generate templates
       </button>
 
       <div id="offerResultsContainer" style="display: none;">
         <!-- Market Benchmarks Grid -->
-        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
-          <div style="font-size: 0.82rem; font-weight: 700; color: var(--accent-teal); margin-bottom: 0.5rem;">Market Compensation Benchmarks</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px;">
+          <div style="font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px;">Estimated market compensation range</div>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
             <div style="background: var(--bg-elevated); padding: 8px; border-radius: 4px;">
-              <div style="font-size: 0.7rem; color: var(--text-muted);">25th %tile</div>
-              <div style="font-weight: 700; color: #FFF; font-size: 0.9rem;" id="benchP25">$120k</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">25th %tile</div>
+              <div style="font-weight: 500; color: var(--text-main); font-size: 0.9375rem; font-variant-numeric: tabular-nums;" id="benchP25">$120k</div>
             </div>
             <div style="background: var(--bg-elevated); padding: 8px; border-radius: 4px;">
-              <div style="font-size: 0.7rem; color: var(--text-muted);">Median (50th)</div>
-              <div style="font-weight: 700; color: #FFF; font-size: 0.9rem;" id="benchMedian">$135k</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Median</div>
+              <div style="font-weight: 500; color: var(--text-main); font-size: 0.9375rem; font-variant-numeric: tabular-nums;" id="benchMedian">$135k</div>
             </div>
             <div style="background: var(--bg-elevated); padding: 8px; border-radius: 4px;">
-              <div style="font-size: 0.7rem; color: var(--text-muted);">75th %tile</div>
-              <div style="font-weight: 700; color: #FFF; font-size: 0.9rem;" id="benchP75">$150k</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">75th %tile</div>
+              <div style="font-weight: 500; color: var(--text-main); font-size: 0.9375rem; font-variant-numeric: tabular-nums;" id="benchP75">$150k</div>
             </div>
-            <div style="background: rgba(34,211,200,0.15); border: 1px solid rgba(34,211,200,0.3); padding: 8px; border-radius: 4px;">
-              <div style="font-size: 0.7rem; color: var(--accent-teal);">Target Ask (+12%)</div>
-              <div style="font-weight: 800; color: var(--accent-teal); font-size: 0.9rem;" id="benchTarget">$146k</div>
+            <div style="background: var(--accent-teal-bg); border: 1px solid rgba(34, 211, 200, 0.25); padding: 8px; border-radius: 4px;">
+              <div style="font-size: 0.75rem; color: var(--accent-teal);">Target ask</div>
+              <div style="font-weight: 500; color: var(--accent-teal); font-size: 0.9375rem; font-variant-numeric: tabular-nums;" id="benchTarget">$146k</div>
             </div>
           </div>
         </div>
 
         <!-- Negotiation Templates List -->
-        <div id="counterTemplatesList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+        <div id="counterTemplatesList" style="display: flex; flex-direction: column; gap: 12px;"></div>
       </div>
     </div>
   </div>
